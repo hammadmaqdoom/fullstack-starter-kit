@@ -77,7 +77,7 @@ export default async function RootLayout(props: {
   });
 
   return (
-    <html lang={locale}>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <head>
         {/* Verification meta tags */}
         {Object.entries(verificationMeta).map(([name, content]) => (

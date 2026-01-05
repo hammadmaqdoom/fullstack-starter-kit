@@ -6,6 +6,12 @@ import { useRouter } from 'next/navigation';
 import { usePathname } from '@/libs/I18nNavigation';
 import { routing } from '@/libs/I18nRouting';
 
+const localeNames: Record<string, string> = {
+  en: 'English',
+  fr: 'Français',
+  ar: 'العربية',
+};
+
 export const LocaleSwitcher = () => {
   const router = useRouter();
   const pathname = usePathname();
@@ -25,7 +31,7 @@ export const LocaleSwitcher = () => {
     >
       {routing.locales.map(elt => (
         <option key={elt} value={elt}>
-          {elt.toUpperCase()}
+          {localeNames[elt] || elt.toUpperCase()}
         </option>
       ))}
     </select>

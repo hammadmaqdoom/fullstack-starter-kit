@@ -1,0 +1,104 @@
+{
+  "RootLayout": {
+    "home_link": "الرئيسية",
+    "about_link": "من نحن",
+    "features_link": "المميزات",
+    "portfolio_link": "الأعمال",
+    "sign_in_link": "تسجيل الدخول",
+    "sign_up_link": "إنشاء حساب"
+  },
+  "BaseTemplate": {
+    "description": "كود بداية لمشروع Next.js مع Tailwind CSS",
+    "made_with": "صنع بواسطة <author></author>."
+  },
+  "Index": {
+    "meta_title": "طقم البداية الشامل - Next.js و NestJS جاهز للإنتاج",
+    "meta_description": "طقم شامل وجاهز للإنتاج لبناء أي نوع من المشاريع البرمجية. Next.js 16، NestJS 10، TypeScript، PostgreSQL، Redis، Better Auth، والمزيد.",
+    "hero_title": "ابنِ تطبيقات جاهزة للإنتاج بشكل أسرع",
+    "hero_description": "طقم بداية شامل مع Next.js 16، NestJS 10، TypeScript، PostgreSQL و Better Auth. كل ما تحتاجه لإطلاق مشروعك التالي.",
+    "cta_get_started": "ابدأ الآن",
+    "cta_view_github": "عرض على GitHub",
+    "features_title": "كل ما تحتاجه لبناء تطبيقات رائعة",
+    "feature_modern_stack_title": "تقنيات حديثة",
+    "feature_modern_stack_description": "مبني باستخدام Next.js 16، NestJS 10، TypeScript و Tailwind CSS 4. أحدث التقنيات لأقصى إنتاجية.",
+    "feature_auth_title": "مصادقة كاملة",
+    "feature_auth_description": "تكامل Better Auth مع البريد الإلكتروني/كلمة المرور، OAuth، الروابط السحرية، passkeys و 2FA جاهزة للاستخدام.",
+    "feature_type_safety_title": "أمان كامل للأنواع",
+    "feature_type_safety_description": "TypeScript شامل مع الوضع الصارم. اكتشف الأخطاء في وقت الترجمة، وليس وقت التشغيل.",
+    "feature_database_title": "قاعدة بيانات إنتاجية",
+    "feature_database_description": "PostgreSQL مع TypeORM، التخزين المؤقت Redis، وترحيلات قاعدة البيانات. توسع من اليوم الأول.",
+    "feature_testing_title": "إعداد اختبار كامل",
+    "feature_testing_description": "Jest و Vitest و Playwright مُعدة. اكتب الاختبارات بثقة.",
+    "feature_production_title": "جاهز للإنتاج",
+    "feature_production_description": "Docker، المراقبة، تتبع الأخطاء، ونصوص النشر مضمنة. انشر بثقة.",
+    "tech_stack_title": "تقنيات قوية",
+    "cta_section_title": "جاهز لبناء شيء رائع؟",
+    "cta_section_description": "ابدأ بأساس متين وركز على ما يجعل تطبيقك فريدًا.",
+    "cta_start_building": "ابدأ البناء الآن",
+    "sponsors_title": "مدعوم من قبل"
+  },
+  "Features": {
+    "meta_title": "المميزات - طقم البداية الشامل",
+    "meta_description": "استكشف المميزات القوية لطقم البداية الخاص بنا: تقنيات حديثة، مصادقة، أمان الأنواع، والمزيد.",
+    "page_title": "مميزات قوية للتطبيقات الحديثة",
+    "page_description": "كل ما تحتاجه لبناء تطبيقات جاهزة للإنتاج، جاهز للاستخدام.",
+    "feature_fast_title": "سريع للغاية",
+    "feature_fast_description": "مُحسّن للأداء مع Next.js App Router، مكونات الخادم، واستراتيجيات التخزين المؤقت الفعالة.",
+    "feature_secure_title": "أمان على مستوى المؤسسات",
+    "feature_secure_description": "مصادقة مدمجة مع Better Auth، إدارة الجلسات، حماية CSRF، وأفضل ممارسات الأمان.",
+    "feature_responsive_title": "متجاوب بالكامل",
+    "feature_responsive_description": "واجهة مستخدم جميلة تعمل بسلاسة على جميع الأجهزة مع Tailwind CSS 4 والتصميم المتجاوب.",
+    "feature_modern_title": "تقنيات حديثة",
+    "feature_modern_description": "أحدث إصدارات Next.js 16، NestJS 10، TypeScript 5، وتقنيات متطورة أخرى.",
+    "feature_customizable_title": "قابل للتخصيص بشكل كبير",
+    "feature_customizable_description": "بنية نظيفة وتصميم معياري يجعل من السهل التخصيص والتوسع حسب احتياجاتك.",
+    "feature_international_title": "دعم اللغات المتعددة",
+    "feature_international_description": "دعم i18n مدمج مع next-intl لتجارب متعددة اللغات سلسة.",
+    "cta_title": "جاهز للبدء؟",
+    "cta_description": "انضم إلى المطورين الذين يبنون تطبيقات رائعة باستخدام طقم البداية الخاص بنا.",
+    "cta_button": "ابدأ البناء اليوم"
+  },
+  "About": {
+    "meta_title": "من نحن",
+    "meta_description": "صفحة من نحن",
+    "about_paragraph": "مرحبًا بك في صفحة من نحن! نحن فريق من الأفراد الشغوفين المكرسين لإنشاء برامج رائعة.",
+    "translation_powered_by": "الترجمة مدعومة بواسطة"
+  },
+  "Portfolio": {
+    "meta_title": "الأعمال",
+    "meta_description": "مرحبًا بك في صفحة أعمالي!",
+    "presentation": "مرحبًا بك في صفحة أعمالي! ستجد هنا مجموعة مختارة بعناية من أعمالي وإنجازاتي. من خلال هذا البورتفوليو، أهدف إلى عرض خبرتي وإبداعي والقيمة التي يمكنني تقديمها لمشاريعك.",
+    "portfolio_name": "أعمال {name}",
+    "error_reporting_powered_by": "الإبلاغ عن الأخطاء مدعوم بواسطة",
+    "coverage_powered_by": "تغطية الكود مدعومة بواسطة"
+  },
+  "PortfolioSlug": {
+    "meta_title": "أعمال {slug}",
+    "meta_description": "وصف أعمال {slug}",
+    "header": "أعمال {slug}",
+    "content": "أنشأنا مجموعة من المواد الترويجية وعناصر العلامة التجارية لحدث الشركات. صممنا موضوعًا موحدًا بصريًا، يشمل شعارًا وملصقات ولافتات وأصول رقمية. دمجنا هوية العلامة التجارية للعميل مع غرسها بنهج معاصر ومبتكر.",
+    "code_review_powered_by": "مراجعة الكود مدعومة بواسطة"
+  },
+  "SignIn": {
+    "meta_title": "تسجيل الدخول",
+    "meta_description": "سجل الدخول إلى حسابك بسلاسة من خلال عملية تسجيل دخول سهلة الاستخدام."
+  },
+  "SignUp": {
+    "meta_title": "إنشاء حساب",
+    "meta_description": "أنشئ حسابًا بسهولة من خلال عملية التسجيل البديهية لدينا."
+  },
+  "Dashboard": {
+    "meta_title": "لوحة التحكم",
+    "hello_message": "مرحبًا {email}!",
+    "alternative_message": "بحاجة إلى ميزات متقدمة؟ تعدد المستأجرين والفرق، الأدوار والأذونات، Shadcn UI، أمان الأنواع الشامل مع oRPC، الدفع عبر Stripe، الوضع الفاتح/الداكن. جرب <url></url>."
+  },
+  "UserProfile": {
+    "meta_title": "الملف الشخصي"
+  },
+  "DashboardLayout": {
+    "dashboard_link": "لوحة التحكم",
+    "user_profile_link": "إدارة حسابك",
+    "sign_out": "تسجيل الخروج"
+  }
+}
+
