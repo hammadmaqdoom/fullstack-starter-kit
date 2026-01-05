@@ -70,3 +70,7 @@ docs/.vuepress/dist
 
 src/tmp/**/*
 !src/tmp/.gitkeep
+
+# Uploads directory (local file storage)
+uploads/**/*
+!uploads/.gitkeep

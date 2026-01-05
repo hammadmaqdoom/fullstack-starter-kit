@@ -124,6 +124,23 @@ async function bootstrap() {
     },
   });
 
+  // Media uploads directory
+  app.useStaticAssets({
+    root: path.join(__dirname, '..', 'uploads'),
+    prefix: '/uploads',
+    setHeaders(res: any) {
+      res.setHeader(
+        'Access-Control-Allow-Origin',
+        configService.getOrThrow('app.corsOrigin', {
+          infer: true,
+        }),
+      );
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  });
+
   const reflector = app.get(Reflector);
   app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
 

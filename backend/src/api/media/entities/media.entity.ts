@@ -34,6 +34,9 @@ export class MediaEntity extends BaseModel {
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, any>;
 
+  @Column({ type: 'varchar', length: 20, default: 'local' })
+  storageType: string; // 's3' or 'local'
+
   @Index({ where: '"deletedAt" IS NULL' })
   @Column()
   uploadedByUserId: string;
