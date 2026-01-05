@@ -89,6 +89,7 @@
   },
   "Dashboard": {
     "meta_title": "Tableau de bord",
+    "meta_description": "Gérez votre compte et vos paramètres",
     "hello_message": "Bonjour {email}!",
     "alternative_message": "Besoin de fonctionnalités avancées ? Multi-tenant et équipes, rôles et permissions, Shadcn UI, typage de bout en bout avec oRPC, paiement Stripe, mode clair / sombre. Essayez <url></url>."
   },
@@ -97,7 +98,52 @@
   },
   "DashboardLayout": {
     "dashboard_link": "Tableau de bord",
-    "user_profile_link": "Gérer votre compte",
+    "security_link": "Sécurité",
+    "sessions_link": "Sessions",
+    "user_profile_link": "Profil",
     "sign_out": "Se déconnecter"
+  },
+  "ForgotPassword": {
+    "meta_title": "Mot de passe oublié",
+    "meta_description": "Réinitialisez votre mot de passe en entrant votre adresse e-mail"
+  },
+  "ResetPassword": {
+    "meta_title": "Réinitialiser le mot de passe",
+    "meta_description": "Créez un nouveau mot de passe pour votre compte"
+  },
+  "MagicLink": {
+    "meta_title": "Se connecter avec un lien magique",
+    "meta_description": "Connectez-vous à votre compte en utilisant un lien magique envoyé à votre e-mail"
+  },
+  "Security": {
+    "meta_title": "Paramètres de sécurité",
+    "meta_description": "Gérez votre mot de passe, l'authentification à deux facteurs et les paramètres de sécurité"
+  },
+  "Sessions": {
+    "meta_title": "Sessions actives",
+    "meta_description": "Affichez et gérez tous les appareils où vous êtes actuellement connecté"
+  },
+  "Footer": {
+    "tagline": "Créez des applications prêtes pour la production plus rapidement avec notre kit de démarrage fullstack complet.",
+    "product": "Produit",
+    "features": "Fonctionnalités",
+    "pricing": "Tarification",
+    "security": "Sécurité",
+    "changelog": "Journal des modifications",
+    "resources": "Ressources",
+    "documentation": "Documentation",
+    "api_reference": "Référence API",
+    "blog": "Blog",
+    "support": "Support",
+    "legal": "Légal",
+    "privacy_policy": "Politique de confidentialité",
+    "terms_of_service": "Conditions d'utilisation",
+    "cookie_policy": "Politique des cookies",
+    "all_rights_reserved": "Tous droits réservés."
+  },
+  "NotFound": {
+    "title": "404",
+    "message": "Cette page n'existe pas",
+    "back_home": "RETOUR À L'ACCUEIL"
   }
 }

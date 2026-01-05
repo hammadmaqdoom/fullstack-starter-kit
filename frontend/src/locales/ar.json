@@ -89,6 +89,7 @@
   },
   "Dashboard": {
     "meta_title": "لوحة التحكم",
+    "meta_description": "إدارة حسابك وإعداداتك",
     "hello_message": "مرحبًا {email}!",
     "alternative_message": "بحاجة إلى ميزات متقدمة؟ تعدد المستأجرين والفرق، الأدوار والأذونات، Shadcn UI، أمان الأنواع الشامل مع oRPC، الدفع عبر Stripe، الوضع الفاتح/الداكن. جرب <url></url>."
   },
@@ -97,8 +98,53 @@
   },
   "DashboardLayout": {
     "dashboard_link": "لوحة التحكم",
-    "user_profile_link": "إدارة حسابك",
+    "security_link": "الأمان",
+    "sessions_link": "الجلسات",
+    "user_profile_link": "الملف الشخصي",
     "sign_out": "تسجيل الخروج"
+  },
+  "ForgotPassword": {
+    "meta_title": "نسيت كلمة المرور",
+    "meta_description": "إعادة تعيين كلمة المرور الخاصة بك عن طريق إدخال عنوان بريدك الإلكتروني"
+  },
+  "ResetPassword": {
+    "meta_title": "إعادة تعيين كلمة المرور",
+    "meta_description": "إنشاء كلمة مرور جديدة لحسابك"
+  },
+  "MagicLink": {
+    "meta_title": "تسجيل الدخول برابط سحري",
+    "meta_description": "تسجيل الدخول إلى حسابك باستخدام رابط سحري يتم إرساله إلى بريدك الإلكتروني"
+  },
+  "Security": {
+    "meta_title": "إعدادات الأمان",
+    "meta_description": "إدارة كلمة المرور الخاصة بك، المصادقة الثنائية، وإعدادات الأمان"
+  },
+  "Sessions": {
+    "meta_title": "الجلسات النشطة",
+    "meta_description": "عرض وإدارة جميع الأجهزة التي قمت بتسجيل الدخول إليها حاليًا"
+  },
+  "Footer": {
+    "tagline": "ابنِ تطبيقات جاهزة للإنتاج بشكل أسرع مع طقم البداية الشامل الخاص بنا.",
+    "product": "المنتج",
+    "features": "المميزات",
+    "pricing": "الأسعار",
+    "security": "الأمان",
+    "changelog": "سجل التغييرات",
+    "resources": "الموارد",
+    "documentation": "التوثيق",
+    "api_reference": "مرجع API",
+    "blog": "المدونة",
+    "support": "الدعم",
+    "legal": "قانوني",
+    "privacy_policy": "سياسة الخصوصية",
+    "terms_of_service": "شروط الخدمة",
+    "cookie_policy": "سياسة ملفات تعريف الارتباط",
+    "all_rights_reserved": "جميع الحقوق محفوظة."
+  },
+  "NotFound": {
+    "title": "404",
+    "message": "هذه الصفحة غير موجودة",
+    "back_home": "العودة إلى الرئيسية"
   }
 }
 

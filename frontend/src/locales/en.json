@@ -122,5 +122,28 @@
   "Sessions": {
     "meta_title": "Active Sessions",
     "meta_description": "View and manage all devices where you're currently signed in"
+  },
+  "Footer": {
+    "tagline": "Build production-ready apps faster with our comprehensive fullstack starter kit.",
+    "product": "Product",
+    "features": "Features",
+    "pricing": "Pricing",
+    "security": "Security",
+    "changelog": "Changelog",
+    "resources": "Resources",
+    "documentation": "Documentation",
+    "api_reference": "API Reference",
+    "blog": "Blog",
+    "support": "Support",
+    "legal": "Legal",
+    "privacy_policy": "Privacy Policy",
+    "terms_of_service": "Terms of Service",
+    "cookie_policy": "Cookie Policy",
+    "all_rights_reserved": "All rights reserved."
+  },
+  "NotFound": {
+    "title": "404",
+    "message": "This page doesn't exist",
+    "back_home": "BACK TO HOME"
   }
 }
