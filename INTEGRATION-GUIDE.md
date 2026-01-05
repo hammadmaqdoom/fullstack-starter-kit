@@ -25,25 +25,41 @@ Before starting, ensure you have:
 ### Step 1: Start Backend
 
 ```bash
-# Terminal 1: Backend
+# Terminal 1: Backend API
 cd backend
 pnpm install
 pnpm migration:up
 pnpm start:dev
 ```
 
-Backend will run on: **http://localhost:3000**
+Backend API will run on: **http://localhost:3000**
+
+**Optional but Recommended - Start Worker:**
+
+```bash
+# Terminal 2: Backend Worker (for background jobs)
+cd backend
+pnpm start:worker:dev
+```
+
+Worker will run on: **http://localhost:3001**
+
+The worker processes background jobs like:
+- ✉️ Sending emails
+- 📊 Data processing
+- 🔄 Scheduled tasks
+- 📁 File processing
 
 ### Step 2: Start Frontend
 
 ```bash
-# Terminal 2: Frontend
+# Terminal 3: Frontend (or Terminal 2 if not running worker)
 cd frontend
 pnpm install
 pnpm dev
 ```
 
-Frontend will run on: **http://localhost:3001**
+Frontend will run on: **http://localhost:3001** (or 3002 if worker is on 3001)
 
 **Note**: The frontend does NOT require a database connection. All data is managed by the backend.
 
@@ -114,18 +130,20 @@ File: `backend/.env`
 ```bash
 # App
 NODE_ENV=development
-PORT=3000
+APP_PORT=3000
+APP_WORKER_PORT=3001
 API_PREFIX=api
 APP_URL=http://localhost:3000
+IS_WORKER=false  # Automatically set by npm scripts
 
-# Database
+# Database (shared by API and Worker)
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=postgres
 DATABASE_NAME=your_db_name
 
-# Redis
+# Redis (shared by API and Worker)
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
@@ -134,15 +152,23 @@ BETTER_AUTH_SECRET=your-secret-key-here
 BETTER_AUTH_URL=http://localhost:3000
 
 # CORS (Allow frontend)
-CORS_ORIGIN=http://localhost:3001,http://localhost:3000
+APP_CORS_ORIGIN=http://localhost:3001,http://localhost:3000
 
-# Email
+# Email (required for worker to send emails)
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USER=your-email@gmail.com
 MAIL_PASSWORD=your-app-password
 MAIL_FROM=noreply@yourapp.com
 ```
+
+**Worker Configuration Notes:**
+- The `IS_WORKER` environment variable is automatically set by npm scripts (`pnpm start:worker` or `pnpm start:worker:dev`)
+- Worker uses `APP_WORKER_PORT` (default: 3001)
+- Main API uses `APP_PORT` (default: 3000)
+- Both share the same database and Redis instance
+- Worker processes jobs from Redis queue
+- Worker does NOT expose API routes or GraphQL
 
 ### Frontend Configuration
 
@@ -291,16 +317,21 @@ curl -X POST http://localhost:3000/api/auth/sign-up/email \
 ### Test Full Flow
 
 ```bash
-# 1. Start backend
+# 1. Start backend API
 cd backend && pnpm start:dev
 
-# 2. Start frontend (new terminal)
+# 2. Start backend worker (new terminal)
+cd backend && pnpm start:worker:dev
+
+# 3. Start frontend (new terminal)
 cd frontend && pnpm dev
 
-# 3. Open browser
+# 4. Open browser
 open http://localhost:3001/sign-up
 
-# 4. Create account and verify flow
+# 5. Create account and verify flow
+# - Check MailDev at http://localhost:1080 for verification email
+# - Worker processes the email job in the background
 ```
 
 ## 🐛 Troubleshooting
@@ -358,12 +389,20 @@ open http://localhost:3001/sign-up
 
 ### Backend Monitoring
 
+**Main API Server (Port 3000):**
 - **Health Check**: http://localhost:3000/api/health
 - **Swagger Docs**: http://localhost:3000/api/docs
 - **GraphQL Playground**: http://localhost:3000/graphql
-- **Bull Board** (Queues): http://localhost:3000/queues
+- **Bull Board** (Queue Monitoring): http://localhost:3000/api/queues
 - **Prometheus Metrics**: http://localhost:3000/metrics
-- **Grafana**: http://localhost:3001 (if using Docker)
+
+**Worker Instance (Port 3001):**
+- **Health Check**: http://localhost:3001/api/health
+- **Worker Status**: Check Bull Board on main API
+
+**Monitoring Tools (if using Docker):**
+- **Grafana**: http://localhost:3002
+- **MailDev** (Email testing): http://localhost:1080
 
 ### Frontend Monitoring
 
@@ -376,10 +415,13 @@ open http://localhost:3001/sign-up
 ### Development
 
 ```bash
-# Backend
+# Backend API (Terminal 1)
 cd backend && pnpm start:dev
 
-# Frontend
+# Backend Worker (Terminal 2)
+cd backend && pnpm start:worker:dev
+
+# Frontend (Terminal 3)
 cd frontend && pnpm dev
 ```
 
@@ -387,20 +429,48 @@ cd frontend && pnpm dev
 
 #### Backend (NestJS)
 
+**Option 1: Manual (with PM2)**
+
 ```bash
 # Build
 cd backend
 pnpm build
 
-# Start
-pnpm start:prod
+# Start both API and Worker with PM2
+pm2 start pm2.config.json
+
+# Monitor
+pm2 monit
+
+# Scale workers if needed
+pm2 scale worker 3
 ```
 
-Or use Docker:
+**Option 2: Docker Compose (Recommended)**
 
 ```bash
 cd backend
 docker-compose -f docker-compose.prod.yml up -d
+
+# This starts:
+# - API server (port 3000)
+# - Worker instance(s) (auto-scaled)
+# - PostgreSQL
+# - Redis
+# - Grafana
+```
+
+**Option 3: Separate Processes**
+
+```bash
+# Terminal 1: API
+cd backend
+pnpm build
+pnpm start:prod
+
+# Terminal 2: Worker
+cd backend
+pnpm start:worker
 ```
 
 #### Frontend (Next.js)
@@ -430,12 +500,16 @@ pnpm start
 
 ```bash
 NODE_ENV=production
+APP_PORT=3000
+APP_WORKER_PORT=3001
 APP_URL=https://api.yourapp.com
-CORS_ORIGIN=https://yourapp.com
+APP_CORS_ORIGIN=https://yourapp.com
 DATABASE_HOST=your-db-host
 DATABASE_SSL_ENABLED=true
 REDIS_HOST=your-redis-host
 BETTER_AUTH_SECRET=strong-random-secret
+
+# Worker will use IS_WORKER=true (set by deployment script)
 ```
 
 #### Frontend
@@ -604,24 +678,41 @@ See [`CMS_IMPLEMENTATION_SUMMARY.md`](../CMS_IMPLEMENTATION_SUMMARY.md) for comp
 
 ## ✅ Integration Checklist
 
-- [ ] Backend is running on port 3000
-- [ ] Frontend is running on port 3001
+### Backend Setup
+- [ ] Backend API is running on port 3000
+- [ ] Backend Worker is running on port 3001 (optional but recommended)
 - [ ] PostgreSQL is running and migrations applied
-- [ ] Redis is running
-- [ ] CORS is configured in backend
-- [ ] `NEXT_PUBLIC_BACKEND_URL` is set in frontend
+- [ ] Redis is running (required for both API and Worker)
+- [ ] CORS is configured in backend (`APP_CORS_ORIGIN`)
 - [ ] Email service is configured (MailDev for dev)
+- [ ] Bull Board is accessible at `/api/queues`
+- [ ] Health checks pass for both API and Worker
+
+### Frontend Setup
+- [ ] Frontend is running on port 3001 (or 3002 if worker uses 3001)
+- [ ] `NEXT_PUBLIC_BACKEND_URL` is set in frontend `.env.local`
+
+### Authentication Flow
 - [ ] Can sign up a new user
+- [ ] Verification email is sent (check MailDev or worker logs)
 - [ ] Can verify email
 - [ ] Can sign in
 - [ ] Can access protected dashboard
 - [ ] Session persists across page refreshes
 - [ ] Can sign out
+
+### CMS Integration
 - [ ] CMS migrations applied (`pnpm migration:up` in backend)
 - [ ] Can access CMS admin UI (`/admin/cms/contents`)
 - [ ] Analytics configs can be managed via admin UI
 - [ ] Sitemap is accessible (`/sitemap.xml`)
 - [ ] Robots.txt is accessible (`/robots.txt`)
+
+### Worker Verification
+- [ ] Worker processes email jobs (check Bull Board)
+- [ ] Failed jobs can be retried from Bull Board
+- [ ] Worker logs show job processing
+- [ ] No jobs stuck in "active" state
 
 ## 🎉 Success!
 

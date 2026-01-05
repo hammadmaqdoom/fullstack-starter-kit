@@ -98,8 +98,11 @@ Create `.env` file in the backend directory:
 ```bash
 # App
 NODE_ENV=development
-PORT=3000
+APP_PORT=3000
+APP_WORKER_PORT=3001
 API_PREFIX=api
+APP_URL=http://localhost:3000
+IS_WORKER=false  # Set to true for worker instance
 
 # Database
 DATABASE_HOST=localhost
@@ -111,7 +114,7 @@ DATABASE_SYNCHRONIZE=false
 DATABASE_MAX_CONNECTIONS=100
 DATABASE_SSL_ENABLED=false
 
-# Redis
+# Redis (Required for both API and Worker)
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
@@ -126,7 +129,7 @@ AWS_S3_SECRET_ACCESS_KEY=
 AWS_S3_REGION=us-east-1
 AWS_S3_BUCKET=
 
-# Mail
+# Mail (Required for worker to send emails)
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USER=your-email@gmail.com
@@ -140,6 +143,14 @@ SENTRY_DSN=
 GRAFANA_USER=admin
 GRAFANA_PASSWORD=admin
 ```
+
+**Worker-Specific Configuration:**
+
+When running the worker instance, the `IS_WORKER` environment variable is automatically set by the npm script. The worker:
+- Uses `APP_WORKER_PORT` instead of `APP_PORT`
+- Loads only `WorkerModule` (background jobs)
+- Does NOT load API routes, GraphQL, or WebSocket adapters
+- Shares the same database and Redis with the main API server
 
 ### Installation
 
@@ -158,6 +169,8 @@ pnpm seed:run
 
 ### Development Mode
 
+#### Main API Server
+
 ```bash
 # Start with hot reload
 pnpm start:dev
@@ -166,14 +179,45 @@ pnpm start:dev
 pnpm start:debug
 ```
 
+#### Worker Instance (Background Jobs)
+
+The worker instance processes background jobs (emails, data processing, etc.) separately from the main API server:
+
+```bash
+# Start worker with hot reload
+pnpm start:worker:dev
+
+# Start worker in production mode
+pnpm start:worker
+```
+
+**Why separate worker?**
+- ✅ Better resource isolation
+- ✅ Independent scaling (scale API and workers separately)
+- ✅ Improved reliability (API stays responsive during heavy job processing)
+- ✅ Easier monitoring and debugging
+
+**Running both simultaneously:**
+
+```bash
+# Terminal 1: Main API Server
+pnpm start:dev
+
+# Terminal 2: Worker Instance
+pnpm start:worker:dev
+```
+
 ### Production Mode
 
 ```bash
 # Build
 pnpm build
 
-# Start production server
+# Start production API server
 pnpm start:prod
+
+# Start production worker (in separate process/container)
+pnpm start:worker
 ```
 
 ### Docker
@@ -308,25 +352,105 @@ Pre-configured dashboards in `src/tools/grafana/dashboards/`:
 - Database monitoring
 - Server monitoring
 
-## 🔄 Background Jobs
+## 🔄 Background Jobs & Worker Architecture
 
-Uses **BullMQ** for queue management.
+Uses **BullMQ** for queue management with a dedicated worker instance.
+
+### Architecture
+
+```
+┌─────────────────┐         ┌──────────┐         ┌─────────────────┐
+│   Main API      │────────▶│  Redis   │◀────────│  Worker         │
+│   (Port 3000)   │         │  Queue   │         │  (Port 3001)    │
+│                 │         └──────────┘         │                 │
+│ - REST API      │                              │ - Email Jobs    │
+│ - GraphQL       │                              │ - Data Jobs     │
+│ - WebSockets    │                              │ - Scheduled     │
+│ - Adds Jobs     │                              │ - Processes     │
+└─────────────────┘                              └─────────────────┘
+```
+
+### How It Works
+
+1. **Main API Server** (`pnpm start:dev`):
+   - Handles HTTP requests
+   - Adds jobs to Redis queue
+   - Does NOT process jobs
+
+2. **Worker Instance** (`pnpm start:worker:dev`):
+   - Processes jobs from Redis queue
+   - Sends emails
+   - Performs heavy computations
+   - Does NOT handle HTTP requests
 
 ### Create New Job
 
 ```typescript
-// Define job
+// 1. Define job processor (src/worker/queues/my-queue/)
 @Processor('my-queue')
 export class MyProcessor {
   @Process('my-job')
-  async handleJob(job: Job) {
-    // Process job
+  async handleJob(job: Job<{ data: string }>) {
+    console.log('Processing job:', job.data);
+    // Process job logic here
   }
 }
 
-// Add job to queue
-await this.myQueue.add('my-job', { data: 'value' });
+// 2. Add job to queue (from API controller/service)
+@Injectable()
+export class MyService {
+  constructor(
+    @InjectQueue('my-queue')
+    private readonly myQueue: Queue,
+  ) {}
+
+  async triggerJob() {
+    await this.myQueue.add('my-job', { data: 'value' });
+  }
+}
 ```
+
+### Running Workers
+
+**Development:**
+```bash
+# Terminal 1: API Server
+pnpm start:dev
+
+# Terminal 2: Worker
+pnpm start:worker:dev
+```
+
+**Production:**
+```bash
+# Using PM2 (recommended)
+pm2 start pm2.config.json
+
+# Or manually
+pnpm build
+pnpm start:prod  # API Server
+pnpm start:worker  # Worker (separate process)
+```
+
+**Docker:**
+```yaml
+# docker-compose.yml includes both services
+services:
+  api:
+    command: pnpm start:prod
+  worker:
+    command: pnpm start:worker
+```
+
+### Monitoring Jobs
+
+Access Bull Board at: http://localhost:3000/api/queues
+
+Features:
+- View active, waiting, completed, and failed jobs
+- Retry failed jobs
+- View job details and logs
+- Monitor queue metrics
 
 ## 🌐 WebSockets
 
@@ -387,25 +511,142 @@ pnpm graph:circular
 
 ### PM2 (Production)
 
+The `pm2.config.json` is configured to run both API and Worker instances:
+
 ```bash
-# Start with PM2
+# Start both API and Worker
 pm2 start pm2.config.json
 
-# Monitor
+# Monitor both processes
 pm2 monit
 
-# Logs
+# View logs
 pm2 logs
+
+# Restart specific instance
+pm2 restart api
+pm2 restart worker
+
+# Scale workers (if needed)
+pm2 scale worker 3  # Run 3 worker instances
+```
+
+**PM2 Configuration** (`pm2.config.json`):
+```json
+{
+  "apps": [
+    {
+      "name": "api",
+      "script": "dist/main.js",
+      "instances": 1,
+      "env": {
+        "NODE_ENV": "production",
+        "IS_WORKER": "false"
+      }
+    },
+    {
+      "name": "worker",
+      "script": "dist/main.js",
+      "instances": 2,
+      "env": {
+        "NODE_ENV": "production",
+        "IS_WORKER": "true"
+      }
+    }
+  ]
+}
 ```
 
 ### Docker
+
+#### Single Container (Development)
 
 ```bash
 # Build production image
 docker build -t your-app .
 
-# Run
+# Run API
 docker run -p 3000:3000 your-app
+
+# Run Worker (separate container)
+docker run -e IS_WORKER=true -p 3001:3001 your-app
+```
+
+#### Docker Compose (Recommended)
+
+```bash
+# Start all services (API + Worker + PostgreSQL + Redis)
+docker-compose -f docker-compose.prod.yml up -d
+
+# View logs
+docker-compose logs -f api
+docker-compose logs -f worker
+
+# Scale workers
+docker-compose up -d --scale worker=3
+```
+
+**Docker Compose Configuration** (`docker-compose.prod.yml`):
+```yaml
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - IS_WORKER=false
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build: .
+    environment:
+      - IS_WORKER=true
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      replicas: 2  # Run 2 worker instances
+```
+
+### Kubernetes
+
+```yaml
+# api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: api
+        image: your-app:latest
+        env:
+        - name: IS_WORKER
+          value: "false"
+        ports:
+        - containerPort: 3000
+
+---
+# worker-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 5  # Scale workers independently
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: your-app:latest
+        env:
+        - name: IS_WORKER
+          value: "true"
 ```
 
 ## 📚 Key Features

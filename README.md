@@ -91,6 +91,7 @@ A complete specification-driven development system for **any project type**:
 - ✅ TypeORM + PostgreSQL - Robust database
 - ✅ Redis - Caching & sessions
 - ✅ BullMQ - Background jobs
+- ✅ **Dedicated Worker Instance** - Separate process for background jobs
 - ✅ Better Auth - Authentication (JWT, OAuth, Passkeys, 2FA)
 - ✅ GraphQL + REST APIs - Flexible API options
 - ✅ React Email - Beautiful email templates

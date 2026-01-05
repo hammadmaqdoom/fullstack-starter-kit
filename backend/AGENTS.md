@@ -11,9 +11,27 @@ This document provides specific guidelines for AI agents working on the **backen
 - **API**: REST (Fastify) + GraphQL (Apollo)
 - **Cache**: Redis with cache-manager
 - **Queue**: BullMQ with Redis
+- **Worker**: Dedicated worker instance for background jobs
 - **Email**: Nodemailer + React Email templates
 - **Monitoring**: Prometheus + Grafana
 - **Testing**: Jest
+
+### Architecture
+
+This backend uses a **dual-instance architecture**:
+
+1. **Main API Server** (`pnpm start:dev`) - Port 3000
+   - Handles HTTP/GraphQL requests
+   - Adds jobs to Redis queue
+   - Does NOT process jobs
+
+2. **Worker Instance** (`pnpm start:worker:dev`) - Port 3001
+   - Processes background jobs
+   - Sends emails
+   - Performs heavy computations
+   - Does NOT handle HTTP requests
+
+Both share the same database and Redis instance.
 
 ## 📁 Backend Structure
 
@@ -409,23 +427,50 @@ export class AuthService {
 2. Build templates: `pnpm email:build`
 3. Preview: `pnpm email:dev`
 
-## 🔄 Background Jobs
+## 🔄 Background Jobs & Worker Architecture
+
+### Worker Instance
+
+This application uses a **dedicated worker instance** for processing background jobs:
+
+```bash
+# Terminal 1: API Server
+pnpm start:dev
+
+# Terminal 2: Worker Instance
+pnpm start:worker:dev
+```
+
+**See [WORKER-ARCHITECTURE.md](./WORKER-ARCHITECTURE.md) for complete documentation.**
 
 ### Creating Jobs
+
+#### Step 1: Create Job Processor (Worker Side)
+
 ```typescript
-// ✅ Good: Background job processor
+// ✅ Good: Background job processor in src/worker/queues/
 @Processor('email')
 export class EmailProcessor {
   constructor(private readonly mailService: MailService) {}
 
   @Process('send-welcome-email')
-  async handleWelcomeEmail(job: Job<{ userId: string }>) {
-    const user = await this.userService.findOne(job.data.userId);
-    await this.mailService.sendWelcomeEmail(user);
+  async handleWelcomeEmail(job: Job<{ userId: string; email: string }>) {
+    console.log(`Processing welcome email for ${job.data.email}`);
+    
+    await this.mailService.sendWelcomeEmail(
+      job.data.email,
+      job.data.userId,
+    );
+    
+    console.log(`Welcome email sent to ${job.data.email}`);
   }
 }
+```
 
-// Adding jobs to queue
+#### Step 2: Add Jobs to Queue (API Side)
+
+```typescript
+// ✅ Good: Adding jobs from API service
 @Injectable()
 export class UserService {
   constructor(
@@ -436,13 +481,24 @@ export class UserService {
   async create(dto: CreateUserDto): Promise<User> {
     const user = await this.userRepository.save(dto);
     
-    // Queue welcome email
-    await this.emailQueue.add('send-welcome-email', { userId: user.id });
+    // Queue welcome email (processed by worker)
+    await this.emailQueue.add('send-welcome-email', { 
+      userId: user.id,
+      email: user.email,
+    });
     
     return user;
   }
 }
 ```
+
+### Key Points
+
+- **API Server**: Adds jobs to Redis queue
+- **Worker Instance**: Processes jobs from Redis queue
+- **Separation**: API stays responsive during heavy job processing
+- **Monitoring**: Use Bull Board at `/api/queues` to monitor jobs
+- **Scaling**: Scale API and workers independently
 
 ## 🧪 Testing Patterns
 

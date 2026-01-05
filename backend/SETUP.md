@@ -77,6 +77,8 @@ pnpm seed:run
 
 ### 5. Start Backend
 
+#### Main API Server
+
 ```bash
 # Development mode with hot reload
 pnpm start:dev
@@ -87,6 +89,25 @@ Backend will be available at:
 - **Swagger Docs**: http://localhost:3000/api/docs
 - **GraphQL**: http://localhost:3000/graphql
 - **Health**: http://localhost:3000/api/health
+
+#### Worker Instance (Optional but Recommended)
+
+For background job processing (emails, data processing, etc.):
+
+```bash
+# In a new terminal
+pnpm start:worker:dev
+```
+
+Worker will be available at:
+- **Health Check**: http://localhost:3001/api/health
+- **Processes**: Email jobs, scheduled tasks, heavy computations
+
+**Why run a separate worker?**
+- ✅ API stays responsive during heavy job processing
+- ✅ Better resource utilization
+- ✅ Independent scaling
+- ✅ Improved monitoring and debugging
 
 ## 📋 What's Included
 
@@ -115,11 +136,13 @@ Backend will be available at:
 - Redis caching
 - BullMQ for background jobs
 - Bull Board for queue monitoring
+- **Dedicated Worker Instance** for job processing
 
 ### ✅ Email
 - Nodemailer integration
 - React Email templates
 - Template preview in development
+- Background email processing via worker
 
 ### ✅ Monitoring
 - Prometheus metrics
@@ -142,6 +165,12 @@ Backend will be available at:
 - CORS configuration
 - Input validation
 - SQL injection prevention
+
+### ✅ Worker Architecture
+- **Separate worker instance** for background jobs
+- Independent scaling of API and workers
+- Better resource isolation
+- Improved reliability and performance
 
 ## 🔧 Common Tasks
 

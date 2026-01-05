@@ -13,6 +13,8 @@
     "start": "concurrently -n api,email -c cyan,green 'nest start' 'pnpm email:build'",
     "start:dev": "concurrently -n api,email -c cyan,green 'nest start --watch' 'pnpm email:watch'",
     "start:debug": "concurrently -n api,email -c cyan,green 'nest start --debug --watch' 'pnpm email:watch'",
+    "start:worker": "cross-env IS_WORKER=true nest start",
+    "start:worker:dev": "cross-env IS_WORKER=true nest start --watch",
     "build": "nest build",
     "postbuild": "pnpm email:build && copyfiles -f ./src/generated/*.gql ./dist/generated",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules pnpm exec jest",
