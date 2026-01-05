@@ -2,7 +2,7 @@
   "RootLayout": {
     "home_link": "Home",
     "about_link": "About",
-    "counter_link": "Counter",
+    "features_link": "Features",
     "portfolio_link": "Portfolio",
     "sign_in_link": "Sign in",
     "sign_up_link": "Sign up"
@@ -37,19 +37,26 @@
     "cta_start_building": "Start Building Now",
     "sponsors_title": "Supported By"
   },
-  "Counter": {
-    "meta_title": "Counter",
-    "meta_description": "An example of DB operation",
-    "security_powered_by": "Security, bot detection and rate limiting powered by"
-  },
-  "CounterForm": {
-    "presentation": "The counter is stored in the database and incremented by the value you provide.",
-    "label_increment": "Increment by",
-    "button_increment": "Increment",
-    "error_increment_range": "Value must be between 1 and 3"
-  },
-  "CurrentCount": {
-    "count": "Count: {count}"
+  "Features": {
+    "meta_title": "Features - Fullstack Starter Kit",
+    "meta_description": "Explore the powerful features of our fullstack boilerplate: modern tech stack, authentication, type safety, and more.",
+    "page_title": "Powerful Features for Modern Apps",
+    "page_description": "Everything you need to build production-ready applications, out of the box.",
+    "feature_fast_title": "Lightning Fast",
+    "feature_fast_description": "Optimized for performance with Next.js App Router, server components, and efficient caching strategies.",
+    "feature_secure_title": "Enterprise Security",
+    "feature_secure_description": "Built-in authentication with Better Auth, session management, CSRF protection, and security best practices.",
+    "feature_responsive_title": "Fully Responsive",
+    "feature_responsive_description": "Beautiful UI that works seamlessly across all devices with Tailwind CSS 4 and mobile-first design.",
+    "feature_modern_title": "Modern Stack",
+    "feature_modern_description": "Latest versions of Next.js 16, NestJS 10, TypeScript 5, and other cutting-edge technologies.",
+    "feature_customizable_title": "Highly Customizable",
+    "feature_customizable_description": "Clean architecture and modular design make it easy to customize and extend for your needs.",
+    "feature_international_title": "Internationalization",
+    "feature_international_description": "Built-in i18n support with next-intl for seamless multi-language experiences.",
+    "cta_title": "Ready to Get Started?",
+    "cta_description": "Join developers who are building amazing applications with our starter kit.",
+    "cta_button": "Start Building Today"
   },
   "About": {
     "meta_title": "About",

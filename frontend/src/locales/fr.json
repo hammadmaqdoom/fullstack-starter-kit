@@ -2,7 +2,7 @@
   "RootLayout": {
     "home_link": "Accueil",
     "about_link": "A propos",
-    "counter_link": "Compteur",
+    "features_link": "Fonctionnalités",
     "portfolio_link": "Portfolio",
     "sign_in_link": "Se connecter",
     "sign_up_link": "S'inscrire"
@@ -37,19 +37,26 @@
     "cta_start_building": "Commencer à Construire Maintenant",
     "sponsors_title": "Soutenu Par"
   },
-  "Counter": {
-    "meta_title": "Compteur",
-    "meta_description": "Un exemple d'opération DB",
-    "security_powered_by": "Sécurité, détection de bot et rate limiting propulsés par"
-  },
-  "CounterForm": {
-    "presentation": "Le compteur est stocké dans la base de données et incrémenté par la valeur que vous fournissez.",
-    "label_increment": "Incrémenter de",
-    "button_increment": "Incrémenter",
-    "error_increment_range": "La valeur doit être entre 1 et 3"
-  },
-  "CurrentCount": {
-    "count": "Nombre : {count}"
+  "Features": {
+    "meta_title": "Fonctionnalités - Kit de Démarrage Fullstack",
+    "meta_description": "Découvrez les fonctionnalités puissantes de notre boilerplate fullstack : stack technologique moderne, authentification, sécurité des types, et plus encore.",
+    "page_title": "Fonctionnalités Puissantes pour Applications Modernes",
+    "page_description": "Tout ce dont vous avez besoin pour créer des applications prêtes pour la production, prêtes à l'emploi.",
+    "feature_fast_title": "Ultra Rapide",
+    "feature_fast_description": "Optimisé pour la performance avec Next.js App Router, composants serveur et stratégies de mise en cache efficaces.",
+    "feature_secure_title": "Sécurité Entreprise",
+    "feature_secure_description": "Authentification intégrée avec Better Auth, gestion de session, protection CSRF et meilleures pratiques de sécurité.",
+    "feature_responsive_title": "Entièrement Responsive",
+    "feature_responsive_description": "Interface utilisateur élégante qui fonctionne parfaitement sur tous les appareils avec Tailwind CSS 4 et design mobile-first.",
+    "feature_modern_title": "Stack Moderne",
+    "feature_modern_description": "Dernières versions de Next.js 16, NestJS 10, TypeScript 5 et autres technologies de pointe.",
+    "feature_customizable_title": "Hautement Personnalisable",
+    "feature_customizable_description": "Architecture propre et conception modulaire facilitent la personnalisation et l'extension selon vos besoins.",
+    "feature_international_title": "Internationalisation",
+    "feature_international_description": "Support i18n intégré avec next-intl pour des expériences multilingues fluides.",
+    "cta_title": "Prêt à Commencer ?",
+    "cta_description": "Rejoignez les développeurs qui créent des applications incroyables avec notre kit de démarrage.",
+    "cta_button": "Commencer Aujourd'hui"
   },
   "About": {
     "meta_title": "A propos",
