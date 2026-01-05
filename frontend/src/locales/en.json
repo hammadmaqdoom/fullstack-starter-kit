@@ -1,0 +1,96 @@
+{
+  "RootLayout": {
+    "home_link": "Home",
+    "about_link": "About",
+    "counter_link": "Counter",
+    "portfolio_link": "Portfolio",
+    "sign_in_link": "Sign in",
+    "sign_up_link": "Sign up"
+  },
+  "BaseTemplate": {
+    "description": "Starter code for your Nextjs Boilerplate with Tailwind CSS",
+    "made_with": "Made with <author></author>."
+  },
+  "Index": {
+    "meta_title": "Fullstack Starter Kit - Production-Ready Next.js & NestJS Boilerplate",
+    "meta_description": "A comprehensive, production-ready boilerplate for building any type of software project. Next.js 16, NestJS 10, TypeScript, PostgreSQL, Redis, Better Auth, and more.",
+    "hero_title": "Build Production-Ready Apps Faster",
+    "hero_description": "A comprehensive fullstack boilerplate with Next.js 16, NestJS 10, TypeScript, PostgreSQL, and Better Auth. Everything you need to ship your next project.",
+    "cta_get_started": "Get Started",
+    "cta_view_github": "View on GitHub",
+    "features_title": "Everything You Need to Build Great Apps",
+    "feature_modern_stack_title": "Modern Tech Stack",
+    "feature_modern_stack_description": "Built with Next.js 16, NestJS 10, TypeScript, and Tailwind CSS 4. Latest technologies for maximum productivity.",
+    "feature_auth_title": "Complete Authentication",
+    "feature_auth_description": "Better Auth integration with email/password, OAuth, magic links, passkeys, and 2FA out of the box.",
+    "feature_type_safety_title": "Full Type Safety",
+    "feature_type_safety_description": "End-to-end TypeScript with strict mode. Catch errors at compile time, not runtime.",
+    "feature_database_title": "Production Database",
+    "feature_database_description": "PostgreSQL with TypeORM, Redis caching, and database migrations. Scale from day one.",
+    "feature_testing_title": "Complete Testing Setup",
+    "feature_testing_description": "Jest, Vitest, and Playwright configured. Write tests with confidence.",
+    "feature_production_title": "Production Ready",
+    "feature_production_description": "Docker, monitoring, error tracking, and deployment scripts included. Ship with confidence.",
+    "tech_stack_title": "Powerful Tech Stack",
+    "cta_section_title": "Ready to Build Something Amazing?",
+    "cta_section_description": "Start with a solid foundation and focus on what makes your app unique.",
+    "cta_start_building": "Start Building Now",
+    "sponsors_title": "Supported By"
+  },
+  "Counter": {
+    "meta_title": "Counter",
+    "meta_description": "An example of DB operation",
+    "security_powered_by": "Security, bot detection and rate limiting powered by"
+  },
+  "CounterForm": {
+    "presentation": "The counter is stored in the database and incremented by the value you provide.",
+    "label_increment": "Increment by",
+    "button_increment": "Increment",
+    "error_increment_range": "Value must be between 1 and 3"
+  },
+  "CurrentCount": {
+    "count": "Count: {count}"
+  },
+  "About": {
+    "meta_title": "About",
+    "meta_description": "About page description",
+    "about_paragraph": "Welcome to our About page! We are a team of passionate individuals dedicated to creating amazing software.",
+    "translation_powered_by": "Translation powered by"
+  },
+  "Portfolio": {
+    "meta_title": "Portfolio",
+    "meta_description": "Welcome to my portfolio page!",
+    "presentation": "Welcome to my portfolio page! Here you will find a carefully curated collection of my work and accomplishments. Through this portfolio, I'm to showcase my expertise, creativity, and the value I can bring to your projects.",
+    "portfolio_name": "Portfolio {name}",
+    "error_reporting_powered_by": "Error reporting powered by",
+    "coverage_powered_by": "Code coverage powered by"
+  },
+  "PortfolioSlug": {
+    "meta_title": "Portfolio {slug}",
+    "meta_description": "Portfolio {slug} description",
+    "header": "Portfolio {slug}",
+    "content": "Created a set of promotional materials and branding elements for a corporate event. Crafted a visually unified theme, encompassing a logo, posters, banners, and digital assets. Integrated the client's brand identity while infusing it with a contemporary and innovative approach.",
+    "code_review_powered_by": "Code review powered by"
+  },
+  "SignIn": {
+    "meta_title": "Sign in",
+    "meta_description": "Seamlessly sign in to your account with our user-friendly login process."
+  },
+  "SignUp": {
+    "meta_title": "Sign up",
+    "meta_description": "Effortlessly create an account through our intuitive sign-up process."
+  },
+  "Dashboard": {
+    "meta_title": "Dashboard",
+    "hello_message": "Hello {email}!",
+    "alternative_message": "Need advanced features? Multi-tenancy & Teams, Roles & Permissions, Shadcn UI, End-to-End Typesafety with oRPC, Stripe Payment, Light / Dark mode. Try <url></url>."
+  },
+  "UserProfile": {
+    "meta_title": "User Profile"
+  },
+  "DashboardLayout": {
+    "dashboard_link": "Dashboard",
+    "user_profile_link": "Manage your account",
+    "sign_out": "Sign out"
+  }
+}

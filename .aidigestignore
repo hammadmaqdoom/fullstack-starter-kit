@@ -1,0 +1,114 @@
+# AI Digest Ignore File
+# Files and directories that AI agents should typically ignore
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Cache
+.cache/
+.tmp/
+tmp/
+.turbo/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Environment files (never read these)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.docker
+
+# Testing coverage
+coverage/
+.nyc_output/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Lock files (too large, not useful for understanding)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+generated/
+*.generated.*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+local.db
+
+# Docker volumes
+postgres-data/
+redis-data/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.mp3
+*.wav
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# Binary files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Git
+.git/
+.gitignore
+
+# Documentation that's too large
+docs/_legacy/
+
+# Test artifacts
+playwright-report/
+test-results/
+.playwright/
+
+# Storybook
+storybook-static/
+
+# Monitoring data
+prometheus-data/
+grafana-data/
+

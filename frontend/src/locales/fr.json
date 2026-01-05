@@ -1,0 +1,96 @@
+{
+  "RootLayout": {
+    "home_link": "Accueil",
+    "about_link": "A propos",
+    "counter_link": "Compteur",
+    "portfolio_link": "Portfolio",
+    "sign_in_link": "Se connecter",
+    "sign_up_link": "S'inscrire"
+  },
+  "BaseTemplate": {
+    "description": "Code de démarrage pour Next.js avec Tailwind CSS",
+    "made_with": "Fait avec <author></author>."
+  },
+  "Index": {
+    "meta_title": "Kit de Démarrage Fullstack - Boilerplate Next.js & NestJS Prêt pour la Production",
+    "meta_description": "Un boilerplate complet et prêt pour la production pour construire tout type de projet logiciel. Next.js 16, NestJS 10, TypeScript, PostgreSQL, Redis, Better Auth, et plus encore.",
+    "hero_title": "Créez des Applications Prêtes pour la Production Plus Rapidement",
+    "hero_description": "Un boilerplate fullstack complet avec Next.js 16, NestJS 10, TypeScript, PostgreSQL et Better Auth. Tout ce dont vous avez besoin pour lancer votre prochain projet.",
+    "cta_get_started": "Commencer",
+    "cta_view_github": "Voir sur GitHub",
+    "features_title": "Tout ce Dont Vous Avez Besoin pour Créer de Grandes Applications",
+    "feature_modern_stack_title": "Stack Technologique Moderne",
+    "feature_modern_stack_description": "Construit avec Next.js 16, NestJS 10, TypeScript et Tailwind CSS 4. Les dernières technologies pour une productivité maximale.",
+    "feature_auth_title": "Authentification Complète",
+    "feature_auth_description": "Intégration Better Auth avec email/mot de passe, OAuth, liens magiques, passkeys et 2FA prêts à l'emploi.",
+    "feature_type_safety_title": "Sécurité des Types Complète",
+    "feature_type_safety_description": "TypeScript de bout en bout avec mode strict. Détectez les erreurs à la compilation, pas à l'exécution.",
+    "feature_database_title": "Base de Données de Production",
+    "feature_database_description": "PostgreSQL avec TypeORM, mise en cache Redis et migrations de base de données. Évoluez dès le premier jour.",
+    "feature_testing_title": "Configuration de Test Complète",
+    "feature_testing_description": "Jest, Vitest et Playwright configurés. Écrivez des tests en toute confiance.",
+    "feature_production_title": "Prêt pour la Production",
+    "feature_production_description": "Docker, surveillance, suivi des erreurs et scripts de déploiement inclus. Déployez en toute confiance.",
+    "tech_stack_title": "Stack Technologique Puissante",
+    "cta_section_title": "Prêt à Créer Quelque Chose d'Incroyable ?",
+    "cta_section_description": "Commencez avec une base solide et concentrez-vous sur ce qui rend votre application unique.",
+    "cta_start_building": "Commencer à Construire Maintenant",
+    "sponsors_title": "Soutenu Par"
+  },
+  "Counter": {
+    "meta_title": "Compteur",
+    "meta_description": "Un exemple d'opération DB",
+    "security_powered_by": "Sécurité, détection de bot et rate limiting propulsés par"
+  },
+  "CounterForm": {
+    "presentation": "Le compteur est stocké dans la base de données et incrémenté par la valeur que vous fournissez.",
+    "label_increment": "Incrémenter de",
+    "button_increment": "Incrémenter",
+    "error_increment_range": "La valeur doit être entre 1 et 3"
+  },
+  "CurrentCount": {
+    "count": "Nombre : {count}"
+  },
+  "About": {
+    "meta_title": "A propos",
+    "meta_description": "A propos description",
+    "about_paragraph": "Bienvenue sur notre page À propos ! Nous sommes une équipe de passionnés et dévoués à la création de logiciels.",
+    "translation_powered_by": "Traduction propulsée par"
+  },
+  "Portfolio": {
+    "meta_title": "Portfolio",
+    "meta_description": "Bienvenue sur la page de mon portfolio !",
+    "presentation": "Bienvenue sur ma page portfolio ! Vous trouverez ici une collection soigneusement organisée de mon travail et de mes réalisations. À travers ce portfolio, je mets en valeur mon expertise, ma créativité et la valeur que je peux apporter à vos projets.",
+    "portfolio_name": "Portfolio {name}",
+    "error_reporting_powered_by": "Rapport d'erreur propulsé par",
+    "coverage_powered_by": "Couverture de code propulsée par"
+  },
+  "PortfolioSlug": {
+    "meta_title": "Portfolio {slug}",
+    "meta_description": "Description du Portfolio {slug}",
+    "header": "Portfolio {slug}",
+    "content": "Créé un ensemble de matériel promotionnel et d'éléments de marquage pour un événement d'entreprise. Conçu un thème visuellement unifié, englobant un logo, des affiches, des bannières et des actifs numériques. Intégrer l'identité de marque du client tout en l'insufflant à une approche contemporaine et innovante.",
+    "code_review_powered_by": "Code review propulsé par"
+  },
+  "SignIn": {
+    "meta_title": "Se connecter",
+    "meta_description": "Connectez-vous à votre compte avec facilité."
+  },
+  "SignUp": {
+    "meta_title": "S'inscrire",
+    "meta_description": "Créez un compte facilement grâce à notre processus d'inscription intuitif."
+  },
+  "Dashboard": {
+    "meta_title": "Tableau de bord",
+    "hello_message": "Bonjour {email}!",
+    "alternative_message": "Besoin de fonctionnalités avancées ? Multi-tenant et équipes, rôles et permissions, Shadcn UI, typage de bout en bout avec oRPC, paiement Stripe, mode clair / sombre. Essayez <url></url>."
+  },
+  "UserProfile": {
+    "meta_title": "Profil de l'utilisateur"
+  },
+  "DashboardLayout": {
+    "dashboard_link": "Tableau de bord",
+    "user_profile_link": "Gérer votre compte",
+    "sign_out": "Se déconnecter"
+  }
+}
