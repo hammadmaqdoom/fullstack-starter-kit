@@ -99,9 +99,9 @@ Create `.env` file in the backend directory:
 # App
 NODE_ENV=development
 APP_PORT=3000
-APP_WORKER_PORT=3001
+APP_WORKER_PORT=8001
 API_PREFIX=api
-APP_URL=http://localhost:3000
+APP_URL=http://localhost:8000
 IS_WORKER=false  # Set to true for worker instance
 
 # Database
@@ -121,7 +121,7 @@ REDIS_PASSWORD=
 
 # Auth (Better Auth)
 BETTER_AUTH_SECRET=your-secret-key-here
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:8000
 
 # AWS (if using S3)
 AWS_S3_ACCESS_KEY_ID=
@@ -237,12 +237,12 @@ pnpm docker:dev:down
 
 Once running, access:
 
-- **API**: http://localhost:3000/api
-- **Swagger Docs**: http://localhost:3000/api/docs
-- **GraphQL Playground**: http://localhost:3000/graphql
-- **Health Check**: http://localhost:3000/api/health
-- **Bull Board** (Queue monitoring): http://localhost:3000/queues
-- **Prometheus Metrics**: http://localhost:3000/metrics
+- **API**: http://localhost:8000/api
+- **Swagger Docs**: http://localhost:8000/api/docs
+- **GraphQL Playground**: http://localhost:8000/graphql
+- **Health Check**: http://localhost:8000/api/health
+- **Bull Board** (Queue monitoring): http://localhost:8000/queues
+- **Prometheus Metrics**: http://localhost:8000/metrics
 - **Grafana**: http://localhost:3001 (if using Docker)
 
 ## 🧪 Testing
@@ -361,7 +361,7 @@ Uses **BullMQ** for queue management with a dedicated worker instance.
 ```
 ┌─────────────────┐         ┌──────────┐         ┌─────────────────┐
 │   Main API      │────────▶│  Redis   │◀────────│  Worker         │
-│   (Port 3000)   │         │  Queue   │         │  (Port 3001)    │
+│   (Port 8000)   │         │  Queue   │         │  (Port 8001)    │
 │                 │         └──────────┘         │                 │
 │ - REST API      │                              │ - Email Jobs    │
 │ - GraphQL       │                              │ - Data Jobs     │
@@ -444,7 +444,7 @@ services:
 
 ### Monitoring Jobs
 
-Access Bull Board at: http://localhost:3000/api/queues
+Access Bull Board at: http://localhost:8000/api/queues
 
 Features:
 - View active, waiting, completed, and failed jobs

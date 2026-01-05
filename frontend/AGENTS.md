@@ -456,7 +456,7 @@ async function getUser(id: string): Promise<User> {
 
 // ❌ Bad: No error handling, no types
 async function getUser(id) {
-  const res = await fetch(`http://localhost:3000/api/users/${id}`);
+  const res = await fetch(`http://localhost:8000/api/users/${id}`);
   return res.json();
 }
 ```
@@ -819,7 +819,7 @@ Before implementing a frontend feature:
 ### Authentication Not Working
 ```bash
 # Check backend is running
-curl http://localhost:3000/api/health
+curl http://localhost:8000/api/health
 
 # Verify environment variable
 echo $NEXT_PUBLIC_BACKEND_URL

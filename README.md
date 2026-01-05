@@ -458,7 +458,7 @@ pnpm migration:up
 pnpm start:dev
 ```
 
-Backend runs on: **http://localhost:3000**
+Backend runs on: **http://localhost:8000**
 
 #### 3. Start Frontend
 
@@ -743,8 +743,9 @@ File: `backend/.env`
 ```bash
 # App
 NODE_ENV=development
-PORT=3000
-APP_URL=http://localhost:3000
+APP_PORT=8000
+APP_WORKER_PORT=8001
+APP_URL=http://localhost:8000
 
 # Database
 DATABASE_HOST=localhost
@@ -776,7 +777,7 @@ File: `frontend/.env.local`
 
 ```bash
 # Backend URL
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 # Optional: Analytics & Monitoring
 NEXT_PUBLIC_POSTHOG_KEY=
@@ -820,12 +821,12 @@ pnpm check:types
 
 ### Backend Services
 
-- **API**: http://localhost:3000/api
-- **Swagger Docs**: http://localhost:3000/api/docs
-- **GraphQL Playground**: http://localhost:3000/graphql
-- **Health Check**: http://localhost:3000/api/health
-- **Bull Board** (Queues): http://localhost:3000/queues
-- **Prometheus Metrics**: http://localhost:3000/metrics
+- **API**: http://localhost:8000/api
+- **Swagger Docs**: http://localhost:8000/api/docs
+- **GraphQL Playground**: http://localhost:8000/graphql
+- **Health Check**: http://localhost:8000/api/health
+- **Bull Board** (Queues): http://localhost:8000/queues
+- **Prometheus Metrics**: http://localhost:8000/metrics
 - **MailDev** (Email): http://localhost:1080
 
 ### Frontend
@@ -931,7 +932,7 @@ See [INTEGRATION-GUIDE.md](./INTEGRATION-GUIDE.md) for details.
 - Ensure `credentials: 'include'` in fetch calls
 
 ### Cannot Connect to Backend
-- Verify backend is running: `curl http://localhost:3000/api/health`
+- Verify backend is running: `curl http://localhost:8000/api/health`
 - Check `NEXT_PUBLIC_BACKEND_URL` in frontend `.env.local`
 - Check firewall settings
 

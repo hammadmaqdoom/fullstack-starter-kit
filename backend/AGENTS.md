@@ -20,12 +20,12 @@ This document provides specific guidelines for AI agents working on the **backen
 
 This backend uses a **dual-instance architecture**:
 
-1. **Main API Server** (`pnpm start:dev`) - Port 3000
+1. **Main API Server** (`pnpm start:dev`) - Port 8000
    - Handles HTTP/GraphQL requests
    - Adds jobs to Redis queue
    - Does NOT process jobs
 
-2. **Worker Instance** (`pnpm start:worker:dev`) - Port 3001
+2. **Worker Instance** (`pnpm start:worker:dev`) - Port 8001
    - Processes background jobs
    - Sends emails
    - Performs heavy computations

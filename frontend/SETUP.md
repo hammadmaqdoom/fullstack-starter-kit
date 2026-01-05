@@ -31,7 +31,7 @@ Create a `.env.local` file in the `frontend` directory:
 
 ```bash
 # Backend API URL (must match your backend URL)
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 # Optional: Analytics and Monitoring
 NEXT_PUBLIC_POSTHOG_KEY=
@@ -41,7 +41,7 @@ ARCJET_KEY=
 SENTRY_DSN=
 ```
 
-**Important**: The `NEXT_PUBLIC_BACKEND_URL` must point to your running backend server.
+**Important**: The `NEXT_PUBLIC_BACKEND_URL` must point to your running backend server (default port: 8000).
 
 ### Step 4: Run Database Migrations
 
@@ -129,7 +129,7 @@ The frontend needs to know where your backend is running:
 
 **Development**:
 ```bash
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 ```
 
 **Production**:
@@ -219,7 +219,7 @@ docker build -t frontend .
 
 # Run container
 docker run -p 3001:3001 \
-  -e NEXT_PUBLIC_BACKEND_URL=http://localhost:3000 \
+  -e NEXT_PUBLIC_BACKEND_URL=http://localhost:8000 \
   frontend
 ```
 
@@ -241,7 +241,7 @@ ARCJET_KEY=your-arcjet-key
 ### Issue: "Failed to sign in"
 
 **Solution**:
-1. Check backend is running: `curl http://localhost:3000/api/health`
+1. Check backend is running: `curl http://localhost:8000/api/health`
 2. Verify `NEXT_PUBLIC_BACKEND_URL` in `.env.local`
 3. Check browser console for errors
 4. Ensure CORS is configured in backend
@@ -257,7 +257,7 @@ ARCJET_KEY=your-arcjet-key
 ### Issue: "Cannot connect to backend"
 
 **Solution**:
-1. Ensure backend is running on port 3000
+1. Ensure backend is running on port 8000
 2. Check `NEXT_PUBLIC_BACKEND_URL` matches backend URL
 3. Verify firewall/network settings
 4. Check backend logs for errors

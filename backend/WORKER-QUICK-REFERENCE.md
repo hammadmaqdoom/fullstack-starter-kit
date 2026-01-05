@@ -6,8 +6,8 @@ Quick reference for working with the worker instance.
 
 ```bash
 # Development
-pnpm start:dev          # API Server (Port 3000)
-pnpm start:worker:dev   # Worker Instance (Port 3001)
+pnpm start:dev          # API Server (Port 8000)
+pnpm start:worker:dev   # Worker Instance (Port 8001)
 
 # Production
 pnpm build              # Build both
@@ -26,11 +26,11 @@ pm2 monit                   # Monitor both
 
 ```bash
 # Health Checks
-curl http://localhost:3000/api/health  # API
-curl http://localhost:3001/api/health  # Worker
+curl http://localhost:8000/api/health  # API
+curl http://localhost:8001/api/health  # Worker
 
 # Bull Board (Queue UI)
-open http://localhost:3000/api/queues
+open http://localhost:8000/api/queues
 
 # Logs
 pm2 logs api
@@ -144,13 +144,13 @@ await queue.add('job', data, {
 
 ```bash
 # 1. Check worker is running
-curl http://localhost:3001/api/health
+curl http://localhost:8001/api/health
 
 # 2. Check Redis
 redis-cli ping
 
 # 3. Check Bull Board
-open http://localhost:3000/api/queues
+open http://localhost:8000/api/queues
 
 # 4. Check logs
 pm2 logs worker

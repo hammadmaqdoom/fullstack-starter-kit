@@ -64,7 +64,7 @@ Create a `.env.local` file in the frontend directory:
 
 ```bash
 # Backend API URL (REQUIRED)
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 # Optional: PostHog Analytics
 NEXT_PUBLIC_POSTHOG_KEY=
@@ -109,7 +109,7 @@ pnpm migration:up
 pnpm start:dev
 ```
 
-Backend should be running on http://localhost:3000
+Backend should be running on http://localhost:8000
 
 ### Development Mode
 
@@ -266,7 +266,7 @@ Set `NEXT_PUBLIC_BACKEND_URL` in `.env.local`:
 
 ```bash
 # Development
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 # Production
 NEXT_PUBLIC_BACKEND_URL=https://api.yourapp.com
@@ -328,7 +328,7 @@ ARCJET_KEY=your-arcjet-key
 
 ## 🔗 Backend Integration Checklist
 
-- [ ] Backend is running on `http://localhost:3000`
+- [ ] Backend is running on `http://localhost:8000`
 - [ ] Backend CORS allows frontend URL
 - [ ] Environment variable `NEXT_PUBLIC_BACKEND_URL` is set
 - [ ] Database migrations are run on backend
@@ -338,7 +338,7 @@ ARCJET_KEY=your-arcjet-key
 
 ### Authentication Not Working
 
-1. Check backend is running: `curl http://localhost:3000/api/health`
+1. Check backend is running: `curl http://localhost:8000/api/health`
 2. Verify `NEXT_PUBLIC_BACKEND_URL` in `.env.local`
 3. Check browser console for errors
 4. Verify CORS settings in backend

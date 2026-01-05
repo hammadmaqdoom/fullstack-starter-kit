@@ -19,7 +19,7 @@ Both instances share the same codebase but load different modules based on the `
 │                                                             │
 │  ┌─────────────────────┐         ┌─────────────────────┐  │
 │  │   Main API Server   │         │  Worker Instance    │  │
-│  │   (Port 3000)       │         │  (Port 3001)        │  │
+│  │   (Port 8000)       │         │  (Port 8001)        │  │
 │  │                     │         │                     │  │
 │  │ ✅ REST API         │         │ ❌ REST API         │  │
 │  │ ✅ GraphQL          │         │ ❌ GraphQL          │  │
@@ -62,13 +62,13 @@ pnpm start:worker:dev
 
 ```bash
 # Check API Server
-curl http://localhost:3000/api/health
+curl http://localhost:8000/api/health
 
 # Check Worker
-curl http://localhost:3001/api/health
+curl http://localhost:8001/api/health
 
 # Monitor Jobs
-open http://localhost:3000/api/queues
+open http://localhost:8000/api/queues
 ```
 
 ## 📋 How It Works
@@ -317,7 +317,7 @@ export class MyFeatureModule {}
 
 Access the queue monitoring dashboard:
 
-**URL**: http://localhost:3000/api/queues
+**URL**: http://localhost:8000/api/queues
 
 Features:
 - ✅ View all queues
@@ -330,10 +330,10 @@ Features:
 
 ```bash
 # API Server Health
-curl http://localhost:3000/api/health
+curl http://localhost:8000/api/health
 
 # Worker Health
-curl http://localhost:3001/api/health
+curl http://localhost:8001/api/health
 ```
 
 ### Logs
@@ -519,7 +519,7 @@ spec:
 **Symptoms**: Jobs stuck in "waiting" state
 
 **Solutions**:
-1. Check worker is running: `curl http://localhost:3001/api/health`
+1. Check worker is running: `curl http://localhost:8001/api/health`
 2. Check Redis connection: `redis-cli ping`
 3. Check worker logs for errors
 4. Verify queue names match between API and worker

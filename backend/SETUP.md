@@ -25,7 +25,8 @@ cp .env.example .env
 ```env
 # App
 NODE_ENV=development
-PORT=3000
+APP_PORT=8000
+APP_WORKER_PORT=8001
 API_PREFIX=api
 
 # Database
@@ -42,7 +43,7 @@ REDIS_PORT=6379
 
 # Auth
 BETTER_AUTH_SECRET=your-secret-key-change-this
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:8000
 
 # Mail (optional for development)
 MAIL_HOST=smtp.gmail.com
@@ -85,10 +86,10 @@ pnpm start:dev
 ```
 
 Backend will be available at:
-- **API**: http://localhost:3000/api
-- **Swagger Docs**: http://localhost:3000/api/docs
-- **GraphQL**: http://localhost:3000/graphql
-- **Health**: http://localhost:3000/api/health
+- **API**: http://localhost:8000/api
+- **Swagger Docs**: http://localhost:8000/api/docs
+- **GraphQL**: http://localhost:8000/graphql
+- **Health**: http://localhost:8000/api/health
 
 #### Worker Instance (Optional but Recommended)
 
@@ -100,7 +101,7 @@ pnpm start:worker:dev
 ```
 
 Worker will be available at:
-- **Health Check**: http://localhost:3001/api/health
+- **Health Check**: http://localhost:8001/api/health
 - **Processes**: Email jobs, scheduled tasks, heavy computations
 
 **Why run a separate worker?**
@@ -219,7 +220,7 @@ Frontend can call REST endpoints:
 
 ```typescript
 // Frontend code
-const response = await fetch('http://localhost:3000/api/users/me', {
+const response = await fetch('http://localhost:8000/api/users/me', {
   headers: {
     'Authorization': `Bearer ${token}`
   }
@@ -235,7 +236,7 @@ Frontend uses Apollo Client:
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 
 const client = new ApolloClient({
-  uri: 'http://localhost:3000/graphql',
+  uri: 'http://localhost:8000/graphql',
   cache: new InMemoryCache()
 });
 ```
@@ -248,7 +249,7 @@ Frontend connects via Socket.IO:
 // Frontend code
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:3000');
+const socket = io('http://localhost:8000');
 ```
 
 ### Authentication
@@ -260,7 +261,7 @@ Use Better Auth client in frontend:
 import { createAuthClient } from 'better-auth/client';
 
 const authClient = createAuthClient({
-  baseURL: 'http://localhost:3000'
+  baseURL: 'http://localhost:8000'
 });
 ```
 
@@ -268,8 +269,8 @@ const authClient = createAuthClient({
 
 ### Access Monitoring Tools
 
-- **Bull Board** (Queue monitoring): http://localhost:3000/queues
-- **Prometheus Metrics**: http://localhost:3000/metrics
+- **Bull Board** (Queue monitoring): http://localhost:8000/queues
+- **Prometheus Metrics**: http://localhost:8000/metrics
 - **Grafana** (if using Docker): http://localhost:3001
   - Username: `admin`
   - Password: `admin`

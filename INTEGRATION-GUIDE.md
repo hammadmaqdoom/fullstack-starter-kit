@@ -6,10 +6,12 @@ Complete guide for integrating the Next.js frontend with the NestJS backend usin
 
 This project consists of:
 
-- **Backend**: NestJS with Better Auth, PostgreSQL, Redis
-- **Frontend**: Next.js 16 with Better Auth client
-- **Authentication**: Better Auth (shared between frontend and backend)
-- **Database**: PostgreSQL (shared)
+- **Backend**: NestJS with Better Auth server, PostgreSQL, Redis
+- **Frontend**: Next.js 16 with Better Auth client (Port 3001)
+- **Authentication**: Better Auth (server runs in NestJS backend only)
+- **Database**: PostgreSQL (accessed by backend only)
+
+**Important**: All authentication is handled by the NestJS backend. The Next.js frontend has NO API routes or authentication logic - it only acts as a client.
 
 ## 📋 Prerequisites
 
@@ -25,14 +27,14 @@ Before starting, ensure you have:
 ### Step 1: Start Backend
 
 ```bash
-# Terminal 1: Backend API
+# Terminal 1: Backend API (includes Better Auth)
 cd backend
 pnpm install
 pnpm migration:up
 pnpm start:dev
 ```
 
-Backend API will run on: **http://localhost:3000**
+Backend API will run on: **http://localhost:8000** (default, configurable via `APP_PORT`)
 
 **Optional but Recommended - Start Worker:**
 
@@ -42,7 +44,7 @@ cd backend
 pnpm start:worker:dev
 ```
 
-Worker will run on: **http://localhost:3001**
+Worker will run on: **http://localhost:8001** (default, configurable via `APP_WORKER_PORT`)
 
 The worker processes background jobs like:
 - ✉️ Sending emails
@@ -59,57 +61,88 @@ pnpm install
 pnpm dev
 ```
 
-Frontend will run on: **http://localhost:3001** (or 3002 if worker is on 3001)
+Frontend will run on: **http://localhost:3001** (default Next.js port)
 
-**Note**: The frontend does NOT require a database connection. All data is managed by the backend.
+**Note**: The frontend does NOT require:
+- Database connection
+- Redis connection
+- Auth secrets
+- Email configuration
+
+All of these are managed by the NestJS backend.
 
 ### Step 3: Test Authentication
 
 1. Open http://localhost:3001/sign-up
-2. Create an account
+2. Create an account (calls `http://localhost:8000/api/auth/sign-up/email`)
 3. Check MailDev at http://localhost:1080 for verification email
-4. Sign in at http://localhost:3001/sign-in
+4. Sign in at http://localhost:3001/sign-in (calls `http://localhost:8000/api/auth/sign-in/email`)
 5. Access dashboard at http://localhost:3001/dashboard
+
+**All auth requests go to the NestJS backend at port 8000.**
 
 ## 🔐 Authentication Flow
 
 ### How It Works
 
 ```
-┌─────────────┐         ┌─────────────┐         ┌──────────────┐
-│             │         │             │         │              │
-│  Frontend   │────────▶│   Backend   │────────▶│  PostgreSQL  │
-│  (Next.js)  │         │  (NestJS)   │         │              │
-│             │◀────────│             │◀────────│              │
-└─────────────┘         └─────────────┘         └──────────────┘
-      │                       │
-      │                       │
-      │                       ▼
-      │                 ┌──────────┐
-      │                 │  Redis   │
-      └─────────────────│ (Session)│
-                        └──────────┘
+┌─────────────────────────┐
+│   Next.js Frontend      │
+│   Port: 3001            │
+│                         │
+│   - Better Auth Client  │
+│   - UI Components       │
+│   - NO API routes       │
+│   - NO database         │
+└────────────┬────────────┘
+             │
+             │ All API calls
+             │ (credentials: 'include')
+             ▼
+┌─────────────────────────┐
+│   NestJS Backend        │
+│   Port: 8000            │
+│                         │
+│   - Better Auth Server  │
+│   - /api/auth/* routes  │
+│   - Business logic      │
+│   - Database access     │
+└────────────┬────────────┘
+             │
+             ├──────────────┐
+             │              │
+             ▼              ▼
+     ┌─────────────┐  ┌──────────┐
+     │ PostgreSQL  │  │  Redis   │
+     │             │  │          │
+     │ - Users     │  │ Sessions │
+     │ - Data      │  │ Cache    │
+     └─────────────┘  └──────────┘
 ```
 
 ### Authentication Steps
 
-1. **Sign Up** (Frontend → Backend):
-   - User fills sign-up form
-   - Frontend calls `POST /api/auth/sign-up/email`
-   - Backend creates user in PostgreSQL
-   - Backend sends verification email
+1. **Sign Up** (Frontend → NestJS Backend):
+   - User fills sign-up form on frontend
+   - Frontend calls `authClient.signUp.email()`
+   - Request sent to `POST http://localhost:8000/api/auth/sign-up/email`
+   - NestJS backend creates user in PostgreSQL
+   - NestJS backend queues verification email job
+   - Worker processes email job and sends email
 
 2. **Email Verification** (Backend):
    - User clicks link in email
    - Backend verifies email
    - User account is activated
 
-3. **Sign In** (Frontend → Backend):
-   - User fills sign-in form
-   - Frontend calls `POST /api/auth/sign-in/email`
-   - Backend validates credentials
-   - Backend creates session in Redis
-   - Backend sets HTTP-only cookie
+3. **Sign In** (Frontend → NestJS Backend):
+   - User fills sign-in form on frontend
+   - Frontend calls `authClient.signIn.email()`
+   - Request sent to `POST http://localhost:8000/api/auth/sign-in/email`
+   - NestJS backend validates credentials against PostgreSQL
+   - NestJS backend creates session in Redis
+   - NestJS backend sets HTTP-only cookie: `better-auth.session_token`
+   - Frontend receives user data and session
 
 4. **Session Management**:
    - Cookie: `better-auth.session_token`
@@ -117,9 +150,10 @@ Frontend will run on: **http://localhost:3001** (or 3002 if worker is on 3001)
    - Validated on: Every protected route
 
 5. **Protected Routes**:
-   - Frontend middleware checks cookie
-   - Backend validates session from Redis
-   - User accesses protected content
+   - Frontend checks session with `useSession()` hook
+   - For API calls, cookie automatically sent with `credentials: 'include'`
+   - NestJS backend validates session from Redis
+   - User accesses protected content or receives 401
 
 ## 🔧 Configuration
 
@@ -130,10 +164,10 @@ File: `backend/.env`
 ```bash
 # App
 NODE_ENV=development
-APP_PORT=3000
-APP_WORKER_PORT=3001
+APP_PORT=8000                    # NestJS backend port
+APP_WORKER_PORT=8001             # Worker port
 API_PREFIX=api
-APP_URL=http://localhost:3000
+APP_URL=http://localhost:8000
 IS_WORKER=false  # Automatically set by npm scripts
 
 # Database (shared by API and Worker)
@@ -149,10 +183,10 @@ REDIS_PORT=6379
 
 # Auth
 BETTER_AUTH_SECRET=your-secret-key-here
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:8000
 
-# CORS (Allow frontend)
-APP_CORS_ORIGIN=http://localhost:3001,http://localhost:3000
+# CORS (Allow frontend - REQUIRED)
+APP_CORS_ORIGIN=http://localhost:3001
 
 # Email (required for worker to send emails)
 MAIL_HOST=smtp.gmail.com
@@ -164,19 +198,19 @@ MAIL_FROM=noreply@yourapp.com
 
 **Worker Configuration Notes:**
 - The `IS_WORKER` environment variable is automatically set by npm scripts (`pnpm start:worker` or `pnpm start:worker:dev`)
-- Worker uses `APP_WORKER_PORT` (default: 3001)
-- Main API uses `APP_PORT` (default: 3000)
+- Worker uses `APP_WORKER_PORT` (default: 8001)
+- Main API uses `APP_PORT` (default: 8000)
 - Both share the same database and Redis instance
-- Worker processes jobs from Redis queue
-- Worker does NOT expose API routes or GraphQL
+- Worker processes jobs from Redis queue (emails, tasks, etc.)
+- Worker does NOT expose API routes, GraphQL, or Better Auth endpoints
 
 ### Frontend Configuration
 
 File: `frontend/.env.local`
 
 ```bash
-# Backend URL (REQUIRED - must match backend)
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+# Backend URL (REQUIRED - Points to NestJS backend)
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 # Optional: Analytics
 NEXT_PUBLIC_POSTHOG_KEY=
@@ -191,16 +225,17 @@ ARCJET_KEY=
 ```
 
 **Important Notes:**
-- The frontend does NOT need database credentials
-- All authentication is handled by the backend
-- All data fetching goes through the backend API
-- Session cookies are managed automatically by Better Auth
+- The frontend does NOT need database credentials, Redis credentials, or auth secrets
+- All authentication is handled by the NestJS backend at port 8000
+- All data fetching goes through the NestJS backend API
+- Session cookies are managed automatically by Better Auth (server-side in NestJS)
+- The frontend only needs `NEXT_PUBLIC_BACKEND_URL` to connect to the backend
 
 ## 🔗 API Endpoints
 
-### Better Auth Endpoints (Backend)
+### Better Auth Endpoints (NestJS Backend)
 
-All auth endpoints are available at `/api/auth/*`:
+All auth endpoints are served by the NestJS backend at `http://localhost:8000/api/auth/*`:
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
@@ -214,9 +249,9 @@ All auth endpoints are available at `/api/auth/*`:
 | `POST` | `/api/auth/two-factor/enable` | Enable 2FA |
 | `POST` | `/api/auth/passkey/register` | Register passkey |
 
-### Custom API Endpoints (Backend)
+### Custom API Endpoints (NestJS Backend)
 
-Add your custom endpoints in `backend/src/api/`:
+Add your custom endpoints in `backend/src/api/`. They will be available at `http://localhost:8000/api/*`:
 
 ```typescript
 // Example: backend/src/api/user/user.controller.ts
@@ -230,24 +265,34 @@ export class UserController {
 }
 ```
 
-### Calling Backend from Frontend
+### Calling NestJS Backend from Frontend
 
 ```typescript
 // Frontend: src/components/MyComponent.tsx
 'use client';
 
 import { useSession } from '@/libs/BetterAuth';
+import { Env } from '@/libs/Env';
 
 export function MyComponent() {
   const { data: session } = useSession();
 
   const fetchData = async () => {
+    // All API calls go to NestJS backend at port 8000
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/profile`,
+      `${Env.NEXT_PUBLIC_BACKEND_URL}/api/users/profile`,
       {
-        credentials: 'include', // Include cookies
+        credentials: 'include', // ⚠️ IMPORTANT: Include cookies for auth
+        headers: {
+          'Content-Type': 'application/json',
+        },
       }
     );
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch data');
+    }
+    
     const data = await response.json();
     return data;
   };
@@ -256,18 +301,27 @@ export function MyComponent() {
 }
 ```
 
+**⚠️ Critical**: Always use `credentials: 'include'` to send authentication cookies with requests.
+
 ## 🛡️ Security
 
 ### CORS Configuration
 
-Backend must allow frontend origin:
+NestJS backend must allow frontend origin:
 
 ```typescript
-// backend/src/main.ts
+// backend/src/main.ts (automatically configured from APP_CORS_ORIGIN)
 app.enableCors({
   origin: ['http://localhost:3001', 'https://yourapp.com'],
-  credentials: true, // Important for cookies
+  credentials: true, // ⚠️ CRITICAL: Required for cookies
+  methods: ['GET', 'PATCH', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 });
+```
+
+**Set in `.env`:**
+```bash
+APP_CORS_ORIGIN=http://localhost:3001,https://yourapp.com
 ```
 
 ### Cookie Security
@@ -293,16 +347,19 @@ BETTER_AUTH_SECRET=your-secret-key-here
 
 ## 🧪 Testing Integration
 
-### Test Backend
+### Test NestJS Backend
 
 ```bash
 # Check health
-curl http://localhost:3000/api/health
+curl http://localhost:8000/api/health
 
 # Test sign-up
-curl -X POST http://localhost:3000/api/auth/sign-up/email \
+curl -X POST http://localhost:8000/api/auth/sign-up/email \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123","name":"Test User"}'
+
+# Check Better Auth API reference
+open http://localhost:8000/api/auth/reference
 ```
 
 ### Test Frontend
@@ -338,12 +395,13 @@ open http://localhost:3001/sign-up
 
 ### Issue: CORS Error
 
-**Error**: "Access to fetch at 'http://localhost:3000' from origin 'http://localhost:3001' has been blocked by CORS"
+**Error**: "Access to fetch at 'http://localhost:8000' from origin 'http://localhost:3001' has been blocked by CORS"
 
 **Solution**:
-1. Check `CORS_ORIGIN` in backend `.env`
-2. Ensure it includes frontend URL
-3. Restart backend server
+1. Check `APP_CORS_ORIGIN` in `backend/.env` includes `http://localhost:3001`
+2. Ensure `credentials: true` is set in CORS config (it is by default)
+3. Restart NestJS backend server
+4. Clear browser cache and cookies
 
 ### Issue: Session Not Persisting
 
@@ -360,10 +418,11 @@ open http://localhost:3001/sign-up
 **Error**: "Failed to fetch" or "Network error"
 
 **Solution**:
-1. Verify backend is running: `curl http://localhost:3000/api/health`
-2. Check `NEXT_PUBLIC_BACKEND_URL` in frontend `.env.local`
-3. Ensure no firewall blocking port 3000
-4. Check backend logs for errors
+1. Verify NestJS backend is running: `curl http://localhost:8000/api/health`
+2. Check `NEXT_PUBLIC_BACKEND_URL` in `frontend/.env.local` is set to `http://localhost:8000`
+3. Check `APP_PORT` in `backend/.env` matches the URL
+4. Ensure no firewall blocking port 8000
+5. Check NestJS backend logs for errors
 
 ### Issue: Email Not Sending
 
@@ -389,16 +448,17 @@ open http://localhost:3001/sign-up
 
 ### Backend Monitoring
 
-**Main API Server (Port 3000):**
-- **Health Check**: http://localhost:3000/api/health
-- **Swagger Docs**: http://localhost:3000/api/docs
-- **GraphQL Playground**: http://localhost:3000/graphql
-- **Bull Board** (Queue Monitoring): http://localhost:3000/api/queues
-- **Prometheus Metrics**: http://localhost:3000/metrics
+**Main API Server (Port 8000):**
+- **Health Check**: http://localhost:8000/api/health
+- **Swagger Docs**: http://localhost:8000/api/docs
+- **GraphQL Playground**: http://localhost:8000/graphql
+- **Bull Board** (Queue Monitoring): http://localhost:8000/api/queues
+- **Better Auth API Reference**: http://localhost:8000/api/auth/reference
+- **Prometheus Metrics**: http://localhost:8000/metrics
 
-**Worker Instance (Port 3001):**
-- **Health Check**: http://localhost:3001/api/health
-- **Worker Status**: Check Bull Board on main API
+**Worker Instance (Port 8001):**
+- **Health Check**: http://localhost:8001/api/health
+- **Worker Status**: Check Bull Board on main API at http://localhost:8000/api/queues
 
 **Monitoring Tools (if using Docker):**
 - **Grafana**: http://localhost:3002
@@ -500,14 +560,15 @@ pnpm start
 
 ```bash
 NODE_ENV=production
-APP_PORT=3000
-APP_WORKER_PORT=3001
+APP_PORT=8000                    # Or your production port
+APP_WORKER_PORT=8001             # Or your production worker port
 APP_URL=https://api.yourapp.com
 APP_CORS_ORIGIN=https://yourapp.com
 DATABASE_HOST=your-db-host
 DATABASE_SSL_ENABLED=true
 REDIS_HOST=your-redis-host
 BETTER_AUTH_SECRET=strong-random-secret
+BETTER_AUTH_URL=https://api.yourapp.com
 
 # Worker will use IS_WORKER=true (set by deployment script)
 ```
@@ -515,6 +576,7 @@ BETTER_AUTH_SECRET=strong-random-secret
 #### Frontend
 
 ```bash
+# Points to your NestJS backend
 NEXT_PUBLIC_BACKEND_URL=https://api.yourapp.com
 ```
 
@@ -632,7 +694,7 @@ FRONTEND_URL=http://localhost:3001
 SITE_NAME=Your Site Name
 
 # Frontend
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 NEXT_PUBLIC_SITE_URL=http://localhost:3001
 ```
 
@@ -679,18 +741,21 @@ See [`CMS_IMPLEMENTATION_SUMMARY.md`](../CMS_IMPLEMENTATION_SUMMARY.md) for comp
 ## ✅ Integration Checklist
 
 ### Backend Setup
-- [ ] Backend API is running on port 3000
-- [ ] Backend Worker is running on port 3001 (optional but recommended)
+- [ ] NestJS backend API is running on port 8000 (or configured port)
+- [ ] Backend Worker is running on port 8001 (optional but recommended)
 - [ ] PostgreSQL is running and migrations applied
 - [ ] Redis is running (required for both API and Worker)
-- [ ] CORS is configured in backend (`APP_CORS_ORIGIN`)
-- [ ] Email service is configured (MailDev for dev)
+- [ ] CORS is configured in backend (`APP_CORS_ORIGIN` includes frontend URL)
+- [ ] Email service is configured (MailDev for dev, SMTP for production)
+- [ ] Better Auth is accessible at `/api/auth/*`
 - [ ] Bull Board is accessible at `/api/queues`
 - [ ] Health checks pass for both API and Worker
 
 ### Frontend Setup
-- [ ] Frontend is running on port 3001 (or 3002 if worker uses 3001)
-- [ ] `NEXT_PUBLIC_BACKEND_URL` is set in frontend `.env.local`
+- [ ] Frontend is running on port 3001 (default Next.js port)
+- [ ] `NEXT_PUBLIC_BACKEND_URL` is set to `http://localhost:8000` in `frontend/.env.local`
+- [ ] NO API routes exist in `frontend/src/app/[locale]/api/`
+- [ ] Better Auth client is configured to use `NEXT_PUBLIC_BACKEND_URL`
 
 ### Authentication Flow
 - [ ] Can sign up a new user

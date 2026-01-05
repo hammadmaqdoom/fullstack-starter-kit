@@ -186,7 +186,7 @@ cd backend
 pnpm install
 pnpm migration:up
 pnpm start:dev
-# Backend: http://localhost:3000
+# Backend: http://localhost:8000
 
 # 3. Start Frontend (new terminal)
 cd frontend
@@ -210,7 +210,7 @@ pnpm dev
 - ✅ Better Auth (email, OAuth, 2FA, passkeys)
 - ✅ REST API + GraphQL
 - ✅ Email templates
-- ✅ Swagger docs: http://localhost:3000/api/docs
+- ✅ Swagger docs: http://localhost:8000/api/docs
 - ✅ Monitoring: Prometheus + Grafana
 
 **Frontend**:

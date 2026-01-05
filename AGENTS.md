@@ -337,7 +337,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ❌ Bad: Hardcoded values
-const apiUrl = 'http://localhost:3000';
+const apiUrl = 'http://localhost:8000';
 ```
 
 ### Database Migrations
