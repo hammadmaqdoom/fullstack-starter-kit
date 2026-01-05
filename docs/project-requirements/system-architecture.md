@@ -66,6 +66,73 @@ Select your architecture style:
 - Can migrate to microservices later if needed
 - Sufficient for expected scale (< 100K users)
 
+### 1.3 CMS Architecture
+
+The system includes a comprehensive Content Management System (CMS) with the following architecture:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CMS Architecture                           │
+└─────────────────────────────────────────────────────────────┘
+
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│   Admin UI   │────────▶│   Backend    │────────▶│  PostgreSQL  │
+│  (Next.js)   │         │   (NestJS)   │         │   (CMS DB)   │
+└──────────────┘         └──────────────┘         └──────────────┘
+      │                        │
+      │                        ├──────────┐
+      │                        ▼          ▼
+      │                 ┌──────────┐  ┌──────────┐
+      │                 │  Redis   │  │   S3     │
+      │                 │ (Cache)  │  │ (Media)  │
+      │                 └──────────┘  └──────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Build Time (SSG/ISR)                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ Metadata │  │ Analytics│  │   SEO    │  │  JSON-LD │   │
+│  │ Generator│  │  Config  │  │ Metadata │  │ Generator│   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│       │             │             │             │            │
+│       └─────────────┴─────────────┴─────────────┘            │
+│                        │                                      │
+│                        ▼                                      │
+│              ┌──────────────────┐                            │
+│              │  HTML Generation │                            │
+│              │  (with injected  │                            │
+│              │   metadata)      │                            │
+│              └──────────────────┘                            │
+└─────────────────────────────────────────────────────────────┘
+      │
+      ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Public Pages (Next.js)                         │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │   Blog   │  │   Docs   │  │ Marketing│  │  Pages   │   │
+│  │  Pages   │  │  Pages   │  │  Pages   │  │          │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│       │             │             │             │            │
+│       └─────────────┴─────────────┴─────────────┘            │
+│                        │                                      │
+│                        ▼                                      │
+│              ┌──────────────────┐                            │
+│              │  SEO Optimized   │                            │
+│              │  HTML Output    │                            │
+│              │  (Meta tags,     │                            │
+│              │   JSON-LD,       │                            │
+│              │   Analytics)     │                            │
+│              └──────────────────┘                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Features**:
+- **Database-First Configuration**: All analytics IDs, verification codes, and feature flags stored in database
+- **Server-Side Metadata Injection**: Metadata fetched at build time and injected into HTML
+- **Dynamic Content Generation**: SSG/ISR for optimal performance
+- **Comprehensive SEO**: Meta tags, JSON-LD, sitemaps, robots.txt
+- **Multi-Platform Analytics**: GTM, GA4, Facebook, Pinterest, Yandex
+
 ---
 
 ## 2. Technology Stack
@@ -238,7 +305,41 @@ src/
 12. Frontend updates UI
 ```
 
-### 4.2 Request Flow (Write)
+### 4.2 CMS Metadata Flow (Build Time)
+
+```
+1. Next.js build starts (SSG/ISR)
+   ↓
+2. For each page, generateMetadata() is called
+   ↓
+3. Frontend fetches from backend API:
+   - GET /api/v1/seo/metadata/:contentId
+   - GET /api/v1/analytics/configs?active=true
+   - GET /api/v1/seo/verification
+   - GET /api/v1/structured-data/generate/:contentId
+   ↓
+4. Backend queries PostgreSQL for:
+   - SEO metadata
+   - Analytics configs
+   - Verification codes
+   - JSON-LD schemas
+   ↓
+5. Data cached in Redis (5 min TTL)
+   ↓
+6. Frontend generates Next.js Metadata object
+   ↓
+7. Metadata injected into HTML <head>
+   ↓
+8. Analytics scripts injected (GTM, GA4, etc.)
+   ↓
+9. JSON-LD scripts injected
+   ↓
+10. Verification meta tags added
+   ↓
+11. Static HTML generated with all metadata
+```
+
+### 4.3 Request Flow (Write)
 
 ```
 1. User submits form

@@ -683,19 +683,303 @@ psql -U postgres -d mydb < backup_2026-01-05.sql
 
 ---
 
+## 11. CMS System Tables
+
+### 11.1 Analytics Configuration Tables
+
+#### analytics_configs
+Stores analytics platform tracking IDs and configurations.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| platform | ENUM | NOT NULL | Platform type (GTM, GA4, FACEBOOK_PIXEL, etc.) |
+| name | VARCHAR(255) | NOT NULL | User-friendly name |
+| trackingId | VARCHAR(255) | NOT NULL | Tracking ID (GTM-XXXXXX, G-XXXXXXXXXX, etc.) |
+| isActive | BOOLEAN | DEFAULT true | Enable/disable flag |
+| environment | ENUM | DEFAULT 'all' | Environment (production, staging, development, all) |
+| additionalConfig | JSONB | NULL | Platform-specific settings |
+| priority | INT | DEFAULT 0 | Loading order |
+| createdByUserId | UUID | FK → users(id) | Creator reference |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
+
+**Indexes**:
+- INDEX on `platform`, `isActive`
+- INDEX on `environment`
+
+#### site_verification
+Stores platform verification codes.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| platform | ENUM | NOT NULL, UNIQUE | Platform (GOOGLE, BING, YANDEX, etc.) |
+| verificationCode | VARCHAR(255) | NOT NULL | Verification code |
+| metaTag | TEXT | NULL | Full meta tag HTML |
+| isVerified | BOOLEAN | DEFAULT false | Verification status |
+| verifiedAt | TIMESTAMP | NULL | Verification timestamp |
+| lastChecked | TIMESTAMP | NULL | Last check timestamp |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+#### custom_scripts
+Stores custom HTML/JS snippets.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| name | VARCHAR(255) | NOT NULL | Script name |
+| scriptContent | TEXT | NOT NULL | Raw HTML/JS code |
+| position | ENUM | DEFAULT 'head-end' | Injection position |
+| targetPages | JSONB | NULL | Page targeting rules |
+| contentTypes | JSONB | NULL | Content type filters |
+| priority | INT | DEFAULT 0 | Loading order |
+| isActive | BOOLEAN | DEFAULT true | Enable/disable flag |
+| environment | ENUM | DEFAULT 'all' | Environment filter |
+| createdByUserId | UUID | FK → users(id) | Creator reference |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+#### feature_flags
+Stores feature toggle configurations.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| flagName | VARCHAR(100) | NOT NULL, UNIQUE | Flag identifier |
+| description | TEXT | NULL | Flag description |
+| isEnabled | BOOLEAN | DEFAULT false | Enable/disable state |
+| environment | ENUM | DEFAULT 'all' | Environment filter |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+### 11.2 Content Management Tables
+
+#### contents
+Stores all content types (blog, page, docs, changelog).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| title | VARCHAR(255) | NOT NULL | Content title |
+| slug | VARCHAR(255) | NOT NULL, UNIQUE | URL-friendly slug |
+| content | TEXT | NOT NULL | Content body (Markdown/HTML) |
+| type | ENUM | NOT NULL | Content type (blog, page, docs, changelog) |
+| status | ENUM | DEFAULT 'draft' | Status (draft, review, published, archived) |
+| publishedAt | TIMESTAMP | NULL | Publication timestamp |
+| excerpt | VARCHAR(500) | NULL | Short description |
+| featuredImage | VARCHAR(500) | NULL | Featured image URL |
+| readingTime | INT | DEFAULT 0 | Reading time in minutes |
+| authorId | UUID | NOT NULL, FK → users(id) | Author reference |
+| categoryId | UUID | NULL, FK → categories(id) | Category reference |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
+
+**Indexes**:
+- INDEX on `type`, `status`
+- INDEX on `authorId`
+- INDEX on `categoryId`
+- INDEX on `publishedAt DESC`
+- COMPOSITE INDEX on `(status, publishedAt DESC)`
+
+#### categories
+Hierarchical category system.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| name | VARCHAR(255) | NOT NULL | Category name |
+| slug | VARCHAR(255) | NOT NULL, UNIQUE | URL-friendly slug |
+| description | TEXT | NULL | Category description |
+| parentId | UUID | NULL, FK → categories(id) | Parent category |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
+
+#### tags
+Content tagging system.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| name | VARCHAR(100) | NOT NULL, UNIQUE | Tag name |
+| slug | VARCHAR(100) | NOT NULL, UNIQUE | URL-friendly slug |
+| description | TEXT | NULL | Tag description |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
+
+#### content_tags
+Junction table for content-tag many-to-many relationship.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| contentId | UUID | FK → contents(id) | Content reference |
+| tagId | UUID | FK → tags(id) | Tag reference |
+
+**Primary Key**: (contentId, tagId)
+
+#### content_versions
+Content version history.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| contentId | UUID | NOT NULL, FK → contents(id) | Content reference |
+| title | VARCHAR(255) | NOT NULL | Version title |
+| contentData | TEXT | NOT NULL | Version content |
+| excerpt | VARCHAR(500) | NULL | Version excerpt |
+| metadata | JSONB | NULL | Version metadata |
+| versionNumber | VARCHAR(100) | NULL | Version identifier |
+| changeNote | TEXT | NULL | Change description |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+
+### 11.3 SEO Tables
+
+#### seo_metadata
+SEO metadata per content piece.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| contentId | UUID | NULL, FK → contents(id), UNIQUE | Content reference |
+| metaTitle | VARCHAR(255) | NULL | Meta title |
+| metaDescription | TEXT | NULL | Meta description |
+| metaKeywords | VARCHAR(500) | NULL | Meta keywords |
+| ogTitle | VARCHAR(255) | NULL | Open Graph title |
+| ogDescription | TEXT | NULL | Open Graph description |
+| ogImage | VARCHAR(500) | NULL | Open Graph image |
+| ogType | VARCHAR(50) | NULL | Open Graph type |
+| ogUrl | VARCHAR(255) | NULL | Open Graph URL |
+| ogSiteName | VARCHAR(100) | NULL | Open Graph site name |
+| twitterCard | VARCHAR(50) | NULL | Twitter card type |
+| twitterSite | VARCHAR(100) | NULL | Twitter site handle |
+| twitterCreator | VARCHAR(100) | NULL | Twitter creator handle |
+| twitterImage | VARCHAR(500) | NULL | Twitter image |
+| canonicalUrl | VARCHAR(500) | NULL | Canonical URL |
+| hreflang | JSONB | NULL | Hreflang mappings |
+| customMeta | JSONB | NULL | Custom meta tags |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+#### json_ld_schemas
+JSON-LD structured data schemas.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| schemaType | ENUM | NOT NULL | Schema type (Organization, Article, etc.) |
+| schemaData | JSONB | NOT NULL | Schema JSON data |
+| contentId | UUID | NULL, FK → contents(id) | Content reference |
+| isGlobal | BOOLEAN | DEFAULT false | Global vs content-specific |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+#### structured_data_templates
+Schema templates for auto-generation.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| schemaType | ENUM | NOT NULL | Schema type |
+| templateJSON | JSONB | NOT NULL | Template with placeholders |
+| contentTypeMapping | VARCHAR(100) | NULL | Content type mapping |
+| autoGenerate | BOOLEAN | DEFAULT false | Auto-apply flag |
+| isActive | BOOLEAN | DEFAULT true | Active flag |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+#### content_redirects
+URL redirect management.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| fromPath | VARCHAR(500) | NOT NULL, UNIQUE | Source path |
+| toPath | VARCHAR(500) | NOT NULL | Destination path |
+| type | ENUM | DEFAULT 301 | Redirect type (301, 302) |
+| isActive | BOOLEAN | DEFAULT true | Active flag |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+### 11.4 Media & Navigation Tables
+
+#### media
+Media library management.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| filename | VARCHAR(255) | NOT NULL | Original filename |
+| url | VARCHAR(500) | NOT NULL | Media URL (S3) |
+| mimeType | VARCHAR(100) | NULL | MIME type |
+| fileSize | BIGINT | NULL | File size in bytes |
+| width | INT | NULL | Image width |
+| height | INT | NULL | Image height |
+| altText | VARCHAR(500) | NULL | Alt text |
+| caption | TEXT | NULL | Caption |
+| title | VARCHAR(500) | NULL | Media title |
+| metadata | JSONB | NULL | Additional metadata |
+| uploadedByUserId | UUID | NOT NULL, FK → users(id) | Uploader reference |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
+
+#### navigation_menus
+Dynamic navigation menu management.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| name | VARCHAR(100) | NOT NULL | Menu name |
+| location | ENUM | NOT NULL | Menu location (header, footer, sidebar, mobile) |
+| items | JSONB | NOT NULL | Menu items structure |
+| locale | VARCHAR(10) | NULL | Locale filter |
+| isActive | BOOLEAN | DEFAULT true | Active flag |
+| order | INT | DEFAULT 0 | Display order |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
+
+### 11.5 Geo-Targeting Tables
+
+#### geo_settings
+Geo-targeting configuration.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY | Unique identifier |
+| countryCode | VARCHAR(10) | NOT NULL, UNIQUE | ISO country code |
+| languageCode | VARCHAR(10) | NOT NULL | ISO language code |
+| region | VARCHAR(50) | NULL | Region name |
+| timezone | VARCHAR(50) | NULL | Timezone |
+| currency | VARCHAR(10) | NULL | Currency code |
+| hreflangConfig | JSONB | NULL | Hreflang configuration |
+| regionalSchemaOverrides | JSONB | NULL | Schema overrides |
+| regionalAnalyticsOverrides | JSONB | NULL | Analytics overrides |
+| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
+
+**Indexes**:
+- UNIQUE INDEX on `countryCode`
+- INDEX on `languageCode`
+
 ## ✅ Completion Checklist
 
 Before moving to the next document:
 
-- [ ] ER diagram is complete and accurate
-- [ ] All tables are defined with proper data types
-- [ ] All relationships are documented (1:1, 1:N, N:M)
-- [ ] Foreign keys are defined with ON DELETE behavior
-- [ ] Indexes are planned for common queries
-- [ ] Database is normalized to at least 3NF
-- [ ] Constraints are defined (CHECK, UNIQUE, NOT NULL)
-- [ ] Sample data is provided for reference
-- [ ] Complete schema SQL is ready
+- [x] ER diagram is complete and accurate
+- [x] All tables are defined with proper data types
+- [x] All relationships are documented (1:1, 1:N, N:M)
+- [x] Foreign keys are defined with ON DELETE behavior
+- [x] Indexes are planned for common queries
+- [x] Database is normalized to at least 3NF
+- [x] Constraints are defined (CHECK, UNIQUE, NOT NULL)
+- [x] Sample data is provided for reference
+- [x] Complete schema SQL is ready
 
 ---
 

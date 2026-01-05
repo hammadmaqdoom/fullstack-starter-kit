@@ -444,6 +444,151 @@ BETTER_AUTH_SECRET=strong-random-secret
 NEXT_PUBLIC_BACKEND_URL=https://api.yourapp.com
 ```
 
+## 📝 CMS Integration
+
+### CMS Overview
+
+The boilerplate includes a complete Content Management System (CMS) with:
+- Content management (blog, pages, docs, changelog)
+- SEO optimization (meta tags, JSON-LD, sitemaps)
+- Analytics management (GTM, GA4, Facebook, Pinterest, Yandex)
+- Media library
+- Dynamic navigation menus
+
+### CMS Configuration
+
+**Important**: All CMS configuration is stored in the **database**, not environment variables:
+
+- Analytics tracking IDs (GTM, GA4, etc.)
+- Site verification codes (Google, Bing, Yandex, etc.)
+- Feature flags
+- Custom scripts
+
+This allows:
+- Dynamic updates without redeployment
+- Admin UI management
+- Environment-specific configs
+- A/B testing
+
+### CMS API Endpoints
+
+All CMS endpoints are prefixed with `/api/v1/`:
+
+**Content**:
+- `GET /api/v1/contents` - List contents
+- `GET /api/v1/contents/slug/:slug` - Get by slug
+- `POST /api/v1/contents` - Create content (admin)
+- `PATCH /api/v1/contents/:id` - Update content (admin)
+- `POST /api/v1/contents/:id/publish` - Publish content (admin)
+
+**Analytics**:
+- `GET /api/v1/analytics/configs` - Get analytics configs (public)
+- `POST /api/v1/analytics/configs` - Create config (admin)
+- `GET /api/v1/analytics/verification` - Get verification codes (public)
+- `GET /api/v1/analytics/custom-scripts` - Get custom scripts (public)
+
+**SEO**:
+- `GET /api/v1/seo/metadata/:contentId` - Get SEO metadata (public)
+- `GET /api/v1/seo/sitemap.xml` - Generate sitemap (public)
+- `GET /api/v1/seo/robots.txt` - Generate robots.txt (public)
+
+**Structured Data**:
+- `GET /api/v1/structured-data/generate/:contentId` - Generate JSON-LD (public)
+
+### Frontend CMS Usage
+
+#### Server-Side Metadata Generation
+
+```typescript
+// frontend/src/app/[locale]/(marketing)/blog/[slug]/page.tsx
+import { generateContentMetadata } from '@/libs/metadata-generator';
+
+export async function generateMetadata({ params }) {
+  return await generateContentMetadata(params.slug, params.locale);
+}
+```
+
+#### Analytics Injection
+
+Analytics are automatically injected in the root layout:
+
+```typescript
+// frontend/src/app/[locale]/layout.tsx
+const config = await loadRuntimeConfig();
+// GTM, GA4, verification tags automatically injected
+```
+
+#### Admin UI
+
+Access admin UI at:
+- `/admin/cms/contents` - Content management
+- `/admin/cms/analytics` - Analytics configuration
+- `/admin/cms/seo` - SEO settings
+- `/admin/cms/media` - Media library
+
+### CMS Database Setup
+
+After installing dependencies, generate and run migrations:
+
+```bash
+cd backend
+pnpm install
+pnpm migration:generate src/database/migrations/CreateCmsTables
+pnpm migration:up
+```
+
+This creates all CMS tables:
+- `analytics_configs`, `site_verification`, `custom_scripts`, `feature_flags`
+- `contents`, `categories`, `tags`, `content_versions`
+- `seo_metadata`, `json_ld_schemas`, `structured_data_templates`
+- `content_redirects`, `media`, `navigation_menus`, `geo_settings`
+
+### CMS Environment Variables
+
+Add to `.env` files:
+
+```bash
+# Backend
+FRONTEND_URL=http://localhost:3001
+SITE_NAME=Your Site Name
+
+# Frontend
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3001
+```
+
+**Note**: Analytics IDs and verification codes are stored in the database, not in `.env` files.
+
+### CMS Features
+
+#### Content Management
+- Create/edit/delete content
+- Publishing workflow (draft → review → published)
+- Version history with rollback
+- Categories and tags
+- Reading time calculation
+
+#### SEO Features
+- Complete meta tags (title, description, keywords)
+- Open Graph tags
+- Twitter Card tags
+- JSON-LD structured data (23+ schema types)
+- Dynamic sitemap.xml
+- Dynamic robots.txt
+- Hreflang support
+- Canonical URLs
+
+#### Analytics Features
+- Google Tag Manager (GTM)
+- Google Analytics 4 (GA4)
+- Facebook Pixel
+- Pinterest Tag
+- Yandex Metrica
+- Custom scripts injection
+- Site verification codes
+
+See [`CMS_IMPLEMENTATION_SUMMARY.md`](../CMS_IMPLEMENTATION_SUMMARY.md) for complete details.
+
 ## 📚 Additional Resources
 
 - [Backend Setup Guide](./BACKEND-SETUP.md)
@@ -467,6 +612,11 @@ NEXT_PUBLIC_BACKEND_URL=https://api.yourapp.com
 - [ ] Can access protected dashboard
 - [ ] Session persists across page refreshes
 - [ ] Can sign out
+- [ ] CMS migrations applied (`pnpm migration:up` in backend)
+- [ ] Can access CMS admin UI (`/admin/cms/contents`)
+- [ ] Analytics configs can be managed via admin UI
+- [ ] Sitemap is accessible (`/sitemap.xml`)
+- [ ] Robots.txt is accessible (`/robots.txt`)
 
 ## 🎉 Success!
 

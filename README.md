@@ -46,7 +46,7 @@ Comprehensive AI agent configuration for Cursor, Claude, GitHub Copilot, and oth
 - ✅ Mobile app backends
 - ✅ Admin dashboards
 - ✅ E-commerce platforms
-- ✅ Content management systems
+- ✅ Content management systems (CMS included!)
 - ✅ Real-time applications (WebSocket)
 - ✅ Multi-tenant applications
 - ✅ Any fullstack project
@@ -100,6 +100,15 @@ A complete specification-driven development system for **any project type**:
 - ✅ Docker + Docker Compose - Containerization
 - ✅ Swagger/OpenAPI - API documentation
 - ✅ Jest - Complete test setup
+- ✅ **CMS System** - Complete content management system
+  - Content management (blog, pages, docs, changelog)
+  - Media library with S3 integration
+  - SEO optimization (meta tags, JSON-LD, sitemaps)
+  - Analytics management (GTM, GA4, Facebook, Pinterest, Yandex)
+  - Multi-platform verification codes
+  - Custom scripts injection
+  - Feature flags system
+  - Geo-targeting and hreflang support
 
 ### 🎨 Production-Ready Frontend (Next.js 16)
 
@@ -115,6 +124,13 @@ A complete specification-driven development system for **any project type**:
 - ✅ Sentry - Error tracking (optional)
 - ✅ Arcjet - Security (optional)
 - ✅ Vitest + Playwright - Testing
+- ✅ **CMS Features** - Content management & SEO
+  - Blog system with categories and tags
+  - Dynamic sitemap and robots.txt generation
+  - Server-side metadata injection
+  - JSON-LD structured data
+  - Analytics integration (GTM, GA4, etc.)
+  - Admin UI for content management
 
 ## 🎓 Learning & Best Practices
 
@@ -153,6 +169,82 @@ This boilerplate is also an **educational resource**:
 - ✅ Process management (PM2)
 - ✅ CI/CD ready
 - ✅ Deployment scripts
+
+## 📝 Content Management System (CMS)
+
+This boilerplate includes a **complete CMS system** with advanced SEO and analytics features:
+
+### CMS Features
+
+#### Content Management
+- ✅ **Multiple Content Types**: Blog posts, pages, documentation, changelog
+- ✅ **Content Workflow**: Draft → Review → Published → Archived
+- ✅ **Version History**: Track all content changes with rollback capability
+- ✅ **Categories & Tags**: Hierarchical categories and flexible tagging
+- ✅ **Media Library**: Upload and manage media files with S3 integration
+- ✅ **Reading Time**: Automatic calculation for blog posts
+
+#### SEO Optimization
+- ✅ **Complete Meta Tags**: Title, description, keywords, Open Graph, Twitter Cards
+- ✅ **JSON-LD Structured Data**: Auto-generated schemas (Article, BlogPosting, WebPage, BreadcrumbList, etc.)
+- ✅ **Dynamic Sitemap**: Auto-generated sitemap.xml from published content
+- ✅ **Dynamic Robots.txt**: Configurable robots.txt generation
+- ✅ **Hreflang Support**: Multi-language SEO with hreflang tags
+- ✅ **Canonical URLs**: Prevent duplicate content issues
+- ✅ **URL Redirects**: 301/302 redirect management
+
+#### Analytics & Tracking
+- ✅ **Multi-Platform Analytics**: GTM, GA4, Facebook Pixel, Pinterest Tag, Yandex Metrica
+- ✅ **Database-Driven Config**: All tracking IDs stored in database (not env vars)
+- ✅ **Site Verification**: Google, Bing, Yandex, Facebook, Pinterest verification codes
+- ✅ **Custom Scripts**: Inject custom HTML/JS at any position (head/body, start/end)
+- ✅ **Feature Flags**: Toggle features per environment
+- ✅ **Environment-Specific**: Different configs for production/staging/development
+
+#### Geo-Targeting
+- ✅ **Hreflang Tags**: Automatic generation for multi-language content
+- ✅ **Geo-Specific Sitemaps**: Generate sitemaps per locale
+- ✅ **Regional Settings**: Country/language/timezone configuration
+- ✅ **Regional Schema Overrides**: Different structured data per region
+
+#### Admin UI
+- ✅ **Content Management**: Create, edit, publish, delete content
+- ✅ **Analytics Dashboard**: Manage all analytics platforms
+- ✅ **SEO Settings**: Configure SEO metadata and verification codes
+- ✅ **Media Library**: Upload, organize, and manage media files
+- ✅ **Navigation Menus**: Dynamic menu management
+
+### CMS Architecture
+
+**Database-First Configuration**: All analytics IDs, verification codes, and feature flags are stored in the database, allowing:
+- Dynamic updates without redeployment
+- Admin UI management
+- Environment-specific configurations
+- A/B testing capabilities
+
+**Server-Side Metadata Injection**: Metadata is fetched from the database at build time (SSG/ISR) and injected into HTML, ensuring:
+- SEO-optimized pages
+- Fast page loads
+- Search engine friendly
+
+**Comprehensive JSON-LD**: Supports 23+ schema types including:
+- Organization, WebSite, WebPage
+- Article, BlogPosting, NewsArticle
+- Product, Service, LocalBusiness
+- Event, Course, FAQPage, HowTo
+- And many more...
+
+### CMS API Endpoints
+
+All CMS endpoints are available at `/api/v1/`:
+
+- **Content**: `/contents`, `/contents/:slug`, `/contents/:id/publish`
+- **Analytics**: `/analytics/configs`, `/analytics/verification`, `/analytics/custom-scripts`
+- **SEO**: `/seo/metadata/:contentId`, `/seo/sitemap.xml`, `/seo/robots.txt`
+- **Structured Data**: `/structured-data/generate/:contentId`
+- **Media**: `/media`, `/media/upload`
+- **Navigation**: `/navigation`
+- **Geo**: `/geo/settings`, `/geo/hreflang/:contentId`
 
 ## 🤖 AI Agent Configuration
 

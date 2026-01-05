@@ -224,6 +224,13 @@ Build your project based on the specifications!
 2. Generate and review docs (15 min)
 3. Build with AI assistance (10-20 hours)
 
+## 📝 CMS Documentation
+
+This boilerplate includes a complete CMS system. See:
+
+- **[CMS Guide](./CMS-GUIDE.md)** - Complete guide for using the CMS
+- **[SEO Guide](./SEO-GUIDE.md)** - SEO configuration and best practices
+
 ## 📚 Resources
 
 ### Requirements Engineering

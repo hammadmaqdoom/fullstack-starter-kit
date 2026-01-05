@@ -854,7 +854,351 @@ If your API supports webhooks:
 
 ---
 
-## 10. Testing
+## 10. CMS API Endpoints
+
+### 10.1 Content Management
+
+#### List Contents
+```http
+GET /api/v1/contents?type=blog&status=published&limit=10&offset=0
+```
+
+**Query Parameters**:
+- `type` (optional): Content type (blog, page, docs, changelog)
+- `status` (optional): Content status (draft, review, published, archived)
+- `categoryId` (optional): Filter by category
+- `tagSlug` (optional): Filter by tag slug
+- `authorId` (optional): Filter by author
+- `search` (optional): Search in title/content
+- `limit` (optional): Pagination limit
+- `offset` (optional): Pagination offset
+
+**Response**:
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "title": "Blog Post Title",
+      "slug": "blog-post-title",
+      "content": "Markdown or HTML content",
+      "type": "blog",
+      "status": "published",
+      "publishedAt": "2026-01-05T10:00:00Z",
+      "excerpt": "Short description",
+      "featuredImage": "https://...",
+      "readingTime": 5,
+      "author": { "id": "uuid", "username": "author" },
+      "category": { "id": "uuid", "name": "Tech" },
+      "tags": [{ "id": "uuid", "name": "JavaScript" }]
+    }
+  ],
+  "meta": {
+    "total": 100,
+    "limit": 10,
+    "offset": 0
+  }
+}
+```
+
+#### Get Content by Slug
+```http
+GET /api/v1/contents/slug/:slug?includeDrafts=false
+```
+
+**Response**: Single content object (same structure as above)
+
+#### Create Content
+```http
+POST /api/v1/contents
+Authorization: Bearer <token>
+```
+
+**Request Body**:
+```json
+{
+  "title": "New Blog Post",
+  "slug": "new-blog-post",
+  "content": "Content body",
+  "type": "blog",
+  "status": "draft",
+  "excerpt": "Short description",
+  "featuredImage": "https://...",
+  "categoryId": "uuid",
+  "tagIds": ["uuid1", "uuid2"]
+}
+```
+
+#### Update Content
+```http
+PATCH /api/v1/contents/:id
+Authorization: Bearer <token>
+```
+
+**Request Body**: Partial content object (same fields as create)
+
+#### Publish Content
+```http
+POST /api/v1/contents/:id/publish
+Authorization: Bearer <token>
+```
+
+#### Delete Content
+```http
+DELETE /api/v1/contents/:id
+Authorization: Bearer <token>
+```
+
+### 10.2 Analytics Configuration
+
+#### Get Analytics Configs
+```http
+GET /api/v1/analytics/configs?active=true&environment=production
+```
+
+**Response**:
+```json
+[
+  {
+    "id": "uuid",
+    "platform": "GTM",
+    "name": "Production GTM",
+    "trackingId": "GTM-XXXXXX",
+    "isActive": true,
+    "environment": "production",
+    "priority": 0
+  }
+]
+```
+
+#### Create Analytics Config
+```http
+POST /api/v1/analytics/configs
+Authorization: Bearer <token>
+```
+
+**Request Body**:
+```json
+{
+  "platform": "GA4",
+  "name": "Production Analytics",
+  "trackingId": "G-XXXXXXXXXX",
+  "isActive": true,
+  "environment": "production",
+  "priority": 1
+}
+```
+
+#### Get Site Verifications
+```http
+GET /api/v1/analytics/verification
+```
+
+**Response**:
+```json
+[
+  {
+    "id": "uuid",
+    "platform": "GOOGLE",
+    "verificationCode": "abc123xyz",
+    "isVerified": true,
+    "verifiedAt": "2026-01-05T10:00:00Z"
+  }
+]
+```
+
+#### Get Custom Scripts
+```http
+GET /api/v1/analytics/custom-scripts?active=true&position=head-end
+```
+
+**Response**:
+```json
+[
+  {
+    "id": "uuid",
+    "name": "Custom Tracking",
+    "scriptContent": "<script>...</script>",
+    "position": "head-end",
+    "isActive": true,
+    "priority": 0
+  }
+]
+```
+
+#### Get Feature Flags
+```http
+GET /api/v1/analytics/feature-flags?environment=production
+```
+
+**Response**:
+```json
+[
+  {
+    "id": "uuid",
+    "flagName": "ENABLE_ANALYTICS",
+    "description": "Master switch for analytics",
+    "isEnabled": true,
+    "environment": "all"
+  }
+]
+```
+
+### 10.3 SEO Endpoints
+
+#### Get SEO Metadata
+```http
+GET /api/v1/seo/metadata/:contentId
+```
+
+**Response**:
+```json
+{
+  "id": "uuid",
+  "contentId": "uuid",
+  "metaTitle": "SEO Title",
+  "metaDescription": "SEO description",
+  "ogTitle": "OG Title",
+  "ogDescription": "OG description",
+  "ogImage": "https://...",
+  "canonicalUrl": "https://...",
+  "hreflang": [
+    { "locale": "en-US", "url": "https://..." }
+  ]
+}
+```
+
+#### Update SEO Metadata
+```http
+POST /api/v1/seo/metadata
+Authorization: Bearer <token>
+```
+
+**Request Body**: SEO metadata object (same structure as response)
+
+#### Get Sitemap
+```http
+GET /api/v1/seo/sitemap.xml?locale=en
+```
+
+**Response**: XML sitemap
+
+#### Get Robots.txt
+```http
+GET /api/v1/seo/robots.txt
+```
+
+**Response**: Plain text robots.txt
+
+### 10.4 Structured Data
+
+#### Generate JSON-LD
+```http
+GET /api/v1/structured-data/generate/:contentId
+```
+
+**Response**:
+```json
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Blog Post Title",
+    "datePublished": "2026-01-05T10:00:00Z"
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Blog Post Title"
+  }
+]
+```
+
+### 10.5 Media
+
+#### List Media
+```http
+GET /api/v1/media
+```
+
+**Response**:
+```json
+[
+  {
+    "id": "uuid",
+    "filename": "image.jpg",
+    "url": "https://s3.../image.jpg",
+    "mimeType": "image/jpeg",
+    "fileSize": 1024000,
+    "width": 1920,
+    "height": 1080,
+    "altText": "Description",
+    "uploadedBy": { "id": "uuid", "username": "user" }
+  }
+]
+```
+
+#### Upload Media
+```http
+POST /api/v1/media/upload
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**Request**: Form data with `file` field
+
+### 10.6 Navigation
+
+#### Get Navigation Menus
+```http
+GET /api/v1/navigation?location=header&locale=en
+```
+
+**Response**:
+```json
+[
+  {
+    "id": "uuid",
+    "name": "Main Menu",
+    "location": "header",
+    "items": [
+      {
+        "label": "Home",
+        "url": "/",
+        "children": []
+      }
+    ],
+    "locale": "en",
+    "isActive": true
+  }
+]
+```
+
+### 10.7 Geo-Targeting
+
+#### Get Geo Settings
+```http
+GET /api/v1/geo/settings
+```
+
+#### Get Hreflang Tags
+```http
+GET /api/v1/geo/hreflang/:contentId
+```
+
+**Response**:
+```json
+{
+  "tags": [
+    { "locale": "en-US", "url": "https://.../en-us/blog/post" },
+    { "locale": "en-GB", "url": "https://.../en-gb/blog/post" }
+  ]
+}
+```
+
+---
+
+## 11. Testing
 
 ### 10.1 Postman Collection
 
@@ -876,14 +1220,17 @@ Generate OpenAPI specification from this document:
 
 Before moving to the next document:
 
-- [ ] All endpoints are documented with request/response examples
-- [ ] Authentication method is clearly defined
-- [ ] Error responses are documented
-- [ ] HTTP status codes are specified
-- [ ] Rate limiting is defined
-- [ ] Pagination strategy is documented
-- [ ] Validation rules are specified
-- [ ] Success and error cases are covered
+- [x] All endpoints are documented with request/response examples
+- [x] Authentication method is clearly defined
+- [x] Error responses are documented
+- [x] HTTP status codes are specified
+- [x] Rate limiting is defined
+- [x] Pagination strategy is documented
+- [x] Validation rules are specified
+- [x] Success and error cases are covered
+- [x] CMS endpoints documented
+- [x] Analytics endpoints documented
+- [x] SEO endpoints documented
 
 ---
 
