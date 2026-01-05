@@ -1,0 +1,113 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+.turbo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+.jest-cache/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/vitest-test-results
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.docker.example
+.env.local
+.env*.local
+.env.sentry-build-plugin
+
+# OS files
+.DS_Store
+Thumbs.db
+*.pem
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Temporary files
+.temp
+.tmp
+tmp/
+src/tmp/**/*
+!src/tmp/.gitkeep
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Database
+*.db
+*.sqlite
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Docker
+.docker/**/*
+!.docker/.gitkeep
+
+# VuePress
+docs/.vuepress/.temp
+docs/.vuepress/.cache
+docs/.vuepress/dist
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Storybook
+storybook-static
+*storybook.log
+build-archive.log
+
+# Local folders
+local/
+
+# Package manager lock files (keep only one)
+# Uncomment the ones you want to ignore
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
