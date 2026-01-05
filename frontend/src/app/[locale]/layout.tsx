@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import { GTMProvider } from '@/components/analytics/GTMProvider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { CustomScriptsLoader } from '@/components/analytics/CustomScriptsLoader';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { BaseTemplate } from '@/templates/BaseTemplate';
+import { AuthenticatedTemplate } from '@/templates/AuthenticatedTemplate';
+import { Link } from '@/libs/I18nNavigation';
 import { loadRuntimeConfig, getMetaNameForPlatform } from '@/libs/config-loader';
 import { routing } from '@/libs/I18nRouting';
+import { getServerSession } from '@/libs/server-auth';
 import '@/styles/global.css';
 
 export const metadata: Metadata = {
@@ -51,6 +56,11 @@ export default async function RootLayout(props: {
 
   setRequestLocale(locale);
 
+  const t = await getTranslations({
+    locale,
+    namespace: 'RootLayout',
+  });
+
   // Load runtime config from database
   const config = await loadRuntimeConfig();
   
@@ -68,6 +78,90 @@ export default async function RootLayout(props: {
       verificationMeta[getMetaNameForPlatform(v.platform)] = v.verificationCode;
     }
   });
+
+  // Check if user is authenticated
+  const session = await getServerSession();
+  const isAuthenticated = !!session;
+
+  // Render content wrapper based on authentication state
+  const renderContent = (children: React.ReactNode) => {
+    if (isAuthenticated) {
+      return (
+        <AuthenticatedTemplate>
+          <div className="py-5 text-xl [&_p]:my-6">{children}</div>
+        </AuthenticatedTemplate>
+      );
+    }
+
+    // Logged-out users get the standard template with footer
+    return (
+      <BaseTemplate
+        leftNav={(
+          <>
+            <li>
+              <Link
+                href="/"
+                className="border-none text-gray-700 hover:text-gray-900"
+              >
+                {t('home_link')}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/about/"
+                className="border-none text-gray-700 hover:text-gray-900"
+              >
+                {t('about_link')}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/features/"
+                className="border-none text-gray-700 hover:text-gray-900"
+              >
+                {t('features_link')}
+              </Link>
+            </li>
+            <li>
+              <a
+                className="border-none text-gray-700 hover:text-gray-900"
+                href="https://github.com/hammadmaqdoom/fullstack-starter-kit.git"
+              >
+                GitHub
+              </a>
+            </li>
+          </>
+        )}
+        rightNav={(
+          <>
+            <li>
+              <Link
+                href="/sign-in/"
+                className="border-none text-gray-700 hover:text-gray-900"
+              >
+                {t('sign_in_link')}
+              </Link>
+            </li>
+
+            <li>
+              <Link
+                href="/sign-up/"
+                className="border-none text-gray-700 hover:text-gray-900"
+              >
+                {t('sign_up_link')}
+              </Link>
+            </li>
+
+            <li>
+              <LocaleSwitcher />
+            </li>
+          </>
+        )}
+      >
+        <div className="py-5 text-xl [&_p]:my-6">{children}</div>
+      </BaseTemplate>
+    );
+  };
 
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
@@ -88,7 +182,7 @@ export default async function RootLayout(props: {
                 <GoogleAnalytics measurementId={ga4Config.trackingId} />
               )}
               <PostHogProvider>
-                {props.children}
+                {renderContent(props.children)}
               </PostHogProvider>
             </GTMProvider>
           )}
@@ -98,7 +192,7 @@ export default async function RootLayout(props: {
                 <GoogleAnalytics measurementId={ga4Config.trackingId} />
               )}
               <PostHogProvider>
-                {props.children}
+                {renderContent(props.children)}
               </PostHogProvider>
             </>
           )}

@@ -76,7 +76,8 @@ export function ChangePasswordForm() {
             id="currentPassword"
             type="password"
             autoComplete="current-password"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            placeholder="Enter your current password"
           />
           {errors.currentPassword && (
             <p className="mt-1 text-sm text-red-600">{errors.currentPassword.message}</p>
@@ -92,7 +93,8 @@ export function ChangePasswordForm() {
             id="newPassword"
             type="password"
             autoComplete="new-password"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            placeholder="Enter your new password"
           />
           {errors.newPassword && (
             <p className="mt-1 text-sm text-red-600">{errors.newPassword.message}</p>
@@ -108,7 +110,8 @@ export function ChangePasswordForm() {
             id="confirmPassword"
             type="password"
             autoComplete="new-password"
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            placeholder="Confirm your new password"
           />
           {errors.confirmPassword && (
             <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>

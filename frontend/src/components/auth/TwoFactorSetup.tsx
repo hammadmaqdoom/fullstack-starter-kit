@@ -7,6 +7,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -24,10 +25,10 @@ import { useTwoFactorSetup, useTwoFactorVerification } from '@/libs/hooks';
 
 interface TwoFactorSetupProps {
   isEnabled: boolean;
-  onSuccess?: () => void;
 }
 
-export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
+export function TwoFactorSetup({ isEnabled }: TwoFactorSetupProps) {
+  const router = useRouter();
   const [step, setStep] = useState<'initial' | 'qr-code' | 'verify' | 'backup-codes'>('initial');
   const [totpUri, setTotpUri] = useState<string>('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -46,11 +47,8 @@ export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
   });
 
   // Verify TOTP Form
-  const verifyForm = useForm<VerifyTOTPFormData>({
+  const verifyForm = useForm({
     resolver: zodResolver(verifyTOTPSchema),
-    defaultValues: {
-      trustDevice: false,
-    },
   });
 
   // Generate Backup Codes Form
@@ -71,9 +69,14 @@ export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
 
   const handleVerify = async (data: VerifyTOTPFormData) => {
     try {
-      await verifyTOTP(data);
+      // Ensure trustDevice has a value (defaults to false from schema)
+      const submitData = {
+        code: data.code,
+        trustDevice: data.trustDevice ?? false,
+      };
+      await verifyTOTP(submitData);
       setStep('backup-codes');
-      onSuccess?.();
+      router.refresh();
     } catch (err) {
       console.error('Failed to verify TOTP:', err);
     }
@@ -83,7 +86,7 @@ export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
     try {
       await disableTwoFactor(data);
       setStep('initial');
-      onSuccess?.();
+      router.refresh();
     } catch (err) {
       console.error('Failed to disable 2FA:', err);
     }
@@ -128,7 +131,8 @@ export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
                   {...disableForm.register('password')}
                   id="disable-password"
                   type="password"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                  placeholder="Enter your password"
                 />
                 {disableForm.formState.errors.password && (
                   <p className="mt-1 text-sm text-red-600">
@@ -153,8 +157,8 @@ export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
                   <input
                     {...backupForm.register('password')}
                     type="password"
-                    placeholder="Enter password"
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="Enter your password"
+                    className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                   />
                 </div>
                 <button
@@ -217,7 +221,8 @@ export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
                 {...enableForm.register('password')}
                 id="enable-password"
                 type="password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                placeholder="Enter your password"
               />
               {enableForm.formState.errors.password && (
                 <p className="mt-1 text-sm text-red-600">
@@ -303,7 +308,7 @@ export function TwoFactorSetup({ isEnabled, onSuccess }: TwoFactorSetupProps) {
                 id="code"
                 type="text"
                 maxLength={6}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
                 placeholder="000000"
               />
               {verifyForm.formState.errors.code && (

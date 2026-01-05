@@ -42,12 +42,7 @@ export default async function SecurityPage(props: ISecurityPageProps) {
         {/* Two-Factor Authentication Section */}
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Two-Factor Authentication</h2>
-          <TwoFactorSetup
-            isEnabled={false}
-            onSuccess={() => {
-              window.location.reload();
-            }}
-          />
+          <TwoFactorSetup isEnabled={false} />
         </div>
 
         {/* Sessions Link */}

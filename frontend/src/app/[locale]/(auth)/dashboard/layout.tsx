@@ -1,75 +1,22 @@
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
-import { SignOutButton } from '@/components/auth/SignOutButton';
-import { BaseTemplate } from '@/templates/BaseTemplate';
-import { Link } from '@/libs/I18nNavigation';
+import { setRequestLocale } from 'next-intl/server';
 
+/**
+ * Dashboard Layout
+ * 
+ * This layout is intentionally minimal - it just sets the locale.
+ * The root layout ([locale]/layout.tsx) handles the authentication-based
+ * template rendering (AuthenticatedTemplate vs BaseTemplate).
+ * 
+ * For authenticated users, the root layout will render AuthenticatedTemplate
+ * which includes the AuthenticatedNavbar (no footer).
+ */
 export default async function DashboardLayout(props: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await props.params;
   setRequestLocale(locale);
-  const t = await getTranslations({
-    locale,
-    namespace: 'DashboardLayout',
-  });
 
-  return (
-    <BaseTemplate
-      leftNav={(
-        <>
-          <li>
-            <Link
-              href="/dashboard"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('dashboard_link')}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/dashboard/security"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('security_link')}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/dashboard/sessions"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('sessions_link')}
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/dashboard/user-profile"
-              className="border-none text-gray-700 hover:text-gray-900"
-            >
-              {t('user_profile_link')}
-            </Link>
-          </li>
-        </>
-      )}
-      rightNav={(
-        <>
-          <li>
-            <SignOutButton>
-              <span className="border-none text-gray-700 hover:text-gray-900">
-                {t('sign_out')}
-              </span>
-            </SignOutButton>
-          </li>
-
-          <li>
-            <LocaleSwitcher />
-          </li>
-        </>
-      )}
-    >
-      {props.children}
-    </BaseTemplate>
-  );
+  // Just return children - let the root layout handle the template
+  return props.children;
 }
