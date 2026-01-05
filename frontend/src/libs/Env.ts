@@ -9,7 +9,7 @@ export const Env = createEnv({
     ARCJET_KEY: z.string().optional(),
   },
   client: {
-    NEXT_PUBLIC_BACKEND_URL: z.string().url().optional().default('http://localhost:3000'),
+    NEXT_PUBLIC_BACKEND_URL: z.string().url(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
   },

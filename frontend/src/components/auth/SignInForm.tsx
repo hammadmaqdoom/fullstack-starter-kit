@@ -4,53 +4,42 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { authClient } from '@/libs/BetterAuth';
-
-const signInSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-});
-
-type SignInFormData = z.infer<typeof signInSchema>;
+import { signInEmailSchema, type SignInEmailFormData } from '@/validations/auth.validation';
+import { useSignIn } from '@/libs/hooks';
+import Link from 'next/link';
 
 export function SignInForm({ locale }: { locale: string }) {
   const router = useRouter();
+  const { signInWithEmail, isLoading, error: signInError } = useSignIn();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<SignInEmailFormData>({
+    resolver: zodResolver(signInEmailSchema),
+    defaultValues: {
+      rememberMe: true,
+    },
+  });
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
-  });
+  } = form;
 
-  const onSubmit = async (data: SignInFormData) => {
-    setIsLoading(true);
+  const onSubmit = async (data: SignInEmailFormData) => {
     setError(null);
 
     try {
-      const result = await authClient.signIn.email({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (result.error) {
-        setError(result.error.message || 'Failed to sign in');
-        return;
-      }
-
+      await signInWithEmail(data);
       // Redirect to dashboard
       const dashboardUrl = locale === 'en' ? '/dashboard' : `/${locale}/dashboard`;
       router.push(dashboardUrl);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const displayError = error || signInError?.message;
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -60,9 +49,9 @@ export function SignInForm({ locale }: { locale: string }) {
         </h2>
       </div>
       <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        {error && (
+        {displayError && (
           <div className="rounded-md bg-red-50 p-4">
-            <p className="text-sm text-red-800">{error}</p>
+            <p className="text-sm text-red-800">{displayError}</p>
           </div>
         )}
         <div className="space-y-4 rounded-md shadow-sm">
@@ -100,6 +89,29 @@ export function SignInForm({ locale }: { locale: string }) {
           </div>
         </div>
 
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              {...register('rememberMe')}
+              id="rememberMe"
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+            />
+            <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-900">
+              Remember me
+            </label>
+          </div>
+
+          <div className="text-sm">
+            <Link
+              href={`/${locale}/forgot-password`}
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+
         <div>
           <button
             type="submit"
@@ -108,6 +120,26 @@ export function SignInForm({ locale }: { locale: string }) {
           >
             {isLoading ? 'Signing in...' : 'Sign in'}
           </button>
+        </div>
+
+        <div className="text-center text-sm space-y-2">
+          <div>
+            <span className="text-gray-600">Don't have an account? </span>
+            <Link
+              href={`/${locale}/sign-up`}
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Sign up
+            </Link>
+          </div>
+          <div>
+            <Link
+              href={`/${locale}/magic-link`}
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Sign in with magic link
+            </Link>
+          </div>
         </div>
       </form>
     </div>

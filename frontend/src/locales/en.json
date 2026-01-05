@@ -89,6 +89,7 @@
   },
   "Dashboard": {
     "meta_title": "Dashboard",
+    "meta_description": "Manage your account and settings",
     "hello_message": "Hello {email}!",
     "alternative_message": "Need advanced features? Multi-tenancy & Teams, Roles & Permissions, Shadcn UI, End-to-End Typesafety with oRPC, Stripe Payment, Light / Dark mode. Try <url></url>."
   },
@@ -97,7 +98,29 @@
   },
   "DashboardLayout": {
     "dashboard_link": "Dashboard",
-    "user_profile_link": "Manage your account",
+    "security_link": "Security",
+    "sessions_link": "Sessions",
+    "user_profile_link": "Profile",
     "sign_out": "Sign out"
+  },
+  "ForgotPassword": {
+    "meta_title": "Forgot Password",
+    "meta_description": "Reset your password by entering your email address"
+  },
+  "ResetPassword": {
+    "meta_title": "Reset Password",
+    "meta_description": "Create a new password for your account"
+  },
+  "MagicLink": {
+    "meta_title": "Sign in with Magic Link",
+    "meta_description": "Sign in to your account using a magic link sent to your email"
+  },
+  "Security": {
+    "meta_title": "Security Settings",
+    "meta_description": "Manage your password, two-factor authentication, and security settings"
+  },
+  "Sessions": {
+    "meta_title": "Active Sessions",
+    "meta_description": "View and manage all devices where you're currently signed in"
   }
 }

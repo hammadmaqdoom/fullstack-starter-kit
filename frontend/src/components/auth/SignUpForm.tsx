@@ -4,55 +4,39 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { authClient } from '@/libs/BetterAuth';
-
-const signUpSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-});
-
-type SignUpFormData = z.infer<typeof signUpSchema>;
+import { signUpEmailSchema, type SignUpEmailFormData } from '@/validations/auth.validation';
+import { useSignUp } from '@/libs/hooks';
+import Link from 'next/link';
 
 export function SignUpForm({ locale }: { locale: string }) {
   const router = useRouter();
+  const { signUp, isLoading, error: signUpError } = useSignUp();
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema),
+  } = useForm<SignUpEmailFormData>({
+    resolver: zodResolver(signUpEmailSchema),
   });
 
-  const onSubmit = async (data: SignUpFormData) => {
-    setIsLoading(true);
+  const onSubmit = async (data: SignUpEmailFormData) => {
     setError(null);
 
     try {
-      const result = await authClient.signUp.email({
-        email: data.email,
-        password: data.password,
-        name: data.name,
-      });
-
-      if (result.error) {
-        setError(result.error.message || 'Failed to sign up');
-        return;
-      }
-
+      // Remove confirmPassword before sending to API
+      const { confirmPassword, ...signUpData } = data;
+      await signUp(signUpData);
       // Redirect to dashboard
       const dashboardUrl = locale === 'en' ? '/dashboard' : `/${locale}/dashboard`;
       router.push(dashboardUrl);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  const displayError = error || signUpError?.message;
 
   return (
     <div className="w-full max-w-md space-y-8">
@@ -62,9 +46,9 @@ export function SignUpForm({ locale }: { locale: string }) {
         </h2>
       </div>
       <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        {error && (
+        {displayError && (
           <div className="rounded-md bg-red-50 p-4">
-            <p className="text-sm text-red-800">{error}</p>
+            <p className="text-sm text-red-800">{displayError}</p>
           </div>
         )}
         <div className="space-y-4 rounded-md shadow-sm">
@@ -116,6 +100,22 @@ export function SignUpForm({ locale }: { locale: string }) {
               <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
             )}
           </div>
+          <div>
+            <label htmlFor="confirmPassword" className="sr-only">
+              Confirm Password
+            </label>
+            <input
+              {...register('confirmPassword')}
+              id="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              className="relative block w-full rounded-md border-0 px-3 py-2 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+              placeholder="Confirm password"
+            />
+            {errors.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+            )}
+          </div>
         </div>
 
         <div>
@@ -126,6 +126,16 @@ export function SignUpForm({ locale }: { locale: string }) {
           >
             {isLoading ? 'Creating account...' : 'Sign up'}
           </button>
+        </div>
+
+        <div className="text-center text-sm">
+          <span className="text-gray-600">Already have an account? </span>
+          <Link
+            href={`/${locale}/sign-in`}
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+          >
+            Sign in
+          </Link>
         </div>
       </form>
     </div>

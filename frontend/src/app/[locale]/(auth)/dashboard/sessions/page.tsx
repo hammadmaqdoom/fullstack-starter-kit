@@ -1,16 +1,16 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { UserProfile } from '@/components/auth/UserProfile';
+import { SessionManager } from '@/components/auth/SessionManager';
 
-type IDashboardPageProps = {
+type ISessionsPageProps = {
   params: Promise<{ locale: string }>;
 };
 
-export async function generateMetadata(props: IDashboardPageProps): Promise<Metadata> {
+export async function generateMetadata(props: ISessionsPageProps): Promise<Metadata> {
   const { locale } = await props.params;
   const t = await getTranslations({
     locale,
-    namespace: 'Dashboard',
+    namespace: 'Sessions',
   });
 
   return {
@@ -19,17 +19,18 @@ export async function generateMetadata(props: IDashboardPageProps): Promise<Meta
   };
 }
 
-export default async function DashboardPage(props: IDashboardPageProps) {
+export default async function SessionsPage(props: ISessionsPageProps) {
   const { locale } = await props.params;
   setRequestLocale(locale);
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="mt-2 text-gray-600">Manage your account and settings</p>
+        <h1 className="text-3xl font-bold tracking-tight">Active Sessions</h1>
+        <p className="mt-2 text-gray-600">Manage all devices where you're currently signed in</p>
       </div>
-      <UserProfile />
+      <SessionManager />
     </div>
   );
 }
+
