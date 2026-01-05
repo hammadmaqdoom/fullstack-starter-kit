@@ -5,7 +5,6 @@ import { validateUsername } from '@/utils/validators/username';
 import { ConfigService } from '@nestjs/config';
 import { APIError } from 'better-auth/api';
 import { magicLink, openAPI, twoFactor, username } from 'better-auth/plugins';
-import { passkey } from 'better-auth/plugins/passkey';
 import { BetterAuthOptions, BetterAuthPlugin } from 'better-auth/types';
 import { Pool } from 'pg';
 import { v4 as uuid } from 'uuid';
@@ -45,9 +44,10 @@ export function getConfig({
       },
     }),
     twoFactor(),
-    passkey({
-      rpName: appConfig.name,
-    }),
+    // TODO: Add passkey plugin - requires @better-auth/passkey package
+    // passkey({
+    //   rpName: appConfig.name,
+    // }),
   ];
 
   // Plugins for development only
