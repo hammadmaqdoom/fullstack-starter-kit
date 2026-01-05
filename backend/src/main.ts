@@ -107,10 +107,8 @@ async function bootstrap() {
       },
     }),
   );
-  // Static files
-  app.useStaticAssets({
-    root: path.join(__dirname, '..', 'src', 'tmp', 'file-uploads'),
-    prefix: '/public',
+  // Static files - serve both directories with a single registration
+  const staticOptions = {
     setHeaders(res: any) {
       res.setHeader(
         'Access-Control-Allow-Origin',
@@ -122,23 +120,13 @@ async function bootstrap() {
       res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     },
-  });
+  };
 
   // Media uploads directory
   app.useStaticAssets({
     root: path.join(__dirname, '..', 'uploads'),
     prefix: '/uploads',
-    setHeaders(res: any) {
-      res.setHeader(
-        'Access-Control-Allow-Origin',
-        configService.getOrThrow('app.corsOrigin', {
-          infer: true,
-        }),
-      );
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS');
-      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    },
+    ...staticOptions,
   });
 
   const reflector = app.get(Reflector);
