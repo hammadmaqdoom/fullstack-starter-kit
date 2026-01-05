@@ -15,18 +15,34 @@ import {
 
 @Injectable()
 export class AwsS3Service {
-  private s3Client: S3Client;
+  private s3Client: S3Client | null = null;
+  private readonly isEnabled: boolean;
 
   constructor(private readonly configService: ConfigService<GlobalConfig>) {
-    this.s3Client = new S3Client({
-      region: this.configService.get('aws.region', { infer: true }),
-      credentials: {
-        accessKeyId: this.configService.get('aws.accessKey', { infer: true }),
-        secretAccessKey: this.configService.get('aws.secretKey', {
-          infer: true,
-        }),
-      },
-    });
+    const region = this.configService.get('aws.region', { infer: true });
+    const accessKey = this.configService.get('aws.accessKey', { infer: true });
+    const secretKey = this.configService.get('aws.secretKey', { infer: true });
+
+    // Only initialize S3 client if all required credentials are present
+    this.isEnabled = !!(region && accessKey && secretKey);
+
+    if (this.isEnabled) {
+      this.s3Client = new S3Client({
+        region,
+        credentials: {
+          accessKeyId: accessKey,
+          secretAccessKey: secretKey,
+        },
+      });
+    }
+  }
+
+  private ensureEnabled(): void {
+    if (!this.isEnabled || !this.s3Client) {
+      throw new Error(
+        'AWS S3 is not configured. Please set AWS_REGION, AWS_KEY, and AWS_SECRET environment variables.',
+      );
+    }
   }
 
   /**
@@ -38,6 +54,7 @@ export class AwsS3Service {
     file: File,
     config: AwsS3UploadOptions,
   ): Promise<AwsS3UploadResponse> {
+    this.ensureEnabled();
     const response = await this.uploadBuffer(file.buffer, config);
     return {
       ...response,
@@ -55,6 +72,7 @@ export class AwsS3Service {
     buffer: Buffer,
     config: AwsS3UploadOptions,
   ): Promise<AwsS3UploadResponse> {
+    this.ensureEnabled();
     const { path, filename } = this._constructFileObject(config);
     const putObjectInput: PutObjectCommandInput = {
       Bucket: this.configService.getOrThrow('aws.bucket', { infer: true }),
@@ -65,7 +83,7 @@ export class AwsS3Service {
     if (config.contentType) {
       putObjectInput.ContentType = config.contentType;
     }
-    const res = await this.s3Client.send(new PutObjectCommand(putObjectInput));
+    const res = await this.s3Client!.send(new PutObjectCommand(putObjectInput));
     return {
       path,
       size: res.Size,
