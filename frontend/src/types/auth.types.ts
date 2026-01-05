@@ -89,6 +89,7 @@ export interface SignUpEmailRequest {
   name: string;
   email: string;
   password: string;
+  username: string;
   callbackURL?: string;
 }
 

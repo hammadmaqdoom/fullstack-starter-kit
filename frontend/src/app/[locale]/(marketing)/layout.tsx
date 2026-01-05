@@ -1,10 +1,9 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
-import { SignOutButton } from '@/components/auth/SignOutButton';
 import { BaseTemplate } from '@/templates/BaseTemplate';
 import { Link } from '@/libs/I18nNavigation';
 
-export default async function DashboardLayout(props: {
+export default async function MarketingLayout(props: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
@@ -12,7 +11,7 @@ export default async function DashboardLayout(props: {
   setRequestLocale(locale);
   const t = await getTranslations({
     locale,
-    namespace: 'DashboardLayout',
+    namespace: 'RootLayout',
   });
 
   return (
@@ -21,46 +20,56 @@ export default async function DashboardLayout(props: {
         <>
           <li>
             <Link
-              href="/dashboard"
+              href="/"
               className="border-none text-gray-700 hover:text-gray-900"
             >
-              {t('dashboard_link')}
+              {t('home_link')}
             </Link>
           </li>
           <li>
             <Link
-              href="/dashboard/security"
+              href="/about/"
               className="border-none text-gray-700 hover:text-gray-900"
             >
-              {t('security_link')}
+              {t('about_link')}
             </Link>
           </li>
           <li>
             <Link
-              href="/dashboard/sessions"
+              href="/features/"
               className="border-none text-gray-700 hover:text-gray-900"
             >
-              {t('sessions_link')}
+              {t('features_link')}
             </Link>
           </li>
           <li>
-            <Link
-              href="/dashboard/user-profile"
+            <a
               className="border-none text-gray-700 hover:text-gray-900"
+              href="https://github.com/hammadmaqdoom/fullstack-starter-kit.git"
             >
-              {t('user_profile_link')}
-            </Link>
+              GitHub
+            </a>
           </li>
         </>
       )}
       rightNav={(
         <>
           <li>
-            <SignOutButton>
-              <span className="border-none text-gray-700 hover:text-gray-900">
-                {t('sign_out')}
-              </span>
-            </SignOutButton>
+            <Link
+              href="/sign-in/"
+              className="border-none text-gray-700 hover:text-gray-900"
+            >
+              {t('sign_in_link')}
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              href="/sign-up/"
+              className="border-none text-gray-700 hover:text-gray-900"
+            >
+              {t('sign_up_link')}
+            </Link>
           </li>
 
           <li>
@@ -69,7 +78,8 @@ export default async function DashboardLayout(props: {
         </>
       )}
     >
-      {props.children}
+      <div className="py-5 text-xl [&_p]:my-6">{props.children}</div>
     </BaseTemplate>
   );
 }
+

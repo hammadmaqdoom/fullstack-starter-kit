@@ -70,6 +70,7 @@ export const signInUsernameSchema = z.object({
 export const signUpEmailSchema = z.object({
   name: nameSchema,
   email: emailSchema,
+  username: usernameSchema,
   password: passwordSchema,
   confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -219,4 +220,29 @@ export type SendVerificationEmailFormData = z.infer<typeof sendVerificationEmail
 export type LinkSocialFormData = z.infer<typeof linkSocialSchema>;
 export type UnlinkAccountFormData = z.infer<typeof unlinkAccountSchema>;
 export type RevokeSessionFormData = z.infer<typeof revokeSessionSchema>;
+
+// ============================================================================
+// Unified Schemas for Simplified Forms
+// ============================================================================
+
+/**
+ * Unified sign-in schema that accepts email or username
+ */
+export const signInSchema = z.object({
+  emailOrUsername: z.string().min(1, 'Email or username is required'),
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional().default(true),
+});
+
+/**
+ * Unified sign-up schema
+ */
+export const signUpSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  password: passwordSchema,
+});
+
+export type SignInFormData = z.infer<typeof signInSchema>;
+export type SignUpFormData = z.infer<typeof signUpSchema>;
 

@@ -1,6 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
 import { Env } from './Env';
-import { magicLinkClient, twoFactorClient, usernameClient } from 'better-auth/client/plugins';
 
 /**
  * Better Auth Client Configuration
@@ -16,22 +15,24 @@ import { magicLinkClient, twoFactorClient, usernameClient } from 'better-auth/cl
  * - Social OAuth providers
  * - Account linking
  * 
- * All auth routes are available at: {BACKEND_URL}/api/auth/*
+ * IMPORTANT: We use a local proxy (/api/auth/*) instead of connecting directly to the backend.
+ * This ensures cookies work properly across the frontend and backend.
+ * 
+ * The proxy forwards requests from localhost:3000/api/auth/* to localhost:8000/api/auth/*
+ * This way, cookies are set for localhost:3000 and are accessible to the frontend.
  * 
  * The frontend only needs to call these methods and the backend handles everything.
  * No database connection is needed in the frontend.
  */
 export const authClient = createAuthClient({
-  baseURL: Env.NEXT_PUBLIC_BACKEND_URL, // Points to NestJS backend (e.g., http://localhost:8000)
-  plugins: [
-    usernameClient(),
-    magicLinkClient(),
-    twoFactorClient(),
-    // passkeyClient() is not enabled in backend yet
-  ],
+  baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000', // Use local proxy
+  emailAndPassword: {
+    enabled: true,
+    autoSignIn: false,
+  },
 });
 
-// Export commonly used methods
+// Export commonly used methods for convenience
 export const {
   signIn,
   signUp,
@@ -40,6 +41,5 @@ export const {
   $fetch,
 } = authClient;
 
-// Export the full client for advanced usage
+// Export the full client as default
 export default authClient;
-

@@ -1,14 +1,11 @@
 import type { Metadata } from 'next';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import { GTMProvider } from '@/components/analytics/GTMProvider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { CustomScriptsLoader } from '@/components/analytics/CustomScriptsLoader';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
-import { BaseTemplate } from '@/templates/BaseTemplate';
 import { loadRuntimeConfig, getMetaNameForPlatform } from '@/libs/config-loader';
 import { routing } from '@/libs/I18nRouting';
 import '@/styles/global.css';
@@ -53,10 +50,6 @@ export default async function RootLayout(props: {
   }
 
   setRequestLocale(locale);
-  const t = await getTranslations({
-    locale,
-    namespace: 'RootLayout',
-  });
 
   // Load runtime config from database
   const config = await loadRuntimeConfig();
@@ -87,7 +80,7 @@ export default async function RootLayout(props: {
         {/* Head-start custom scripts */}
         <CustomScriptsLoader scripts={config.customScripts} position="head-start" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <NextIntlClientProvider>
           {analyticsEnabled && gtmConfig && (
             <GTMProvider containerId={gtmConfig.trackingId}>
@@ -95,71 +88,7 @@ export default async function RootLayout(props: {
                 <GoogleAnalytics measurementId={ga4Config.trackingId} />
               )}
               <PostHogProvider>
-                <BaseTemplate
-                  leftNav={(
-                    <>
-                      <li>
-                        <Link
-                          href="/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('home_link')}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/about/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('about_link')}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/features/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('features_link')}
-                        </Link>
-                      </li>
-                      <li>
-                        <a
-                          className="border-none text-gray-700 hover:text-gray-900"
-                          href="https://github.com/hammadmaqdoom/fullstack-starter-kit.git"
-                        >
-                          GitHub
-                        </a>
-                      </li>
-                    </>
-                  )}
-                  rightNav={(
-                    <>
-                      <li>
-                        <Link
-                          href="/sign-in/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('sign_in_link')}
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link
-                          href="/sign-up/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('sign_up_link')}
-                        </Link>
-                      </li>
-
-                      <li>
-                        <LocaleSwitcher />
-                      </li>
-                    </>
-                  )}
-                >
-                  <div className="py-5 text-xl [&_p]:my-6">{props.children}</div>
-                </BaseTemplate>
+                {props.children}
               </PostHogProvider>
             </GTMProvider>
           )}
@@ -169,71 +98,7 @@ export default async function RootLayout(props: {
                 <GoogleAnalytics measurementId={ga4Config.trackingId} />
               )}
               <PostHogProvider>
-                <BaseTemplate
-                  leftNav={(
-                    <>
-                      <li>
-                        <Link
-                          href="/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('home_link')}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/about/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('about_link')}
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/features/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('features_link')}
-                        </Link>
-                      </li>
-                      <li>
-                        <a
-                          className="border-none text-gray-700 hover:text-gray-900"
-                          href="https://github.com/hammadmaqdoom/fullstack-starter-kit.git"
-                        >
-                          GitHub
-                        </a>
-                      </li>
-                    </>
-                  )}
-                  rightNav={(
-                    <>
-                      <li>
-                        <Link
-                          href="/sign-in/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('sign_in_link')}
-                        </Link>
-                      </li>
-
-                      <li>
-                        <Link
-                          href="/sign-up/"
-                          className="border-none text-gray-700 hover:text-gray-900"
-                        >
-                          {t('sign_up_link')}
-                        </Link>
-                      </li>
-
-                      <li>
-                        <LocaleSwitcher />
-                      </li>
-                    </>
-                  )}
-                >
-                  <div className="py-5 text-xl [&_p]:my-6">{props.children}</div>
-                </BaseTemplate>
+                {props.children}
               </PostHogProvider>
             </>
           )}

@@ -31,7 +31,7 @@ const aj = arcjet.withRule(
 
 export default async function proxy(
   request: NextRequest,
-  event: NextFetchEvent,
+  _event: NextFetchEvent,
 ) {
   // Verify the request with Arcjet
   // Use `process.env` instead of Env to reduce bundle size in middleware
@@ -46,13 +46,22 @@ export default async function proxy(
   // Check authentication for protected routes
   if (isProtectedRoute(request.nextUrl.pathname)) {
     // Get session cookie from Better Auth
-    const sessionCookie = request.cookies.get('better-auth.session_token');
+    // The cookie prefix is set in backend config: TmVzdEpTIEJvaWxlcnBsYXRl
+    const sessionCookie = request.cookies.get('TmVzdEpTIEJvaWxlcnBsYXRl.session_token');
     
     if (!sessionCookie) {
-      const locale = request.nextUrl.pathname.match(/^\/([^/]+)/)?.at(1);
-      const signInPath = locale && locale !== 'en' ? `/${locale}/sign-in` : '/sign-in';
+      // Extract locale and path without locale prefix
+      const pathParts = request.nextUrl.pathname.split('/').filter(Boolean);
+      const locale = pathParts[0] || '';
+      const isLocale = locale && routing.locales.includes(locale);
+      
+      // Build sign-in URL with proper locale handling
+      const signInPath = isLocale ? `/${locale}/sign-in` : '/sign-in';
       const signInUrl = new URL(signInPath, request.url);
-      signInUrl.searchParams.set('redirect', request.nextUrl.pathname);
+      
+      // Store the path without locale for redirect (i18n router will handle locale)
+      const pathWithoutLocale = isLocale ? `/${pathParts.slice(1).join('/')}` : request.nextUrl.pathname;
+      signInUrl.searchParams.set('redirect', pathWithoutLocale);
       
       return NextResponse.redirect(signInUrl);
     }
@@ -63,7 +72,7 @@ export default async function proxy(
 
 export const config = {
   // Match all pathnames except for
-  // - … if they start with `/_next`, `/_vercel` or `monitoring`
+  // - … if they start with `/_next`, `/_vercel`, `monitoring` or `api`
   // - … the ones containing a dot (e.g. `favicon.ico`)
-  matcher: '/((?!_next|_vercel|monitoring|.*\\..*).*)',
+  matcher: '/((?!_next|_vercel|monitoring|api|.*\\..*).*)',
 };
