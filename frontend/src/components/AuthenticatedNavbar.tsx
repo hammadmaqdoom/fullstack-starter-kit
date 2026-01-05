@@ -47,6 +47,14 @@ export function AuthenticatedNavbar() {
             >
               Sessions
             </Link>
+            {session?.user?.role === 'Admin' && (
+              <Link
+                href="/admin/cms/contents"
+                className="text-sm font-medium text-white transition-colors hover:text-gray-300"
+              >
+                CMS Admin
+              </Link>
+            )}
           </div>
 
           {/* User Menu and Actions */}
@@ -141,6 +149,15 @@ export function AuthenticatedNavbar() {
             >
               Sessions
             </Link>
+            {session?.user?.role === 'Admin' && (
+              <Link
+                href="/admin/cms/contents"
+                className="block text-sm font-medium text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                CMS Admin
+              </Link>
+            )}
             {session?.user && (
               <div className="flex items-center gap-2 border-t border-gray-700 pt-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-sm font-medium text-white">

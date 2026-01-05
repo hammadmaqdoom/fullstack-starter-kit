@@ -20,6 +20,7 @@ export interface User {
   username?: string;
   displayUsername?: string;
   twoFactorEnabled?: boolean;
+  role?: 'User' | 'Admin';
 }
 
 export interface Session {

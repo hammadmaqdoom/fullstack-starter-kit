@@ -1,4 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
+import { inferAdditionalFields } from 'better-auth/client/plugins';
 import { Env } from './Env';
 
 /**
@@ -30,6 +31,15 @@ export const authClient = createAuthClient({
     enabled: true,
     autoSignIn: false,
   },
+  plugins: [
+    inferAdditionalFields({
+      user: {
+        role: {
+          type: 'string',
+        },
+      },
+    }),
+  ],
 });
 
 // Export commonly used methods for convenience

@@ -103,6 +103,14 @@ export function getConfig({
         name: 'firstName',
         emailVerified: 'isEmailVerified',
       },
+      additionalFields: {
+        role: {
+          type: 'string',
+          required: false,
+          defaultValue: 'User',
+          input: false, // Don't allow user to set role during signup
+        },
+      },
     },
     account: {
       modelName: 'account',
