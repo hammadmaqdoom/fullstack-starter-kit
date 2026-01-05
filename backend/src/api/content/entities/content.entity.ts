@@ -11,7 +11,6 @@ import {
   OneToMany,
 } from 'typeorm';
 import { CategoryEntity } from './category.entity';
-import { ContentVersionEntity } from './content-version.entity';
 import { TagEntity } from './tag.entity';
 
 export enum ContentType {
@@ -95,7 +94,10 @@ export class ContentEntity extends BaseModel {
   })
   tags?: TagEntity[];
 
-  @OneToMany(() => ContentVersionEntity, (version) => version.content)
-  versions?: ContentVersionEntity[];
+  @OneToMany(
+    'ContentVersionEntity',
+    'content',
+  )
+  versions?: any[];
 }
 

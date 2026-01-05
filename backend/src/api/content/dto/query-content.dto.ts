@@ -1,8 +1,8 @@
 import { ContentType, ContentStatus } from '../entities/content.entity';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { OffsetPaginationDto } from '@/common/dto/offset-pagination/offset-pagination.dto';
+import { PageOptionsDto } from '@/common/dto/offset-pagination/page-options.dto';
 
-export class QueryContentDto extends OffsetPaginationDto {
+export class QueryContentDto extends PageOptionsDto {
   @IsEnum(ContentType)
   @IsOptional()
   type?: ContentType;

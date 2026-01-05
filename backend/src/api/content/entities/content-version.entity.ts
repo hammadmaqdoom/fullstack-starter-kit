@@ -8,9 +8,13 @@ export class ContentVersionEntity extends BaseModel {
   @Column()
   contentId: string;
 
-  @ManyToOne(() => ContentEntity, (content) => content.versions, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(
+    () => ContentEntity,
+    (content) => content.versions,
+    {
+      onDelete: 'CASCADE',
+    },
+  )
   @JoinColumn({ name: 'contentId' })
   content: ContentEntity;
 

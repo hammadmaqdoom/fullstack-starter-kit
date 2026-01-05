@@ -35,6 +35,7 @@ export class ContentController {
   @PublicAuth()
   @ApiAuth({
     summary: 'List all contents (public)',
+    type: ContentDto,
     isPaginated: true,
   })
   async findAll(@Query() dto: QueryContentDto): Promise<OffsetPaginatedDto<ContentDto>> {

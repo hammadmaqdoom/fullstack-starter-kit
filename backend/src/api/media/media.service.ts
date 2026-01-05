@@ -24,7 +24,7 @@ export class MediaService {
 
     const media = this.mediaRepository.create({
       filename: file.originalname,
-      url: uploaded.location || uploaded.path,
+      url: uploaded.path,
       mimeType: file.mimetype,
       fileSize: file.size,
       uploadedByUserId: userId,
