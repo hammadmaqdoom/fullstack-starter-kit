@@ -5,6 +5,7 @@ import {
   Entity,
   Index,
   JoinColumn,
+  JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
@@ -86,12 +87,11 @@ export class ContentEntity extends BaseModel {
   @JoinColumn({ name: 'categoryId' })
   category?: CategoryEntity;
 
-  @ManyToMany(() => TagEntity, (tag) => tag.contents, {
-    joinTable: {
-      name: 'content_tags',
-      joinColumn: { name: 'contentId', referencedColumnName: 'id' },
-      inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
-    },
+  @ManyToMany(() => TagEntity, (tag) => tag.contents)
+  @JoinTable({
+    name: 'content_tags',
+    joinColumn: { name: 'contentId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'tagId', referencedColumnName: 'id' },
   })
   tags?: TagEntity[];
 
