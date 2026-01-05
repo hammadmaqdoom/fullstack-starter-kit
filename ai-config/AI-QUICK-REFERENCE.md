@@ -300,11 +300,11 @@ rm -rf .next        # Frontend
 rm -rf dist         # Backend
 
 # Reinstall
-rm -rf node_modules package-lock.json
-npm install
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 
 # Type check
-npm run check:types
+pnpm check:types
 ```
 
 ## 💡 Pro Tips

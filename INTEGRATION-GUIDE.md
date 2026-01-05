@@ -18,7 +18,7 @@ Before starting, ensure you have:
 - ✅ Node.js 20+
 - ✅ PostgreSQL 14+
 - ✅ Redis 7+
-- ✅ npm or pnpm
+- ✅ pnpm 9+ (required)
 
 ## 🚀 Quick Start (Both Services)
 
@@ -39,8 +39,8 @@ Backend will run on: **http://localhost:3000**
 ```bash
 # Terminal 2: Frontend
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Frontend will run on: **http://localhost:3001**
@@ -295,7 +295,7 @@ curl -X POST http://localhost:3000/api/auth/sign-up/email \
 cd backend && pnpm start:dev
 
 # 2. Start frontend (new terminal)
-cd frontend && npm run dev
+cd frontend && pnpm dev
 
 # 3. Open browser
 open http://localhost:3001/sign-up
@@ -380,7 +380,7 @@ open http://localhost:3001/sign-up
 cd backend && pnpm start:dev
 
 # Frontend
-cd frontend && npm run dev
+cd frontend && pnpm dev
 ```
 
 ### Production
@@ -408,8 +408,8 @@ docker-compose -f docker-compose.prod.yml up -d
 Deploy to Vercel:
 
 ```bash
-# Install Vercel CLI
-npm i -g vercel
+# Install Vercel CLI (optional, can use Vercel Dashboard)
+pnpm add -g vercel
 
 # Deploy
 cd frontend
@@ -420,8 +420,8 @@ Or build manually:
 
 ```bash
 cd frontend
-npm run build
-npm start
+pnpm build
+pnpm start
 ```
 
 ### Environment Variables (Production)
@@ -531,10 +531,15 @@ Access admin UI at:
 After installing dependencies, generate and run migrations:
 
 ```bash
+# Backend
 cd backend
 pnpm install
 pnpm migration:generate src/database/migrations/CreateCmsTables
 pnpm migration:up
+
+# Frontend (if using Drizzle)
+cd frontend
+pnpm install
 ```
 
 This creates all CMS tables:

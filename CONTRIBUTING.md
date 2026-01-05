@@ -97,7 +97,7 @@ Add any other context or screenshots about the feature request here.
 - Node.js 20+ (LTS recommended)
 - PostgreSQL 14+
 - Redis 7+
-- npm, pnpm, or yarn
+- pnpm 9+ (required for all packages)
 - Git
 
 ### Backend Setup
@@ -133,17 +133,17 @@ Backend runs on: http://localhost:3000
 cd frontend
 
 # Install dependencies
-npm install
+pnpm install
 
 # Copy environment variables
 cp .env.example .env.local
 # Edit .env.local with your local configuration
 
 # Run database migrations
-npm run db:migrate
+pnpm db:migrate
 
 # Start development server
-npm run dev
+pnpm dev
 ```
 
 Frontend runs on: http://localhost:3001
@@ -172,13 +172,13 @@ pnpm test:watch
 cd frontend
 
 # Unit tests
-npm run test
+pnpm test
 
 # E2E tests
-npm run test:e2e
+pnpm test:e2e
 
 # Type checking
-npm run check:types
+pnpm check:types
 ```
 
 ## 🔄 Pull Request Process
@@ -364,8 +364,8 @@ pnpm format
 
 # Frontend
 cd frontend
-npm run lint
-npm run format
+pnpm lint
+pnpm format
 ```
 
 **Configuration:**

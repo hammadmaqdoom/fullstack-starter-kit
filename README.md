@@ -439,7 +439,7 @@ open docs/GETTING-STARTED.md
 - Node.js 20+
 - PostgreSQL 14+
 - Redis 7+
-- npm or pnpm
+- pnpm 9+ (required)
 
 #### 1. Clone & Setup
 
@@ -463,9 +463,9 @@ Backend runs on: **http://localhost:3000**
 
 ```bash
 cd frontend
-npm install
-npm run db:migrate
-npm run dev
+pnpm install
+pnpm db:migrate
+pnpm dev
 ```
 
 Frontend runs on: **http://localhost:3001**
@@ -806,13 +806,13 @@ pnpm test:cov
 cd frontend
 
 # Unit tests
-npm run test
+pnpm test
 
 # E2E tests
-npm run test:e2e
+pnpm test:e2e
 
 # Type checking
-npm run check:types
+pnpm check:types
 ```
 
 ## 📊 Monitoring & Tools

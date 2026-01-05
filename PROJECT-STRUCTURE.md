@@ -360,7 +360,7 @@ Test the fullstack:
 cd backend && pnpm install && pnpm start:dev
 
 # Start frontend (new terminal)
-cd frontend && npm install && npm run dev
+cd frontend && pnpm install && pnpm dev
 ```
 
 ### 3. For Understanding the System

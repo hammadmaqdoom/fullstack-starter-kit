@@ -73,7 +73,7 @@ echo ""
 # Start Frontend
 echo -e "${BLUE}🎨 Starting Frontend (Next.js)...${NC}"
 cd frontend
-npm run dev > ../logs/frontend.log 2>&1 &
+pnpm dev > ../logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
 

@@ -55,7 +55,7 @@ frontend/
 ### Prerequisites
 
 - Node.js 20+
-- npm or pnpm
+- pnpm 9+ (required)
 - Backend server running (see `../backend/README.md`)
 
 ### Environment Variables
@@ -92,8 +92,6 @@ See `ENV-SETUP.md` for detailed environment variable documentation.
 
 ```bash
 # Install dependencies
-npm install
-# or
 pnpm install
 ```
 
@@ -117,7 +115,7 @@ Backend should be running on http://localhost:3000
 
 ```bash
 # Start development server
-npm run dev
+pnpm dev
 
 # The app will be available at http://localhost:3001
 ```
@@ -126,10 +124,10 @@ npm run dev
 
 ```bash
 # Build for production
-npm run build
+pnpm build
 
 # Start production server
-npm start
+pnpm start
 ```
 
 ## 🔐 Authentication
@@ -222,16 +220,16 @@ await authClient.signOut();
 
 ```bash
 # Unit tests
-npm run test
+pnpm test
 
 # E2E tests
-npm run test:e2e
+pnpm test:e2e
 
 # Type checking
-npm run check:types
+pnpm check:types
 
 # Linting
-npm run lint
+pnpm lint
 ```
 
 ## 🌐 Internationalization
@@ -358,11 +356,11 @@ ARCJET_KEY=your-arcjet-key
 rm -rf .next
 
 # Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 
 # Rebuild
-npm run build
+pnpm build
 ```
 
 ## 📚 Additional Resources

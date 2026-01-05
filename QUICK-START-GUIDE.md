@@ -190,9 +190,8 @@ pnpm start:dev
 
 # 3. Start Frontend (new terminal)
 cd frontend
-npm install
-npm run db:migrate
-npm run dev
+pnpm install
+pnpm dev
 # Frontend: http://localhost:3001
 
 # 4. Test Auth

@@ -7,7 +7,7 @@ This guide will help you set up the Next.js frontend with Better Auth integratio
 Before you begin, ensure you have:
 
 - ✅ Node.js 20+ installed
-- ✅ npm or pnpm installed
+- ✅ pnpm 9+ installed (required)
 - ✅ Backend server set up and running (see `BACKEND-SETUP.md`)
 - ✅ PostgreSQL database running (shared with backend)
 
@@ -22,8 +22,6 @@ cd frontend
 ### Step 2: Install Dependencies
 
 ```bash
-npm install
-# or
 pnpm install
 ```
 
@@ -50,13 +48,13 @@ SENTRY_DSN=
 The frontend uses the same PostgreSQL database as the backend for Drizzle ORM:
 
 ```bash
-npm run db:migrate
+pnpm db:migrate
 ```
 
 ### Step 5: Start Development Server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 The frontend will be available at: **http://localhost:3001**
@@ -83,7 +81,7 @@ The frontend is already configured to use Better Auth from your backend. No addi
 2. **Start Frontend**:
    ```bash
    cd ../frontend
-   npm run dev
+   pnpm dev
    ```
 
 3. **Visit Sign Up**: http://localhost:3001/sign-up
@@ -157,16 +155,16 @@ The frontend uses Drizzle ORM with the same PostgreSQL database as the backend. 
 
 ```bash
 # Unit tests
-npm run test
+pnpm test
 
 # E2E tests
-npm run test:e2e
+pnpm test:e2e
 
 # Type checking
-npm run check:types
+pnpm check:types
 
 # Linting
-npm run lint
+pnpm lint
 ```
 
 ### Test Authentication Flow
@@ -206,11 +204,12 @@ Use the language switcher in the navigation bar.
 
 1. Push your code to GitHub
 2. Connect repository to Vercel
-3. Set environment variables:
+3. Vercel will automatically detect pnpm (via packageManager field)
+4. Set environment variables:
    ```
    NEXT_PUBLIC_BACKEND_URL=https://api.yourapp.com
    ```
-4. Deploy
+5. Deploy
 
 ### Docker
 
@@ -271,11 +270,11 @@ ARCJET_KEY=your-arcjet-key
 rm -rf .next
 
 # Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 
 # Rebuild
-npm run build
+pnpm build
 ```
 
 ## 📚 Key Features
