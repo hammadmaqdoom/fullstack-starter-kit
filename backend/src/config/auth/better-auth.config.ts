@@ -1,4 +1,5 @@
 import { AuthService } from '@/auth/auth.service';
+import { resolveAuthBaseUrl } from '@/auth/utils/auth-base-url';
 import { GlobalConfig } from '@/config/config.type';
 import { CacheService } from '@/shared/cache/cache.service';
 import { validateUsername } from '@/utils/validators/username';
@@ -56,10 +57,12 @@ export function getConfig({
     plugins.push(...nonProdPlugins);
   }
 
+  const authBaseUrl = resolveAuthBaseUrl(appConfig);
+
   return {
     appName: appConfig.name,
     secret: authConfig.authSecret,
-    baseURL: appConfig.url,
+    baseURL: authBaseUrl,
     plugins,
     database: new Pool({
       database: databaseConfig.database,
@@ -132,6 +135,36 @@ export function getConfig({
     },
     trustedOrigins: appConfig.corsOrigin as string[],
     socialProviders: {
+      ...(authConfig.entra?.clientId && authConfig.entra?.clientSecret
+        ? {
+            microsoft: {
+              clientId: authConfig.entra.clientId,
+              clientSecret: authConfig.entra.clientSecret,
+              tenantId: authConfig.entra.tenantId || 'common',
+              prompt: 'select_account',
+              mapProfileToUser(profile) {
+                const entraProfile = profile as {
+                  email?: string;
+                  preferred_username?: string;
+                  name?: string;
+                  oid?: string;
+                };
+                const email =
+                  entraProfile.email ||
+                  entraProfile.preferred_username ||
+                  (entraProfile.oid
+                    ? `${entraProfile.oid}@entra.digitaro.local`
+                    : undefined);
+
+                return {
+                  email,
+                  name: entraProfile.name,
+                  emailVerified: true,
+                };
+              },
+            },
+          }
+        : {}),
       ...(authConfig.oAuth.github?.clientId &&
       authConfig.oAuth.github?.clientSecret
         ? {

@@ -1,3 +1,9 @@
+export type EntraConfig = {
+  clientId?: string;
+  clientSecret?: string;
+  tenantId?: string;
+};
+
 export type AuthConfig = {
   authSecret: string;
   basicAuth: {
@@ -10,4 +16,5 @@ export type AuthConfig = {
       clientSecret?: string;
     };
   };
+  entra: EntraConfig;
 };

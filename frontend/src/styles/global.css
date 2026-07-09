@@ -1,3 +1,18 @@
 @layer theme, base, clerk, components, utilities; /* Ensure Clerk is compatible with Tailwind CSS v4 */
 
 @import 'tailwindcss';
+@import 'primereact/resources/themes/lara-light-indigo/theme.css';
+@import 'primereact/resources/primereact.min.css';
+@import 'primeicons/primeicons.css';
+
+:root {
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
+  --status-in: var(--color-success);
+  --status-out: #cfd4de;
+  --status-on-leave: var(--color-warning);
+  --status-missing: var(--color-danger);
+  --status-pending: var(--color-info);
+}

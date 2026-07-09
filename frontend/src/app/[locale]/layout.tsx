@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
+import { PrimeProvider } from '@/components/providers/PrimeProvider';
 import { PostHogProvider } from '@/components/analytics/PostHogProvider';
 import { GTMProvider } from '@/components/analytics/GTMProvider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
@@ -88,7 +89,7 @@ export default async function RootLayout(props: {
     if (isAuthenticated) {
       return (
         <AuthenticatedTemplate>
-          <div className="py-5 text-xl [&_p]:my-6">{children}</div>
+          {props.children}
         </AuthenticatedTemplate>
       );
     }
@@ -176,26 +177,28 @@ export default async function RootLayout(props: {
       </head>
       <body suppressHydrationWarning>
         <NextIntlClientProvider>
-          {analyticsEnabled && gtmConfig && (
-            <GTMProvider containerId={gtmConfig.trackingId}>
-              {analyticsEnabled && ga4Config && (
-                <GoogleAnalytics measurementId={ga4Config.trackingId} />
-              )}
-              <PostHogProvider>
-                {renderContent(props.children)}
-              </PostHogProvider>
-            </GTMProvider>
-          )}
-          {(!analyticsEnabled || !gtmConfig) && (
-            <>
-              {analyticsEnabled && ga4Config && (
-                <GoogleAnalytics measurementId={ga4Config.trackingId} />
-              )}
-              <PostHogProvider>
-                {renderContent(props.children)}
-              </PostHogProvider>
-            </>
-          )}
+          <PrimeProvider>
+            {analyticsEnabled && gtmConfig && (
+              <GTMProvider containerId={gtmConfig.trackingId}>
+                {analyticsEnabled && ga4Config && (
+                  <GoogleAnalytics measurementId={ga4Config.trackingId} />
+                )}
+                <PostHogProvider>
+                  {renderContent(props.children)}
+                </PostHogProvider>
+              </GTMProvider>
+            )}
+            {(!analyticsEnabled || !gtmConfig) && (
+              <>
+                {analyticsEnabled && ga4Config && (
+                  <GoogleAnalytics measurementId={ga4Config.trackingId} />
+                )}
+                <PostHogProvider>
+                  {renderContent(props.children)}
+                </PostHogProvider>
+              </>
+            )}
+          </PrimeProvider>
         </NextIntlClientProvider>
         
         {/* Body-end custom scripts */}

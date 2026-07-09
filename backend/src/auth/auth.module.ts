@@ -35,6 +35,7 @@ import type {
   FastifyRequest as Request,
 } from 'fastify';
 import { AuthService } from './auth.service';
+import { AuthV1Module } from './auth-v1.module';
 import { BetterAuthService } from './better-auth.service';
 import { UserEntity } from './entities/user.entity';
 
@@ -46,6 +47,7 @@ const HOOKS = [
 @Global()
 @Module({
   imports: [
+    AuthV1Module,
     DiscoveryModule,
     BullModule.registerQueue({
       name: Queue.Email,

@@ -23,6 +23,8 @@ import { getConfig as getAppConfig } from './config/app/app.config';
 import { BULL_BOARD_PATH } from './config/bull/bull.config';
 import { type GlobalConfig } from './config/config.type';
 import { Environment } from './constants/app.constant';
+import { HttpExceptionFilter } from './shared/filters/http-exception.filter';
+import { ApiEnvelopeInterceptor } from './shared/interceptors/api-envelope.interceptor';
 import { SentryInterceptor } from './interceptors/sentry.interceptor';
 import { basicAuthMiddleware } from './middlewares/basic-auth.middleware';
 import { RedisIoAdapter } from './shared/socket/redis.adapter';
@@ -130,7 +132,11 @@ async function bootstrap() {
   });
 
   const reflector = app.get(Reflector);
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(reflector),
+    new ApiEnvelopeInterceptor(),
+  );
 
   if (env !== 'production') {
     setupSwagger(app);

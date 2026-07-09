@@ -17,12 +17,24 @@ class EnvironmentVariablesValidator {
   BASIC_AUTH_PASSWORD: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   GITHUB_CLIENT_ID: string;
 
   @IsString()
   @IsOptional()
   GITHUB_CLIENT_SECRET: string;
+
+  @IsString()
+  @IsOptional()
+  ENTRA_CLIENT_ID: string;
+
+  @IsString()
+  @IsOptional()
+  ENTRA_CLIENT_SECRET: string;
+
+  @IsString()
+  @IsOptional()
+  ENTRA_TENANT_ID: string;
 }
 
 export function getConfig(): AuthConfig {
@@ -37,6 +49,11 @@ export function getConfig(): AuthConfig {
         clientId: process.env.GITHUB_CLIENT_ID,
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
       },
+    },
+    entra: {
+      clientId: process.env.ENTRA_CLIENT_ID,
+      clientSecret: process.env.ENTRA_CLIENT_SECRET,
+      tenantId: process.env.ENTRA_TENANT_ID,
     },
   };
 }

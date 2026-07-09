@@ -25,6 +25,7 @@ import { FastifyAdapter } from '@bull-board/fastify';
 import { GracefulShutdownModule } from 'nestjs-graceful-shutdown';
 import { ApiModule } from './api/api.module';
 import { AuthModule } from './auth/auth.module';
+import { PolarisModule } from './modules/polaris.module';
 import { default as awsConfig } from './config/aws/aws.config';
 import {
   BULL_BOARD_PATH,
@@ -36,6 +37,7 @@ import { default as sentryConfig } from './config/sentry/sentry.config';
 import { default as throttlerConfig } from './config/throttler/throttler.config';
 import { default as useThrottlerFactory } from './config/throttler/throttler.factory';
 import { AppThrottlerGuard } from './config/throttler/throttler.guard';
+import { RbacGuard } from './auth/guards/rbac.guard';
 import { default as useGraphqlFactory } from './graphql/graphql.factory';
 import { default as useI18nFactory } from './i18n/i18n.factory';
 import { CacheModule as CacheManagerModule } from './shared/cache/cache.module';
@@ -123,6 +125,7 @@ export class AppModule {
           adapter: FastifyAdapter,
         }),
         ApiModule,
+        PolarisModule,
         AuthModule.forRootAsync(),
         SocketModule,
       ],
@@ -130,6 +133,10 @@ export class AppModule {
         {
           provide: APP_GUARD,
           useClass: AppThrottlerGuard,
+        },
+        {
+          provide: APP_GUARD,
+          useClass: RbacGuard,
         },
       ],
     };

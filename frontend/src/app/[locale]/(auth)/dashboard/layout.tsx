@@ -8,7 +8,7 @@ import { setRequestLocale } from 'next-intl/server';
  * template rendering (AuthenticatedTemplate vs BaseTemplate).
  * 
  * For authenticated users, the root layout will render AuthenticatedTemplate
- * which includes the AuthenticatedNavbar (no footer).
+ * which includes the AppSidebar (no footer).
  */
 export default async function DashboardLayout(props: {
   children: React.ReactNode;

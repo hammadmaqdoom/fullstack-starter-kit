@@ -1,5 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
-import { inferAdditionalFields } from 'better-auth/client/plugins';
+import { inferAdditionalFields, magicLinkClient } from 'better-auth/client/plugins';
 import { Env } from './Env';
 
 /**
@@ -32,6 +32,7 @@ export const authClient = createAuthClient({
     autoSignIn: false,
   },
   plugins: [
+    magicLinkClient(),
     inferAdditionalFields({
       user: {
         role: {
@@ -50,6 +51,20 @@ export const {
   useSession,
   $fetch,
 } = authClient;
+
+export async function signInWithMicrosoft(callbackURL: string) {
+  return authClient.signIn.social({
+    provider: 'microsoft',
+    callbackURL,
+  });
+}
+
+export async function sendContractorMagicLink(email: string, callbackURL: string) {
+  return authClient.signIn.magicLink({
+    email,
+    callbackURL,
+  });
+}
 
 // Export the full client as default
 export default authClient;
