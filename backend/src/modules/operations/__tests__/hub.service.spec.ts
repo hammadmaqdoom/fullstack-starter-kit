@@ -15,6 +15,7 @@ import { LeaveRequestStatus } from '@/modules/time-leave/enums/leave.enum';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
+import { ContractorInvoiceStatus } from '../enums/contractor-invoice.enum';
 import { HubSavedViewEntity } from '../entities/hub-saved-view.entity';
 import { HubService } from '../hub.service';
 
@@ -354,5 +355,153 @@ describe('HubService', () => {
       (i) => i.type === 'development_plan_action',
     );
     expect(action?.title).toBe('Shadow a client call (Priya Rao)');
+  });
+
+  it('aggregates contractor invoices submitted and later into mine', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM contractor_invoices') &&
+        sql.includes('"workerId" = $2')
+      ) {
+        return [
+          {
+            id: 'inv-1',
+            invoiceNumber: 'INV-2026-001',
+            status: ContractorInvoiceStatus.SUBMITTED,
+            createdAt: new Date('2026-07-05T10:00:00Z'),
+          },
+          {
+            id: 'inv-2',
+            invoiceNumber: 'INV-2026-002',
+            status: ContractorInvoiceStatus.PAID,
+            createdAt: new Date('2026-07-04T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await service.getInbox(userId, { tab: 'mine' });
+
+    const invoices = result.data.mine.filter(
+      (i) => i.type === 'contractor_invoice',
+    );
+    expect(invoices).toHaveLength(2);
+    expect(invoices[0]).toEqual(
+      expect.objectContaining({
+        id: 'contractor_invoice:inv-1',
+        type: 'contractor_invoice',
+        title: 'Invoice INV-2026-001',
+        status: ContractorInvoiceStatus.SUBMITTED,
+        href: '/contractor/invoices?invoiceId=inv-1',
+        entityId: 'inv-1',
+      }),
+    );
+  });
+
+  it('surfaces submitted contractor invoices for managers in forMe', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM contractor_invoices') &&
+        sql.includes('w."managerId" = $3')
+      ) {
+        return [
+          {
+            id: 'inv-mgr-1',
+            invoiceNumber: 'INV-2026-010',
+            status: ContractorInvoiceStatus.SUBMITTED,
+            createdAt: new Date('2026-07-06T10:00:00Z'),
+            workerFirstName: 'Alex',
+            workerLastName: 'Chen',
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await service.getInbox(userId, { tab: 'for_me' });
+
+    const invoice = result.data.forMe.find(
+      (i) => i.type === 'contractor_invoice',
+    );
+    expect(invoice).toEqual(
+      expect.objectContaining({
+        id: 'contractor_invoice:inv-mgr-1',
+        title: 'Invoice approval INV-2026-010 (Alex Chen)',
+        status: ContractorInvoiceStatus.SUBMITTED,
+        href: '/manager/cockpit?contractorInvoiceId=inv-mgr-1',
+      }),
+    );
+  });
+
+  it('surfaces manager-approved contractor invoices for Finance in forMe', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    const rbacService = {
+      getAuthContext: jest.fn().mockResolvedValue({
+        tenantId: DIGITARO_TENANT_ID,
+        userId,
+        roleCodes: [PolarisRoleCode.FINANCE],
+        assignments: [],
+        broadestScope: ScopeType.ALL,
+      }),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        HubService,
+        {
+          provide: getRepositoryToken(HubSavedViewEntity),
+          useValue: savedViewRepository,
+        },
+        {
+          provide: getRepositoryToken(WorkerEntity),
+          useValue: workerRepository,
+        },
+        {
+          provide: getRepositoryToken(ProfileChangeRequestEntity),
+          useValue: profileChangeRepository,
+        },
+        { provide: RbacService, useValue: rbacService },
+        { provide: DataSource, useValue: dataSource },
+        { provide: PolicyService, useValue: policyService },
+      ],
+    }).compile();
+
+    const financeService = module.get(HubService);
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM contractor_invoices') &&
+        sql.includes('i.status = $2') &&
+        !sql.includes('w."managerId"')
+      ) {
+        return [
+          {
+            id: 'inv-fin-1',
+            invoiceNumber: 'INV-2026-020',
+            status: ContractorInvoiceStatus.MANAGER_APPROVED,
+            createdAt: new Date('2026-07-07T10:00:00Z'),
+            workerFirstName: 'Sam',
+            workerLastName: 'Patel',
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await financeService.getInbox(userId, { tab: 'for_me' });
+
+    const invoice = result.data.forMe.find(
+      (i) => i.type === 'contractor_invoice',
+    );
+    expect(invoice).toEqual(
+      expect.objectContaining({
+        id: 'contractor_invoice:inv-fin-1',
+        title: 'Finance approval INV-2026-020 (Sam Patel)',
+        status: ContractorInvoiceStatus.MANAGER_APPROVED,
+        href: '/finance/contractor-invoices?invoiceId=inv-fin-1',
+      }),
+    );
   });
 });

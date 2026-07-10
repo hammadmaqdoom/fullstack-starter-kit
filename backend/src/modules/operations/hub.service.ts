@@ -21,6 +21,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CreateHubSavedViewDto, QueryHubDto } from './dto/hub.dto';
+import { ContractorInvoiceStatus } from './enums/contractor-invoice.enum';
 import { HubSavedViewEntity } from './entities/hub-saved-view.entity';
 
 export type HubItemType =
@@ -31,7 +32,8 @@ export type HubItemType =
   | 'esign_envelope'
   | 'performance_review'
   | 'one_on_one'
-  | 'development_plan_action';
+  | 'development_plan_action'
+  | 'contractor_invoice';
 
 export type HubItem = {
   id: string;
@@ -96,6 +98,8 @@ export class HubService {
       oneOnOneForMe,
       developmentPlanActionMine,
       developmentPlanActionForMe,
+      contractorInvoiceMine,
+      contractorInvoiceForMe,
     ] = await Promise.all([
       this.safeProfileMine(actingWorkerId, tenantId),
       this.safeProfileForMe(actingWorkerId, auth.roleCodes, tenantId),
@@ -112,6 +116,12 @@ export class HubService {
       this.safeOneOnOneForMe(actingWorkerId, tenantId),
       this.safeDevelopmentPlanActionMine(actingWorkerId, tenantId),
       this.safeDevelopmentPlanActionForMe(actingWorkerId, tenantId),
+      this.safeContractorInvoiceMine(actingWorkerId, tenantId),
+      this.safeContractorInvoiceForMe(
+        actingWorkerId,
+        auth.roleCodes,
+        tenantId,
+      ),
     ]);
 
     const policyForMe: HubItem[] = [];
@@ -125,6 +135,7 @@ export class HubService {
       ...performanceReviewMine,
       ...oneOnOneMine,
       ...developmentPlanActionMine,
+      ...contractorInvoiceMine,
     ]);
     let forMe = this.sortItems([
       ...profileForMe,
@@ -135,6 +146,7 @@ export class HubService {
       ...performanceReviewForMe,
       ...oneOnOneForMe,
       ...developmentPlanActionForMe,
+      ...contractorInvoiceForMe,
     ]);
 
     if (query.tab === 'mine') {
@@ -835,5 +847,169 @@ export class HubService {
     } catch {
       return [];
     }
+  }
+
+  private async safeContractorInvoiceMine(
+    actingWorkerId: string | null,
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    if (!actingWorkerId) {
+      return [];
+    }
+    try {
+      const rows: Array<{
+        id: string;
+        invoiceNumber: string;
+        status: string;
+        createdAt: Date;
+      }> = await this.dataSource.query(
+        `
+        SELECT id, "invoiceNumber", status, "createdAt"
+        FROM contractor_invoices
+        WHERE "tenantId" = $1
+          AND "workerId" = $2
+          AND status IN ($3, $4, $5, $6, $7, $8)
+        ORDER BY "createdAt" DESC
+        LIMIT 100
+        `,
+        [
+          tenantId,
+          actingWorkerId,
+          ContractorInvoiceStatus.SUBMITTED,
+          ContractorInvoiceStatus.MANAGER_APPROVED,
+          ContractorInvoiceStatus.FINANCE_APPROVED,
+          ContractorInvoiceStatus.QUEUED,
+          ContractorInvoiceStatus.PAID,
+          ContractorInvoiceStatus.REJECTED,
+        ],
+      );
+      return rows.map((r) => this.toContractorInvoiceItem(r, 'mine'));
+    } catch {
+      return [];
+    }
+  }
+
+  private async safeContractorInvoiceForMe(
+    actingWorkerId: string | null,
+    roleCodes: string[],
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    const isManager = roleCodes.includes(PolarisRoleCode.MANAGER);
+    const isFinancePrivileged = roleCodes.some((code) =>
+      [
+        PolarisRoleCode.FINANCE,
+        PolarisRoleCode.PEOPLE_OPS,
+        PolarisRoleCode.SUPER_ADMIN,
+      ].includes(code as PolarisRoleCode),
+    );
+
+    if (!isManager && !isFinancePrivileged) {
+      return [];
+    }
+
+    try {
+      const items: HubItem[] = [];
+
+      if (isManager && actingWorkerId) {
+        const managerRows: Array<{
+          id: string;
+          invoiceNumber: string;
+          status: string;
+          createdAt: Date;
+          workerFirstName: string;
+          workerLastName: string;
+        }> = await this.dataSource.query(
+          `
+          SELECT i.id, i."invoiceNumber", i.status, i."createdAt",
+                 w."firstName" AS "workerFirstName", w."lastName" AS "workerLastName"
+          FROM contractor_invoices i
+          INNER JOIN workers w ON w.id = i."workerId"
+          WHERE i."tenantId" = $1
+            AND i.status = $2
+            AND w."managerId" = $3
+          ORDER BY i."createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, ContractorInvoiceStatus.SUBMITTED, actingWorkerId],
+        );
+        items.push(
+          ...managerRows.map((r) =>
+            this.toContractorInvoiceItem(r, 'manager', r),
+          ),
+        );
+      }
+
+      if (isFinancePrivileged) {
+        const financeRows: Array<{
+          id: string;
+          invoiceNumber: string;
+          status: string;
+          createdAt: Date;
+          workerFirstName: string;
+          workerLastName: string;
+        }> = await this.dataSource.query(
+          `
+          SELECT i.id, i."invoiceNumber", i.status, i."createdAt",
+                 w."firstName" AS "workerFirstName", w."lastName" AS "workerLastName"
+          FROM contractor_invoices i
+          INNER JOIN workers w ON w.id = i."workerId"
+          WHERE i."tenantId" = $1
+            AND i.status = $2
+          ORDER BY i."createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, ContractorInvoiceStatus.MANAGER_APPROVED],
+        );
+        items.push(
+          ...financeRows.map((r) =>
+            this.toContractorInvoiceItem(r, 'finance', r),
+          ),
+        );
+      }
+
+      return items;
+    } catch {
+      return [];
+    }
+  }
+
+  private toContractorInvoiceItem(
+    r: {
+      id: string;
+      invoiceNumber: string;
+      status: string;
+      createdAt: Date;
+    },
+    bucket: 'mine' | 'manager' | 'finance',
+    worker?: { workerFirstName: string; workerLastName: string },
+  ): HubItem {
+    const contractorName = worker
+      ? `${worker.workerFirstName} ${worker.workerLastName}`
+      : null;
+
+    let title = `Invoice ${r.invoiceNumber}`;
+    let href = `/contractor/invoices?invoiceId=${r.id}`;
+
+    if (bucket === 'manager') {
+      title = contractorName
+        ? `Invoice approval ${r.invoiceNumber} (${contractorName})`
+        : `Invoice approval ${r.invoiceNumber}`;
+      href = `/manager/cockpit?contractorInvoiceId=${r.id}`;
+    } else if (bucket === 'finance') {
+      title = contractorName
+        ? `Finance approval ${r.invoiceNumber} (${contractorName})`
+        : `Finance approval ${r.invoiceNumber}`;
+      href = `/finance/contractor-invoices?invoiceId=${r.id}`;
+    }
+
+    return {
+      id: `contractor_invoice:${r.id}`,
+      type: 'contractor_invoice',
+      title,
+      status: r.status,
+      createdAt: new Date(r.createdAt),
+      href,
+      entityId: r.id,
+    };
   }
 }
