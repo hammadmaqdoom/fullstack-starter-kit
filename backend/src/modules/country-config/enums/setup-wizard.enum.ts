@@ -35,6 +35,19 @@ export enum BenefitDeliveryMode {
   INSURANCE = 'insurance',
 }
 
+export enum BenefitTypeStatus {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  ARCHIVED = 'archived',
+}
+
+export enum BenefitPayrollTreatment {
+  INCLUDE_IN_GROSS = 'include_in_gross',
+  EXCLUDE_FROM_GROSS = 'exclude_from_gross',
+  EMPLOYER_COST_ONLY = 'employer_cost_only',
+  INFORMATIONAL_ONLY = 'informational_only',
+}
+
 export enum DocumentType {
   OFFER_LETTER = 'offer_letter',
   CONTRACT = 'contract',
@@ -52,5 +65,11 @@ export enum DocumentAudience {
 export enum DocumentTemplateStatus {
   DRAFT = 'draft',
   ACTIVE = 'active',
+  ARCHIVED = 'archived',
+}
+
+export enum DocumentTemplateVersionStatus {
+  DRAFT = 'draft',
+  PUBLISHED = 'published',
   ARCHIVED = 'archived',
 }

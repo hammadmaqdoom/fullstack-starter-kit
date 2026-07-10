@@ -1,12 +1,36 @@
+import { ComplianceModule } from '@/modules/compliance/compliance.module';
+import { CoreHrModule } from '@/modules/core-hr/core-hr.module';
+import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
+import { CountryConfigModule } from '@/modules/country-config/country-config.module';
+import { BenefitTypeEntity } from '@/modules/country-config/entities/benefit-type.entity';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import {
+  BenefitTypeController,
+  EmployeeBenefitController,
+} from './benefit.controller';
+import { BenefitService } from './benefit.service';
+import { BenefitTypeFieldEntity } from './entities/benefit-type-field.entity';
 import { CompensationRecordEntity } from './entities/compensation-record.entity';
+import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
 import { PayComponentEntity } from './entities/pay-component.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PayComponentEntity, CompensationRecordEntity]),
+    TypeOrmModule.forFeature([
+      PayComponentEntity,
+      CompensationRecordEntity,
+      BenefitTypeEntity,
+      BenefitTypeFieldEntity,
+      EmployeeBenefitEntity,
+      WorkerEntity,
+    ]),
+    ComplianceModule,
+    CountryConfigModule,
+    CoreHrModule,
   ],
-  exports: [TypeOrmModule],
+  controllers: [BenefitTypeController, EmployeeBenefitController],
+  providers: [BenefitService],
+  exports: [BenefitService, TypeOrmModule],
 })
 export class PayrollModule {}

@@ -9,7 +9,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { BenefitDeliveryMode } from '../enums/setup-wizard.enum';
+import {
+  BenefitDeliveryMode,
+  BenefitPayrollTreatment,
+  BenefitTypeStatus,
+} from '../enums/setup-wizard.enum';
 
 @Entity('benefit_types')
 @Index('IDX_benefit_types_tenant_code', ['tenantId', 'code'], { unique: true })
@@ -49,6 +53,28 @@ export class BenefitTypeEntity {
 
   @Column({ type: 'boolean', default: false })
   affectsTax: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: BenefitTypeStatus,
+    enumName: 'benefit_type_status_enum',
+    default: BenefitTypeStatus.DRAFT,
+  })
+  status: BenefitTypeStatus;
+
+  @Column({
+    type: 'enum',
+    enum: BenefitPayrollTreatment,
+    enumName: 'benefit_payroll_treatment_enum',
+    nullable: true,
+  })
+  payrollTreatment: BenefitPayrollTreatment | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  payComponentId: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  employeeVisible: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

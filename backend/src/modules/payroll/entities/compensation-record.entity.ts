@@ -1,5 +1,5 @@
-import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { TenantEntity } from '@/modules/compliance/entities/tenant.entity';
+import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import {
   Column,
   CreateDateColumn,

@@ -41,6 +41,13 @@ export enum EmployeeBenefitStatus {
   DRAFT = 'draft',
 }
 
+export enum BenefitTypeFieldType {
+  TEXT = 'text',
+  NUMBER = 'number',
+  DATE = 'date',
+  SELECT = 'select',
+}
+
 export enum ExportFileFormat {
   XLSX = 'xlsx',
   CSV = 'csv',
