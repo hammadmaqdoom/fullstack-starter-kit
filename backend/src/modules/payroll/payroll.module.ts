@@ -16,6 +16,10 @@ import { BenefitTypeFieldEntity } from './entities/benefit-type-field.entity';
 import { CompensationRecordEntity } from './entities/compensation-record.entity';
 import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
 import { PayComponentEntity } from './entities/pay-component.entity';
+import { StatutoryRateEntryEntity } from './entities/statutory-rate-entry.entity';
+import { StatutoryRateScheduleEntity } from './entities/statutory-rate-schedule.entity';
+import { StatutoryRateController } from './statutory-rate.controller';
+import { StatutoryRateService } from './statutory-rate.service';
 
 @Module({
   imports: [
@@ -25,6 +29,8 @@ import { PayComponentEntity } from './entities/pay-component.entity';
       BenefitTypeEntity,
       BenefitTypeFieldEntity,
       EmployeeBenefitEntity,
+      StatutoryRateScheduleEntity,
+      StatutoryRateEntryEntity,
       WorkerEntity,
     ]),
     ComplianceModule,
@@ -35,8 +41,14 @@ import { PayComponentEntity } from './entities/pay-component.entity';
     BenefitTypeController,
     EmployeeBenefitController,
     CompensationController,
+    StatutoryRateController,
   ],
-  providers: [BenefitService, CompensationService],
-  exports: [BenefitService, CompensationService, TypeOrmModule],
+  providers: [BenefitService, CompensationService, StatutoryRateService],
+  exports: [
+    BenefitService,
+    CompensationService,
+    StatutoryRateService,
+    TypeOrmModule,
+  ],
 })
 export class PayrollModule {}
