@@ -53,3 +53,8 @@ export enum ExportFileFormat {
   CSV = 'csv',
   PDF = 'pdf',
 }
+
+export enum FinanceExportType {
+  PAY_RUN = 'pay_run',
+  CONTRACTOR_BATCH = 'contractor_batch',
+}

@@ -19,12 +19,16 @@ import { CompensationService } from './compensation.service';
 import { BenefitTypeFieldEntity } from './entities/benefit-type-field.entity';
 import { CompensationRecordEntity } from './entities/compensation-record.entity';
 import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
+import { FinanceExportProfileEntity } from './entities/finance-export-profile.entity';
 import { PayComponentEntity } from './entities/pay-component.entity';
+import { PayRunExportBatchEntity } from './entities/pay-run-export-batch.entity';
 import { PayRunLineItemEntity } from './entities/pay-run-line-item.entity';
 import { PayRunEntity } from './entities/pay-run.entity';
 import { PayslipEntity } from './entities/payslip.entity';
 import { StatutoryRateEntryEntity } from './entities/statutory-rate-entry.entity';
 import { StatutoryRateScheduleEntity } from './entities/statutory-rate-schedule.entity';
+import { ExportController } from './export.controller';
+import { ExportService } from './export.service';
 import { PayRunCalculatorService } from './pay-run-calculator.service';
 import {
   DefaultPayRunLopProvider,
@@ -53,6 +57,8 @@ import { StatutoryRateService } from './statutory-rate.service';
       PayRunEntity,
       PayRunLineItemEntity,
       PayslipEntity,
+      FinanceExportProfileEntity,
+      PayRunExportBatchEntity,
       WorkerEntity,
       LegalEntityEntity,
     ]),
@@ -69,6 +75,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     StatutoryRateController,
     PayRunController,
     PayslipController,
+    ExportController,
   ],
   providers: [
     BenefitService,
@@ -80,6 +87,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayslipService,
     PayslipPdfService,
     PayslipBlobStorageService,
+    ExportService,
     LocalStorageService,
     { provide: PAY_RUN_LOP_PROVIDER, useClass: DefaultPayRunLopProvider },
   ],
@@ -91,6 +99,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunService,
     PayrollSeedService,
     PayslipService,
+    ExportService,
     TypeOrmModule,
   ],
 })
