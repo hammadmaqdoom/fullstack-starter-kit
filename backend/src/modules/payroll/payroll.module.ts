@@ -10,6 +10,8 @@ import {
   EmployeeBenefitController,
 } from './benefit.controller';
 import { BenefitService } from './benefit.service';
+import { CompensationController } from './compensation.controller';
+import { CompensationService } from './compensation.service';
 import { BenefitTypeFieldEntity } from './entities/benefit-type-field.entity';
 import { CompensationRecordEntity } from './entities/compensation-record.entity';
 import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
@@ -29,8 +31,12 @@ import { PayComponentEntity } from './entities/pay-component.entity';
     CountryConfigModule,
     CoreHrModule,
   ],
-  controllers: [BenefitTypeController, EmployeeBenefitController],
-  providers: [BenefitService],
-  exports: [BenefitService, TypeOrmModule],
+  controllers: [
+    BenefitTypeController,
+    EmployeeBenefitController,
+    CompensationController,
+  ],
+  providers: [BenefitService, CompensationService],
+  exports: [BenefitService, CompensationService, TypeOrmModule],
 })
 export class PayrollModule {}
