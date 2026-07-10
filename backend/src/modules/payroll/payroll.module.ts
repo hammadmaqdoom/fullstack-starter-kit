@@ -49,6 +49,17 @@ import { PayslipBlobStorageService } from './payslip-blob-storage.service';
 import { PayslipPdfService } from './payslip-pdf.service';
 import { PayslipController } from './payslip.controller';
 import { PayslipService } from './payslip.service';
+import { RemittanceCorridorConfigEntity } from './entities/remittance-corridor-config.entity';
+import { RemittancePackDocumentEntity } from './entities/remittance-pack-document.entity';
+import { RemittancePackEntity } from './entities/remittance-pack.entity';
+import {
+  ContractorInvoiceRemittanceController,
+  ContractorPaymentLineRemittanceController,
+  PayRunLineRemittanceController,
+  PayslipRemittanceController,
+  RemittanceCorridorController,
+} from './remittance.controller';
+import { RemittanceService } from './remittance.service';
 import { StatutoryRateController } from './statutory-rate.controller';
 import { StatutoryRateService } from './statutory-rate.service';
 
@@ -70,6 +81,9 @@ import { StatutoryRateService } from './statutory-rate.service';
       ContractorPaymentBatchEntity,
       ContractorPaymentLineEntity,
       ContractorInvoiceEntity,
+      RemittanceCorridorConfigEntity,
+      RemittancePackEntity,
+      RemittancePackDocumentEntity,
       WorkerEntity,
       LegalEntityEntity,
     ]),
@@ -89,6 +103,11 @@ import { StatutoryRateService } from './statutory-rate.service';
     ExportController,
     ContractorPaymentBatchController,
     ContractorPaymentLineController,
+    RemittanceCorridorController,
+    PayRunLineRemittanceController,
+    ContractorPaymentLineRemittanceController,
+    PayslipRemittanceController,
+    ContractorInvoiceRemittanceController,
   ],
   providers: [
     BenefitService,
@@ -102,6 +121,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayslipBlobStorageService,
     ExportService,
     ContractorPaymentBatchService,
+    RemittanceService,
     LocalStorageService,
     { provide: PAY_RUN_LOP_PROVIDER, useClass: DefaultPayRunLopProvider },
   ],
@@ -115,6 +135,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayslipService,
     ExportService,
     ContractorPaymentBatchService,
+    RemittanceService,
     TypeOrmModule,
   ],
 })

@@ -27,6 +27,7 @@ import {
 import { buildExportCsv, buildExportXlsx } from './export-file.builder';
 import { isPayrollAdmin } from './payroll-scope.util';
 import { PayslipBlobStorageService } from './payslip-blob-storage.service';
+import { RemittanceService } from './remittance.service';
 
 type ActorContext = {
   userId: string;
@@ -84,6 +85,7 @@ export class ContractorPaymentBatchService {
     private readonly rbacService: RbacService,
     private readonly dataSource: DataSource,
     private readonly blobStorageService: PayslipBlobStorageService,
+    private readonly remittanceService: RemittanceService,
   ) {}
 
   async createBatch(
@@ -450,6 +452,18 @@ export class ContractorPaymentBatchService {
         },
         correlationId: actor.correlationId,
         ipAddress: actor.ipAddress,
+      });
+
+      // FLW-PAY-005 — creates a remittance pack only when the payer (legal
+      // entity) country differs from the contractor's bank country and an
+      // active corridor matches; a no-op otherwise.
+      await this.remittanceService.ensurePackForContractorPayment({
+        tenantId,
+        workerId: savedLine.workerId,
+        legalEntityId: savedLine.legalEntityId,
+        invoiceId: invoice.id,
+        paymentSourceId: savedLine.id,
+        actor,
       });
     }
 

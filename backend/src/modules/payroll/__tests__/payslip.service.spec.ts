@@ -16,6 +16,7 @@ import { PayRunStatus, PayslipStatus } from '../enums/payroll.enum';
 import { PayslipBlobStorageService } from '../payslip-blob-storage.service';
 import { PayslipPdfService } from '../payslip-pdf.service';
 import { PayslipService } from '../payslip.service';
+import { RemittanceService } from '../remittance.service';
 
 describe('PayslipService', () => {
   let service: PayslipService;
@@ -34,6 +35,7 @@ describe('PayslipService', () => {
   let rbacService: { getAuthContext: jest.Mock };
   let pdfService: { render: jest.Mock };
   let blobStorageService: { upload: jest.Mock };
+  let remittanceService: { ensurePackForPayslip: jest.Mock };
 
   const userId = 'u0000000-0000-4000-8000-000000000001';
   const legalEntityId = 'le000000-0000-4000-8000-000000000001';
@@ -168,6 +170,9 @@ describe('PayslipService', () => {
     blobStorageService = {
       upload: jest.fn().mockResolvedValue('https://blob/payslips/x.pdf'),
     };
+    remittanceService = {
+      ensurePackForPayslip: jest.fn().mockResolvedValue(null),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -196,6 +201,7 @@ describe('PayslipService', () => {
         { provide: RbacService, useValue: rbacService },
         { provide: PayslipPdfService, useValue: pdfService },
         { provide: PayslipBlobStorageService, useValue: blobStorageService },
+        { provide: RemittanceService, useValue: remittanceService },
       ],
     }).compile();
 

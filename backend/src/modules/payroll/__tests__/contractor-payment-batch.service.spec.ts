@@ -18,6 +18,7 @@ import {
   ExportFileFormat,
 } from '../enums/payroll.enum';
 import { PayslipBlobStorageService } from '../payslip-blob-storage.service';
+import { RemittanceService } from '../remittance.service';
 
 describe('ContractorPaymentBatchService', () => {
   let service: ContractorPaymentBatchService;
@@ -37,6 +38,7 @@ describe('ContractorPaymentBatchService', () => {
   let rbacService: { getAuthContext: jest.Mock };
   let dataSource: { transaction: jest.Mock };
   let blobStorageService: { upload: jest.Mock };
+  let remittanceService: { ensurePackForContractorPayment: jest.Mock };
 
   const userId = 'u0000000-0000-4000-8000-000000000001';
   const legalEntityId = 'le000000-0000-4000-8000-000000000001';
@@ -160,6 +162,9 @@ describe('ContractorPaymentBatchService', () => {
     blobStorageService = {
       upload: jest.fn().mockResolvedValue('https://blob/contractor-batch.xlsx'),
     };
+    remittanceService = {
+      ensurePackForContractorPayment: jest.fn().mockResolvedValue(null),
+    };
 
     dataSource = {
       transaction: jest.fn(async (callback) => {
@@ -213,6 +218,7 @@ describe('ContractorPaymentBatchService', () => {
         { provide: RbacService, useValue: rbacService },
         { provide: DataSource, useValue: dataSource },
         { provide: PayslipBlobStorageService, useValue: blobStorageService },
+        { provide: RemittanceService, useValue: remittanceService },
       ],
     }).compile();
 

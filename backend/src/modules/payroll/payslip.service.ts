@@ -21,6 +21,7 @@ import { PayRunStatus, PayslipStatus } from './enums/payroll.enum';
 import { isPayrollAdmin } from './payroll-scope.util';
 import { PayslipBlobStorageService } from './payslip-blob-storage.service';
 import { PayslipPdfService } from './payslip-pdf.service';
+import { RemittanceService } from './remittance.service';
 
 type ActorContext = {
   userId: string;
@@ -46,6 +47,7 @@ export class PayslipService {
     private readonly rbacService: RbacService,
     private readonly pdfService: PayslipPdfService,
     private readonly blobStorageService: PayslipBlobStorageService,
+    private readonly remittanceService: RemittanceService,
   ) {}
 
   /**
@@ -151,7 +153,20 @@ export class PayslipService {
         'payslips',
         `${created.id}.pdf`,
       );
-      releasedPayslips.push(await this.payslipRepository.save(created));
+      const releasedPayslip = await this.payslipRepository.save(created);
+      releasedPayslips.push(releasedPayslip);
+
+      // FLW-PAY-005 — creates a remittance pack only when the payer (legal
+      // entity) country differs from the worker's bank country and an
+      // active corridor matches; a no-op otherwise.
+      await this.remittanceService.ensurePackForPayslip({
+        tenantId,
+        workerId: lineItem.workerId,
+        legalEntityId: payRun.legalEntityId,
+        payRunId: payRun.id,
+        paymentSourceId: lineItem.id,
+        actor,
+      });
     }
 
     await this.auditLogService.append({
