@@ -16,9 +16,17 @@ import { BenefitTypeFieldEntity } from './entities/benefit-type-field.entity';
 import { CompensationRecordEntity } from './entities/compensation-record.entity';
 import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
 import { PayComponentEntity } from './entities/pay-component.entity';
+import { PayRunLineItemEntity } from './entities/pay-run-line-item.entity';
+import { PayRunEntity } from './entities/pay-run.entity';
 import { StatutoryRateEntryEntity } from './entities/statutory-rate-entry.entity';
 import { StatutoryRateScheduleEntity } from './entities/statutory-rate-schedule.entity';
 import { PayRunCalculatorService } from './pay-run-calculator.service';
+import {
+  DefaultPayRunLopProvider,
+  PAY_RUN_LOP_PROVIDER,
+} from './pay-run-lop-provider';
+import { PayRunController } from './pay-run.controller';
+import { PayRunService } from './pay-run.service';
 import { PayrollSeedService } from './payroll-seed.service';
 import { StatutoryRateController } from './statutory-rate.controller';
 import { StatutoryRateService } from './statutory-rate.service';
@@ -33,6 +41,8 @@ import { StatutoryRateService } from './statutory-rate.service';
       EmployeeBenefitEntity,
       StatutoryRateScheduleEntity,
       StatutoryRateEntryEntity,
+      PayRunEntity,
+      PayRunLineItemEntity,
       WorkerEntity,
     ]),
     ComplianceModule,
@@ -44,19 +54,23 @@ import { StatutoryRateService } from './statutory-rate.service';
     EmployeeBenefitController,
     CompensationController,
     StatutoryRateController,
+    PayRunController,
   ],
   providers: [
     BenefitService,
     CompensationService,
     StatutoryRateService,
     PayRunCalculatorService,
+    PayRunService,
     PayrollSeedService,
+    { provide: PAY_RUN_LOP_PROVIDER, useClass: DefaultPayRunLopProvider },
   ],
   exports: [
     BenefitService,
     CompensationService,
     StatutoryRateService,
     PayRunCalculatorService,
+    PayRunService,
     PayrollSeedService,
     TypeOrmModule,
   ],
