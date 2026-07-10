@@ -18,6 +18,8 @@ import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
 import { PayComponentEntity } from './entities/pay-component.entity';
 import { StatutoryRateEntryEntity } from './entities/statutory-rate-entry.entity';
 import { StatutoryRateScheduleEntity } from './entities/statutory-rate-schedule.entity';
+import { PayRunCalculatorService } from './pay-run-calculator.service';
+import { PayrollSeedService } from './payroll-seed.service';
 import { StatutoryRateController } from './statutory-rate.controller';
 import { StatutoryRateService } from './statutory-rate.service';
 
@@ -43,11 +45,19 @@ import { StatutoryRateService } from './statutory-rate.service';
     CompensationController,
     StatutoryRateController,
   ],
-  providers: [BenefitService, CompensationService, StatutoryRateService],
+  providers: [
+    BenefitService,
+    CompensationService,
+    StatutoryRateService,
+    PayRunCalculatorService,
+    PayrollSeedService,
+  ],
   exports: [
     BenefitService,
     CompensationService,
     StatutoryRateService,
+    PayRunCalculatorService,
+    PayrollSeedService,
     TypeOrmModule,
   ],
 })
