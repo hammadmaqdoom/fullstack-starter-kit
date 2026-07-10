@@ -1,8 +1,12 @@
 import { ComplianceModule } from '@/modules/compliance/compliance.module';
 import { CoreHrModule } from '@/modules/core-hr/core-hr.module';
+import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { CountryConfigModule } from '@/modules/country-config/country-config.module';
 import { BenefitTypeEntity } from '@/modules/country-config/entities/benefit-type.entity';
+import { AwsModule } from '@/services/aws/aws.module';
+import { AzureModule } from '@/services/azure/azure.module';
+import { LocalStorageService } from '@/services/local-storage.service';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
@@ -18,6 +22,7 @@ import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
 import { PayComponentEntity } from './entities/pay-component.entity';
 import { PayRunLineItemEntity } from './entities/pay-run-line-item.entity';
 import { PayRunEntity } from './entities/pay-run.entity';
+import { PayslipEntity } from './entities/payslip.entity';
 import { StatutoryRateEntryEntity } from './entities/statutory-rate-entry.entity';
 import { StatutoryRateScheduleEntity } from './entities/statutory-rate-schedule.entity';
 import { PayRunCalculatorService } from './pay-run-calculator.service';
@@ -28,6 +33,10 @@ import {
 import { PayRunController } from './pay-run.controller';
 import { PayRunService } from './pay-run.service';
 import { PayrollSeedService } from './payroll-seed.service';
+import { PayslipBlobStorageService } from './payslip-blob-storage.service';
+import { PayslipPdfService } from './payslip-pdf.service';
+import { PayslipController } from './payslip.controller';
+import { PayslipService } from './payslip.service';
 import { StatutoryRateController } from './statutory-rate.controller';
 import { StatutoryRateService } from './statutory-rate.service';
 
@@ -43,11 +52,15 @@ import { StatutoryRateService } from './statutory-rate.service';
       StatutoryRateEntryEntity,
       PayRunEntity,
       PayRunLineItemEntity,
+      PayslipEntity,
       WorkerEntity,
+      LegalEntityEntity,
     ]),
     ComplianceModule,
     CountryConfigModule,
     CoreHrModule,
+    AwsModule,
+    AzureModule,
   ],
   controllers: [
     BenefitTypeController,
@@ -55,6 +68,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     CompensationController,
     StatutoryRateController,
     PayRunController,
+    PayslipController,
   ],
   providers: [
     BenefitService,
@@ -63,6 +77,10 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunCalculatorService,
     PayRunService,
     PayrollSeedService,
+    PayslipService,
+    PayslipPdfService,
+    PayslipBlobStorageService,
+    LocalStorageService,
     { provide: PAY_RUN_LOP_PROVIDER, useClass: DefaultPayRunLopProvider },
   ],
   exports: [
@@ -72,6 +90,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunCalculatorService,
     PayRunService,
     PayrollSeedService,
+    PayslipService,
     TypeOrmModule,
   ],
 })
