@@ -193,13 +193,13 @@
 
 ### 2.2 Benefits & payroll
 
-- [ ] `benefit_types`, `benefit_type_fields`, `employee_benefits` (dynamic fields)
-- [ ] Benefit type seed packs PK/UAE/SG
-- [ ] `pay_components`, `compensation_records`
-- [ ] `statutory_rate_schedules`, `statutory_rate_entries`
-- [ ] `pay_runs`, `pay_run_line_items`, anomaly detection
-- [ ] Pay run approval gate (single)
-- [ ] `payslips` + employee self-service
+- [x] `benefit_types`, `benefit_type_fields`, `employee_benefits` (dynamic fields)
+- [ ] Benefit type seed packs PK/UAE/SG — BASIC_SALARY + draft statutory via PayrollSeedService; full country packs still thin
+- [x] `pay_components`, `compensation_records`
+- [x] `statutory_rate_schedules`, `statutory_rate_entries`
+- [x] `pay_runs`, `pay_run_line_items`, anomaly detection
+- [x] Pay run approval gate (single)
+- [x] `payslips` + employee self-service
 - [x] `pay_run_export_batches` (PDF + Excel)
 - [x] Finance export column mappings per country/entity
 
@@ -236,9 +236,9 @@
 
 ### 2.6 Finance admin surfaces
 
-- [ ] Benefit type builder UI (UX §6.4)
-- [ ] Pay run review grid (UX §6.4)
-- [ ] Statutory rate UI with impact preview
+- [x] Benefit type builder UI (UX §6.4)
+- [x] Pay run review grid (UX §6.4)
+- [x] Statutory rate UI with impact preview
 - [ ] Contractor payment batch UI
 - [ ] Payroll reports: register, deductions, variance
 

@@ -290,6 +290,10 @@ describe('CompensationService', () => {
   describe('getCompensationRecord', () => {
     it('redacts amount when the actor is not Finance/People Ops/Super Admin', async () => {
       rbacService.getAuthContext.mockResolvedValue(employeeAuth);
+      workerRepository.findOne.mockResolvedValue({
+        id: workerId,
+        userId: employeeUserId,
+      });
       compensationRepository.findOne.mockResolvedValue(buildRecord());
 
       const result = await service.getCompensationRecord(
@@ -298,6 +302,25 @@ describe('CompensationService', () => {
       );
 
       expect(result.amount).toBeNull();
+    });
+
+    it('forbids get when record belongs to another worker', async () => {
+      rbacService.getAuthContext.mockResolvedValue(employeeAuth);
+      workerRepository.findOne.mockResolvedValue({
+        id: workerId,
+        userId: employeeUserId,
+      });
+      compensationRepository.findOne.mockResolvedValue(
+        buildRecord({
+          workerId: 'w0000000-0000-4000-8000-000000000099',
+        }),
+      );
+
+      await expect(
+        service.getCompensationRecord(compensationId, employeeUserId),
+      ).rejects.toMatchObject({
+        response: { code: 'COMPENSATION_SCOPE_DENIED' },
+      });
     });
 
     it('returns the amount when the actor is Finance', async () => {

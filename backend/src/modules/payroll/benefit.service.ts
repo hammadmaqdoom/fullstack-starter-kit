@@ -12,6 +12,7 @@ import { PaginatedServiceResult } from '@/shared/types/api-envelope.type';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -330,11 +331,7 @@ export class BenefitService {
       .skip((page - 1) * limit)
       .take(limit);
 
-    if (query.workerId) {
-      qb.andWhere('employeeBenefit.workerId = :workerId', {
-        workerId: query.workerId,
-      });
-    } else if (!isPayrollAdmin(auth)) {
+    if (!isPayrollAdmin(auth)) {
       const actingWorker = await this.workerRepository.findOne({
         where: { tenantId, userId: actorUserId },
         select: ['id'],
@@ -345,8 +342,18 @@ export class BenefitService {
           meta: { page, limit, totalItems: 0, totalPages: 0 },
         };
       }
+      if (query.workerId && query.workerId !== actingWorker.id) {
+        throw new ForbiddenException({
+          code: 'EMPLOYEE_BENEFIT_SCOPE_DENIED',
+          message: 'Cannot list benefits for another worker',
+        });
+      }
       qb.andWhere('employeeBenefit.workerId = :workerId', {
         workerId: actingWorker.id,
+      });
+    } else if (query.workerId) {
+      qb.andWhere('employeeBenefit.workerId = :workerId', {
+        workerId: query.workerId,
       });
     }
 

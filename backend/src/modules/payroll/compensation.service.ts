@@ -6,7 +6,7 @@ import { PolarisAuthContext } from '@/modules/compliance/types/rbac.type';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { resolveActingWorkerId } from '@/modules/core-hr/worker-scope.util';
 import { PaginatedServiceResult } from '@/shared/types/api-envelope.type';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -191,11 +191,7 @@ export class CompensationService {
       .skip((page - 1) * limit)
       .take(limit);
 
-    if (query.workerId) {
-      qb.andWhere('compensation.workerId = :workerId', {
-        workerId: query.workerId,
-      });
-    } else if (!isPayrollAdmin(auth)) {
+    if (!isPayrollAdmin(auth)) {
       const actingWorkerId = await resolveActingWorkerId(
         this.workerRepository,
         actorUserId,
@@ -207,8 +203,18 @@ export class CompensationService {
           meta: { page, limit, totalItems: 0, totalPages: 0 },
         };
       }
+      if (query.workerId && query.workerId !== actingWorkerId) {
+        throw new ForbiddenException({
+          code: 'COMPENSATION_SCOPE_DENIED',
+          message: 'Cannot list compensation for another worker',
+        });
+      }
       qb.andWhere('compensation.workerId = :workerId', {
         workerId: actingWorkerId,
+      });
+    } else if (query.workerId) {
+      qb.andWhere('compensation.workerId = :workerId', {
+        workerId: query.workerId,
       });
     }
 
@@ -238,6 +244,19 @@ export class CompensationService {
         code: 'COMPENSATION_RECORD_NOT_FOUND',
         message: 'Compensation record not found',
       });
+    }
+    if (!isPayrollAdmin(auth)) {
+      const actingWorkerId = await resolveActingWorkerId(
+        this.workerRepository,
+        actorUserId,
+        tenantId,
+      );
+      if (!actingWorkerId || record.workerId !== actingWorkerId) {
+        throw new ForbiddenException({
+          code: 'COMPENSATION_SCOPE_DENIED',
+          message: 'Cannot view compensation for another worker',
+        });
+      }
     }
     return toCompensationResponse(record, auth);
   }
