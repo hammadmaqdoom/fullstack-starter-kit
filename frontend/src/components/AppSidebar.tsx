@@ -3,22 +3,33 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
+  Bell,
   Briefcase,
+  CalendarDays,
   ChevronDown,
+  ClipboardList,
+  DoorOpen,
+  FileSignature,
   FileText,
+  Gift,
   Home,
   Image,
   Inbox,
+  LayoutDashboard,
   Loader2,
   Lock,
   LogOut,
   Megaphone,
   MoreVertical,
   Search,
+  Send,
   Settings,
   Shield,
+  ShieldCheck,
   Smartphone,
+  Target,
   User,
+  UserPlus,
   Users,
   Wallet,
   X,
@@ -120,17 +131,84 @@ function SidebarPanel({
 
   const primaryNav: NavItem[] = [
     { href: '/dashboard', label: t('home_link'), icon: Home, exact: true },
-    { href: '/hub', label: t('hub_link'), icon: Inbox, locked: !navAccess.employee },
+    { href: '/hub', label: t('hub_link'), icon: Inbox },
     { href: '/dashboard/user-profile', label: t('profile_link'), icon: User },
+    { href: '/dashboard/notifications', label: t('notifications_link'), icon: Bell },
     { href: '/dashboard/security', label: t('security_link'), icon: Shield },
     { href: '/dashboard/sessions', label: t('sessions_link'), icon: Smartphone },
   ];
 
   const peopleOpsNav: NavItem[] = [
     {
+      href: '/people-ops/dashboard',
+      label: t('hr_dashboard_link'),
+      icon: LayoutDashboard,
+      locked: !navAccess.peopleOps,
+    },
+    {
       href: '/people-ops/workers',
       label: t('workers_link'),
       icon: Users,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/pre-boarding',
+      label: t('pre_boarding_link'),
+      icon: Send,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/onboarding',
+      label: t('onboarding_link'),
+      icon: UserPlus,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/templates',
+      label: t('templates_link'),
+      icon: FileText,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/separations',
+      label: t('separations_link'),
+      icon: DoorOpen,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/policies',
+      label: t('policies_link'),
+      icon: ClipboardList,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/leave',
+      label: t('leave_admin_link'),
+      icon: CalendarDays,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/performance',
+      label: t('performance_link'),
+      icon: Target,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/performance/okrs',
+      label: t('okrs_link'),
+      icon: Target,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/letterheads',
+      label: t('letterheads_link'),
+      icon: FileText,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/documents/register',
+      label: t('document_register_link'),
+      icon: FileText,
       locked: !navAccess.peopleOps,
     },
     {
@@ -148,6 +226,54 @@ function SidebarPanel({
       icon: Home,
       locked: !navAccess.employee,
     },
+    {
+      href: '/employee/profile',
+      label: t('employee_profile_link'),
+      icon: User,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/directory',
+      label: t('employee_directory_link'),
+      icon: Search,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/leave',
+      label: t('employee_leave_link'),
+      icon: CalendarDays,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/calendar',
+      label: t('employee_calendar_link'),
+      icon: CalendarDays,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/policies',
+      label: t('employee_policies_link'),
+      icon: ClipboardList,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/documents',
+      label: t('employee_documents_link'),
+      icon: FileSignature,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/performance',
+      label: t('employee_performance_link'),
+      icon: Target,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/payslips',
+      label: t('employee_payslips_link'),
+      icon: Wallet,
+      locked: !navAccess.employee,
+    },
   ];
 
   const managerNav: NavItem[] = [
@@ -157,6 +283,18 @@ function SidebarPanel({
       icon: Briefcase,
       locked: !navAccess.manager,
     },
+    {
+      href: '/manager/calendar',
+      label: t('manager_calendar_link'),
+      icon: CalendarDays,
+      locked: !navAccess.manager,
+    },
+    {
+      href: '/manager/performance',
+      label: t('manager_performance_link'),
+      icon: Target,
+      locked: !navAccess.manager,
+    },
   ];
 
   const financeNav: NavItem[] = [
@@ -164,6 +302,18 @@ function SidebarPanel({
       href: '/finance/pay-runs',
       label: t('finance_pay_runs_link'),
       icon: Wallet,
+      locked: !navAccess.finance,
+    },
+    {
+      href: '/finance/benefits',
+      label: t('finance_benefits_link'),
+      icon: Gift,
+      locked: !navAccess.finance,
+    },
+    {
+      href: '/finance/statutory-rates',
+      label: t('finance_statutory_rates_link'),
+      icon: ShieldCheck,
       locked: !navAccess.finance,
     },
   ];
