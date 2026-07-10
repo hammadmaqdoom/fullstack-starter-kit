@@ -21,6 +21,7 @@ import {
   LogOut,
   Megaphone,
   MoreVertical,
+  Receipt,
   Search,
   Send,
   Settings,
@@ -316,6 +317,39 @@ function SidebarPanel({
       icon: ShieldCheck,
       locked: !navAccess.finance,
     },
+    {
+      href: '/finance/contractor-payments',
+      label: t('finance_contractor_payments_link'),
+      icon: Receipt,
+      locked: !navAccess.finance,
+    },
+  ];
+
+  const contractorNav: NavItem[] = [
+    {
+      href: '/contractor/dashboard',
+      label: t('contractor_home_link'),
+      icon: Home,
+      locked: !navAccess.contractor,
+    },
+    {
+      href: '/contractor/invoices',
+      label: t('contractor_invoices_link'),
+      icon: Receipt,
+      locked: !navAccess.contractor,
+    },
+    {
+      href: '/contractor/documents',
+      label: t('contractor_documents_link'),
+      icon: FileSignature,
+      locked: !navAccess.contractor,
+    },
+    {
+      href: '/contractor/profile',
+      label: t('contractor_profile_link'),
+      icon: User,
+      locked: !navAccess.contractor,
+    },
   ];
 
   const adminNav: NavItem[] = [
@@ -425,6 +459,17 @@ function SidebarPanel({
             </p>
             <ul className="space-y-0.5">
               {financeNav.map(item => (
+                <li key={item.href}>
+                  <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+              {t('section_contractor')}
+            </p>
+            <ul className="space-y-0.5">
+              {contractorNav.map(item => (
                 <li key={item.href}>
                   <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
                 </li>

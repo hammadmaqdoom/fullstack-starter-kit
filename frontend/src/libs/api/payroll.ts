@@ -186,11 +186,69 @@ export type CreateStatutoryRateScheduleInput = {
   entries?: CreateStatutoryRateEntryInput[];
 };
 
+export type ContractorPaymentBatchStatus = 'draft' | 'review' | 'approved' | 'exported' | 'locked';
+
+export type ContractorPaymentLine = {
+  id: string;
+  tenantId?: string;
+  legalEntityId: string;
+  batchId: string;
+  invoiceId: string;
+  workerId: string;
+  worker?: { id: string; firstName: string; lastName: string } | null;
+  amount: string;
+  withholdingTax: string | null;
+  paymentReference: string | null;
+  paymentValueDate: string | null;
+  swiftUetr: string | null;
+  paidAt: string | null;
+  createdAt: string;
+};
+
+export type ContractorPaymentBatch = {
+  id: string;
+  legalEntityId: string;
+  periodStart: string;
+  periodEnd: string;
+  status: ContractorPaymentBatchStatus;
+  totalAmount: string;
+  currencyCode: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContractorPaymentBatchDetail = ContractorPaymentBatch & {
+  lines: ContractorPaymentLine[];
+};
+
+export type CreateContractorPaymentBatchInput = {
+  legalEntityId: string;
+  periodStart: string;
+  periodEnd: string;
+  currencyCode: string;
+};
+
+export type ContractorPaymentBatchExportResult = {
+  batch: ContractorPaymentBatch;
+  blobUrl: string;
+  fileFormat: ExportFileFormat;
+};
+
+export type MarkContractorPaymentLinePaidInput = {
+  paymentReference: string;
+  paymentValueDate?: string;
+  swiftUetr?: string;
+};
+
 const PAY_RUN_BASE = '/api/v1/payroll/pay-runs';
 const BENEFIT_TYPE_BASE = '/api/v1/payroll/benefit-types';
 const EMPLOYEE_BENEFIT_BASE = '/api/v1/payroll/employee-benefits';
 const STATUTORY_RATE_BASE = '/api/v1/payroll/statutory-rate-schedules';
 const PAYSLIP_BASE = '/api/v1/payroll/payslips';
+const CONTRACTOR_PAYMENT_BATCH_BASE = '/api/v1/payroll/contractor-payment-batches';
+const CONTRACTOR_PAYMENT_LINE_BASE = '/api/v1/payroll/contractor-payment-lines';
 
 function withUnavailableFallback<T>(fallback: T) {
   return (err: unknown) => {
@@ -397,4 +455,50 @@ export async function downloadPayslip(id: string) {
   return apiRequest<{ payslipId: string; pdfBlobUrl: string }>(
     `${PAYSLIP_BASE}/${id}/download`,
   );
+}
+
+export async function listContractorPaymentBatches(params?: {
+  legalEntityId?: string;
+  status?: ContractorPaymentBatchStatus;
+  page?: number;
+  limit?: number;
+}) {
+  try {
+    return await apiRequest<ContractorPaymentBatch[]>(CONTRACTOR_PAYMENT_BATCH_BASE, { params });
+  } catch (err) {
+    return withUnavailableFallback<ContractorPaymentBatch[]>([])(err);
+  }
+}
+
+export async function createContractorPaymentBatch(input: CreateContractorPaymentBatchInput) {
+  return apiRequest<ContractorPaymentBatchDetail>(CONTRACTOR_PAYMENT_BATCH_BASE, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function getContractorPaymentBatch(id: string) {
+  return apiRequest<ContractorPaymentBatchDetail>(`${CONTRACTOR_PAYMENT_BATCH_BASE}/${id}`);
+}
+
+export async function approveContractorPaymentBatch(id: string) {
+  return apiRequest<ContractorPaymentBatch>(`${CONTRACTOR_PAYMENT_BATCH_BASE}/${id}/approve`, {
+    method: 'POST',
+  });
+}
+
+export async function exportContractorPaymentBatch(id: string) {
+  return apiRequest<ContractorPaymentBatchExportResult>(`${CONTRACTOR_PAYMENT_BATCH_BASE}/${id}/export`, {
+    method: 'POST',
+  });
+}
+
+export async function markContractorPaymentLinePaid(
+  lineId: string,
+  input: MarkContractorPaymentLinePaidInput,
+) {
+  return apiRequest<ContractorPaymentLine>(`${CONTRACTOR_PAYMENT_LINE_BASE}/${lineId}/mark-paid`, {
+    method: 'POST',
+    body: input,
+  });
 }

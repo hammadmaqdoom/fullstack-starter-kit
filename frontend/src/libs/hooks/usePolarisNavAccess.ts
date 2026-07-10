@@ -8,6 +8,7 @@ export type PolarisNavAccess = {
   employee: boolean;
   manager: boolean;
   finance: boolean;
+  contractor: boolean;
   isLoading: boolean;
 };
 
@@ -17,6 +18,7 @@ export function usePolarisNavAccess(): PolarisNavAccess {
     employee: false,
     manager: false,
     finance: false,
+    contractor: false,
     isLoading: true,
   });
 
@@ -24,9 +26,11 @@ export function usePolarisNavAccess(): PolarisNavAccess {
     let cancelled = false;
 
     async function load() {
-      const [peopleOps, directory] = await Promise.all([
+      const [peopleOps, directory, performance, contractorInvoices] = await Promise.all([
         probeApiAccess('/api/v1/workers'),
         probeApiAccess('/api/v1/org/directory'),
+        probeApiAccess('/api/v1/talent/performance/dashboard'),
+        probeApiAccess('/api/v1/contractor-invoices'),
       ]);
 
       if (cancelled) {
@@ -35,9 +39,10 @@ export function usePolarisNavAccess(): PolarisNavAccess {
 
       setAccess({
         peopleOps,
-        employee: directory,
-        manager: peopleOps || directory,
+        employee: directory || performance,
+        manager: peopleOps || directory || performance,
         finance: peopleOps,
+        contractor: contractorInvoices,
         isLoading: false,
       });
     }

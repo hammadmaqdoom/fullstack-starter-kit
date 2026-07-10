@@ -205,7 +205,7 @@
 
 ### 2.3 Contractor portal
 
-- [ ] Contractor 4-tab portal (UX §6.5)
+- [x] Contractor 4-tab portal (UX §6.5)
 - [ ] `contractor_invoices`, `contractor_invoice_line_items`
 - [ ] Invoice OCR pre-fill
 - [ ] Invoice approval: Manager → Finance
@@ -215,7 +215,7 @@
 - [ ] Finance SWIFT upload on pay run lines + contractor lines
 - [ ] Employee payslip remittance checklist + ZIP
 - [ ] Contractor invoice remittance checklist + ZIP
-- [ ] Payment status tracker to "Paid on {date}"
+- [x] Payment status tracker to "Paid on {date}"
 
 ### 2.4 Operations
 
@@ -239,7 +239,7 @@
 - [x] Benefit type builder UI (UX §6.4)
 - [x] Pay run review grid (UX §6.4)
 - [x] Statutory rate UI with impact preview
-- [ ] Contractor payment batch UI
+- [x] Contractor payment batch UI
 - [ ] Payroll reports: register, deductions, variance
 
 ### 2.7 Phase 2 quality gate
