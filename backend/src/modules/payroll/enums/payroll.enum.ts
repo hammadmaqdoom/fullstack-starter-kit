@@ -58,3 +58,16 @@ export enum FinanceExportType {
   PAY_RUN = 'pay_run',
   CONTRACTOR_BATCH = 'contractor_batch',
 }
+
+/**
+ * FLW-PAY-002 — Draft (invoices aggregated) → Review (Finance reviews
+ * lines/withholding) → Approved → Exported (export pack downloaded) →
+ * Locked (all lines paid; reserved for a later task).
+ */
+export enum ContractorPaymentBatchStatus {
+  DRAFT = 'draft',
+  REVIEW = 'review',
+  APPROVED = 'approved',
+  EXPORTED = 'exported',
+  LOCKED = 'locked',
+}

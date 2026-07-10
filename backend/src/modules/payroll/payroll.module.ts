@@ -4,6 +4,7 @@ import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entit
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { CountryConfigModule } from '@/modules/country-config/country-config.module';
 import { BenefitTypeEntity } from '@/modules/country-config/entities/benefit-type.entity';
+import { ContractorInvoiceEntity } from '@/modules/operations/entities/contractor-invoice.entity';
 import { AwsModule } from '@/services/aws/aws.module';
 import { AzureModule } from '@/services/azure/azure.module';
 import { LocalStorageService } from '@/services/local-storage.service';
@@ -16,8 +17,15 @@ import {
 import { BenefitService } from './benefit.service';
 import { CompensationController } from './compensation.controller';
 import { CompensationService } from './compensation.service';
+import {
+  ContractorPaymentBatchController,
+  ContractorPaymentLineController,
+} from './contractor-payment-batch.controller';
+import { ContractorPaymentBatchService } from './contractor-payment-batch.service';
 import { BenefitTypeFieldEntity } from './entities/benefit-type-field.entity';
 import { CompensationRecordEntity } from './entities/compensation-record.entity';
+import { ContractorPaymentBatchEntity } from './entities/contractor-payment-batch.entity';
+import { ContractorPaymentLineEntity } from './entities/contractor-payment-line.entity';
 import { EmployeeBenefitEntity } from './entities/employee-benefit.entity';
 import { FinanceExportProfileEntity } from './entities/finance-export-profile.entity';
 import { PayComponentEntity } from './entities/pay-component.entity';
@@ -59,6 +67,9 @@ import { StatutoryRateService } from './statutory-rate.service';
       PayslipEntity,
       FinanceExportProfileEntity,
       PayRunExportBatchEntity,
+      ContractorPaymentBatchEntity,
+      ContractorPaymentLineEntity,
+      ContractorInvoiceEntity,
       WorkerEntity,
       LegalEntityEntity,
     ]),
@@ -76,6 +87,8 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunController,
     PayslipController,
     ExportController,
+    ContractorPaymentBatchController,
+    ContractorPaymentLineController,
   ],
   providers: [
     BenefitService,
@@ -88,6 +101,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayslipPdfService,
     PayslipBlobStorageService,
     ExportService,
+    ContractorPaymentBatchService,
     LocalStorageService,
     { provide: PAY_RUN_LOP_PROVIDER, useClass: DefaultPayRunLopProvider },
   ],
@@ -100,6 +114,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayrollSeedService,
     PayslipService,
     ExportService,
+    ContractorPaymentBatchService,
     TypeOrmModule,
   ],
 })
