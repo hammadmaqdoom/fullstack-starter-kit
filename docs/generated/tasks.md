@@ -206,23 +206,23 @@
 ### 2.3 Contractor portal
 
 - [x] Contractor 4-tab portal (UX §6.5)
-- [ ] `contractor_invoices`, `contractor_invoice_line_items`
+- [x] `contractor_invoices`, `contractor_invoice_line_items`
 - [ ] Invoice OCR pre-fill
-- [ ] Invoice approval: Manager → Finance
-- [ ] `contractor_payment_batches` + export
-- [ ] `remittance_corridor_configs`, `remittance_packs`, `remittance_pack_documents` (FLW-PAY-005)
+- [x] Invoice approval: Manager → Finance
+- [x] `contractor_payment_batches` + export
+- [x] `remittance_corridor_configs`, `remittance_packs`, `remittance_pack_documents` (FLW-PAY-005)
 - [ ] Payment advice PDF generation (employee + contractor)
-- [ ] Finance SWIFT upload on pay run lines + contractor lines
-- [ ] Employee payslip remittance checklist + ZIP
-- [ ] Contractor invoice remittance checklist + ZIP
+- [x] Finance SWIFT upload on pay run lines + contractor lines
+- [x] Employee payslip remittance checklist + ZIP
+- [x] Contractor invoice remittance checklist + ZIP
 - [x] Payment status tracker to "Paid on {date}"
 
 ### 2.4 Operations
 
-- [ ] `expense_claims` with policy limits and OCR
-- [ ] `travel_requests`, `travel_itineraries`
-- [ ] `help_desk_tickets`, `ticket_comments` (HR/IT/Admin/Finance queues)
-- [ ] SLA tracking on tickets
+- [x] `expense_claims` with policy limits and OCR — backend + employee UI (`employee/expenses`); OCR is a stub (no provider wired)
+- [x] `travel_requests`, `travel_itineraries` — backend + employee UI (`employee/travel`)
+- [x] `help_desk_tickets`, `ticket_comments` (HR/IT/Admin/Finance queues) — backend + employee UI (`employee/help`)
+- [x] SLA tracking on tickets — `slaTargetHours`/`slaDueAt`/`slaBreached` on ticket entity + detail UI badge
 
 ### 2.5 Talent modules
 
