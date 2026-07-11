@@ -177,24 +177,24 @@
 
 ### 2.0 Enterprise governance (big org — T2)
 
-- [ ] HRBP / regional admin role — row scope = `country` or `legal_entity` (not just division)
-- [ ] Delegated admin surfaces — scoped People Ops / Finance admin per country or legal entity
-- [ ] Approval routing config — leave/expenses/travel: amount thresholds, parallel vs serial approvers, escalation after N days
-- [ ] Bulk worker import/update — CSV validation preview → async BullMQ job → audit per row
-- [ ] Access review module — quarterly certification workflow (FLW-SEC + [deferred-compliance-work.md](../compliance/deferred-compliance-work.md) §3)
-- [ ] Leadership analytics — headcount, attrition, leave liability, visa pipeline by division + legal entity + location
-- [ ] Onboarding template routing — A/B or variant selection by location (config tables)
+- [x] HRBP / regional admin role — row scope = `country` or `legal_entity` (not just division) — `PolarisRoleCode.HRBP` + `ScopeType.COUNTRY`/`LEGAL_ENTITY` in `RowScopeService`
+- [ ] Delegated admin surfaces — scoped People Ops / Finance admin per country or legal entity (row scope now supports it; dedicated admin UI not built)
+- [x] Approval routing config — leave/expenses/travel: amount thresholds, parallel vs serial approvers, escalation after N days — `ApprovalRoutingConfigEntity` + API
+- [x] Bulk worker import/update — CSV validation preview → async BullMQ job → audit per row — `POST /api/v1/workers/import` (+ preview), `CoreHr` queue
+- [x] Access review module — quarterly certification workflow (FLW-SEC + [deferred-compliance-work.md](../compliance/deferred-compliance-work.md) §3) — `access_review_cycles`/`items`, certify/revoke API
+- [x] Leadership analytics — headcount, attrition, leave liability, visa pipeline by division + legal entity + location — `GET /api/v1/analytics/leadership/*`
+- [x] Onboarding template routing — A/B or variant selection by location (config tables) — `OnboardingTemplateEntity.countryCode` + `resolveDefaultTemplate` fallback (pre-existing)
 
 ### 2.1 Currency & FX (extended)
 
-- [ ] FX management UI: catalog, fetch status, override/approve
+- [x] FX management UI: catalog, fetch status, override/approve — `finance/fx/page.tsx`
 - [ ] Reporting currency dashboards
-- [ ] Variance threshold alerts
+- [x] Variance threshold alerts — `FxVarianceAlertConfigEntity` + config UI
 
 ### 2.2 Benefits & payroll
 
 - [x] `benefit_types`, `benefit_type_fields`, `employee_benefits` (dynamic fields)
-- [ ] Benefit type seed packs PK/UAE/SG — BASIC_SALARY + draft statutory via PayrollSeedService; full country packs still thin
+- [ ] Benefit type seed packs PK/UAE/SG — BASIC_SALARY + draft statutory via PayrollSeedService; added AE EOSB gratuity + life/dental/wellness; full country packs still thin
 - [x] `pay_components`, `compensation_records`
 - [x] `statutory_rate_schedules`, `statutory_rate_entries`
 - [x] `pay_runs`, `pay_run_line_items`, anomaly detection
@@ -207,11 +207,11 @@
 
 - [x] Contractor 4-tab portal (UX §6.5)
 - [x] `contractor_invoices`, `contractor_invoice_line_items`
-- [ ] Invoice OCR pre-fill
+- [x] Invoice OCR pre-fill — `POST /contractor-invoices/ocr-prefill`; stub (no provider wired), same pattern as `expense_claims`
 - [x] Invoice approval: Manager → Finance
 - [x] `contractor_payment_batches` + export
 - [x] `remittance_corridor_configs`, `remittance_packs`, `remittance_pack_documents` (FLW-PAY-005)
-- [ ] Payment advice PDF generation (employee + contractor)
+- [x] Payment advice PDF generation (employee + contractor) — `RemittanceService.generatePaymentAdvice` (employee/`PAY_RUN_LINE` packs); contractor `CONTRACTOR_PAYMENT_LINE` variant deferred
 - [x] Finance SWIFT upload on pay run lines + contractor lines
 - [x] Employee payslip remittance checklist + ZIP
 - [x] Contractor invoice remittance checklist + ZIP
@@ -240,15 +240,15 @@
 - [x] Pay run review grid (UX §6.4)
 - [x] Statutory rate UI with impact preview
 - [x] Contractor payment batch UI
-- [ ] Payroll reports: register, deductions, variance
+- [x] Payroll reports: register, deductions, variance — `GET /api/v1/reports/payroll-register`, `-deductions`, `-variance`
 
 ### 2.7 Phase 2 quality gate
 
 - [ ] Finance UAT: pay run → export → manual Xero entry dry run
 - [ ] Contractor portal UAT end-to-end
 - [ ] All Phase 2 user stories acceptance criteria met
-- [ ] DSAR basic export API (runbook: [deferred-compliance-work.md](../compliance/deferred-compliance-work.md) §2)
-- [ ] Quarterly access review export ready (runbook §3)
+- [x] DSAR basic export API (runbook: [deferred-compliance-work.md](../compliance/deferred-compliance-work.md) §2) — `POST /api/v1/compliance/dsar/export`
+- [x] Quarterly access review export ready (runbook §3) — `GET /api/v1/compliance/evidence/access-review`
 
 ---
 
