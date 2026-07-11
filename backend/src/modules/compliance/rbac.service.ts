@@ -86,6 +86,7 @@ export class RbacService {
       roleCode: assignment.role!.code,
       scopeType: assignment.scopeType,
       scopeId: assignment.scopeId,
+      scopeCountryCode: assignment.scopeCountryCode,
     };
   }
 }

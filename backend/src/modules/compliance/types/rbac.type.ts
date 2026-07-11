@@ -5,6 +5,8 @@ export interface RoleAssignmentContext {
   roleCode: string;
   scopeType: ScopeType;
   scopeId: string | null;
+  /** Populated only for `ScopeType.COUNTRY` assignments (HRBP). */
+  scopeCountryCode?: string | null;
 }
 
 export interface PolarisAuthContext {
@@ -20,4 +22,7 @@ export interface ScopedResourceTarget {
   divisionId?: string | null;
   managerWorkerId?: string | null;
   teamWorkerIds?: string[];
+  /** Enterprise governance (T2) — HRBP legal-entity/country scoping. */
+  legalEntityId?: string | null;
+  countryCode?: string | null;
 }

@@ -7,7 +7,9 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
+import { DocumentTemplateVersionStatus } from '../enums/setup-wizard.enum';
 import { DocumentTemplateEntity } from './document-template.entity';
 
 @Entity('document_template_versions')
@@ -16,6 +18,11 @@ import { DocumentTemplateEntity } from './document-template.entity';
   ['tenantId', 'templateId', 'version'],
   { unique: true },
 )
+@Index('IDX_document_template_versions_status', [
+  'tenantId',
+  'templateId',
+  'status',
+])
 export class DocumentTemplateVersionEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -30,7 +37,7 @@ export class DocumentTemplateVersionEntity {
   @Column({ type: 'uuid' })
   templateId: string;
 
-  @ManyToOne(() => DocumentTemplateEntity, (template) => template.versions, {
+  @ManyToOne(() => DocumentTemplateEntity, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'templateId' })
@@ -45,9 +52,26 @@ export class DocumentTemplateVersionEntity {
   @Column({ type: 'jsonb', default: {} })
   mergeFieldSchema: Record<string, unknown>;
 
+  @Column({
+    type: 'enum',
+    enum: DocumentTemplateVersionStatus,
+    enumName: 'document_template_version_status_enum',
+    default: DocumentTemplateVersionStatus.DRAFT,
+  })
+  status: DocumentTemplateVersionStatus;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  publishedAt: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  publishedBy: string | null;
+
   @Column({ type: 'uuid', nullable: true })
   createdBy: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updatedAt: Date;
 }

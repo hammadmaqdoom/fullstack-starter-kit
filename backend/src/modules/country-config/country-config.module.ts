@@ -16,10 +16,13 @@ import {
   ExchangeRateEntity,
   ExchangeRateFetchBatchEntity,
 } from './entities/exchange-rate.entity';
+import { FxVarianceAlertConfigEntity } from './entities/fx-variance-alert-config.entity';
 import { HolidayCalendarEntity } from './entities/holiday-calendar.entity';
 import { HolidayEntity } from './entities/holiday.entity';
 import { LeaveTypeEntity } from './entities/leave-type.entity';
 import { SetupWizardProgressEntity } from './entities/setup-wizard-progress.entity';
+import { FxController } from './fx.controller';
+import { FxService } from './fx.service';
 import { SetupWizardController } from './setup-wizard.controller';
 import { SetupWizardService } from './setup-wizard.service';
 
@@ -34,6 +37,7 @@ import { SetupWizardService } from './setup-wizard.service';
       CountryCurrencyConfigEntity,
       ExchangeRateEntity,
       ExchangeRateFetchBatchEntity,
+      FxVarianceAlertConfigEntity,
       SetupWizardProgressEntity,
       LeaveTypeEntity,
       HolidayCalendarEntity,
@@ -44,8 +48,12 @@ import { SetupWizardService } from './setup-wizard.service';
       LegalEntityEntity,
     ]),
   ],
-  controllers: [CountryConfigController, SetupWizardController],
-  providers: [CountryConfigService, SetupWizardService],
-  exports: [CountryConfigService, SetupWizardService, TypeOrmModule],
+  controllers: [
+    CountryConfigController,
+    SetupWizardController,
+    FxController,
+  ],
+  providers: [CountryConfigService, SetupWizardService, FxService],
+  exports: [CountryConfigService, SetupWizardService, FxService, TypeOrmModule],
 })
 export class CountryConfigModule {}

@@ -15,7 +15,6 @@ import {
   DocumentTemplateStatus,
   DocumentType,
 } from '../enums/setup-wizard.enum';
-import { DocumentTemplateVersionEntity } from './document-template-version.entity';
 
 @Entity('document_templates')
 @Index('IDX_document_templates_tenant_code', ['tenantId', 'code'], {
@@ -34,6 +33,9 @@ export class DocumentTemplateEntity {
 
   @Column({ type: 'varchar', length: 50 })
   code: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  name: string | null;
 
   @Column({
     type: 'enum',
@@ -67,8 +69,17 @@ export class DocumentTemplateEntity {
   })
   status: DocumentTemplateStatus;
 
-  @OneToMany(() => DocumentTemplateVersionEntity, (version) => version.template)
-  versions?: DocumentTemplateVersionEntity[];
+  /** Inverse side — string relation name avoids circular import with version entity. */
+  @OneToMany('DocumentTemplateVersionEntity', 'template')
+  versions?: Array<{
+    id: string;
+    version: number;
+    body: string;
+    status: string;
+    mergeFieldSchema: Record<string, unknown>;
+    publishedAt: Date | null;
+    createdAt: Date;
+  }>;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

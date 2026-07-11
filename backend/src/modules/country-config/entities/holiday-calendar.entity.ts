@@ -10,7 +10,6 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { HolidayEntity } from './holiday.entity';
 
 @Entity('holiday_calendars')
 @Index('IDX_holiday_calendars_tenant_country', [
@@ -41,8 +40,8 @@ export class HolidayCalendarEntity {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
-  @OneToMany(() => HolidayEntity, (holiday) => holiday.calendar)
-  holidays?: HolidayEntity[];
+  @OneToMany('HolidayEntity', 'calendar')
+  holidays?: Array<{ id: string; name: string; holidayDate: string }>;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

@@ -26,7 +26,7 @@ export class HolidayEntity {
   @Column({ type: 'uuid' })
   holidayCalendarId: string;
 
-  @ManyToOne(() => HolidayCalendarEntity, (calendar) => calendar.holidays, {
+  @ManyToOne(() => HolidayCalendarEntity, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'holidayCalendarId' })

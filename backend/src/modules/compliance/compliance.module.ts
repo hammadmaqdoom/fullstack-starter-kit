@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuditLogController } from './audit-log.controller';
 import { AuditLogService } from './audit-log.service';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { RoleEntity } from './entities/role.entity';
@@ -16,6 +17,7 @@ import { RbacService } from './rbac.service';
       UserRoleAssignmentEntity,
     ]),
   ],
+  controllers: [AuditLogController],
   providers: [AuditLogService, RbacService],
   exports: [AuditLogService, RbacService, TypeOrmModule],
 })

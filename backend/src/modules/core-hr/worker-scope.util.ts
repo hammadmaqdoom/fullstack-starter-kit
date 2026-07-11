@@ -28,15 +28,32 @@ export function applyWorkerScopeFilter(
 
   qb.andWhere(
     new Brackets((scopeQb) => {
-      for (const assignment of auth.assignments) {
+      auth.assignments.forEach((assignment, index) => {
         switch (assignment.scopeType) {
           case ScopeType.ALL:
             scopeQb.orWhere('1=1');
             break;
+          case ScopeType.COUNTRY:
+            if (assignment.scopeCountryCode) {
+              scopeQb.orWhere(`${alias}.countryCode = :countryScopeId${index}`, {
+                [`countryScopeId${index}`]: assignment.scopeCountryCode,
+              });
+            }
+            break;
+          case ScopeType.LEGAL_ENTITY:
+            if (assignment.scopeId) {
+              scopeQb.orWhere(
+                `${alias}.legalEntityId = :legalEntityScopeId${index}`,
+                {
+                  [`legalEntityScopeId${index}`]: assignment.scopeId,
+                },
+              );
+            }
+            break;
           case ScopeType.DIVISION:
             if (assignment.scopeId) {
-              scopeQb.orWhere(`${alias}.divisionId = :divisionScopeId`, {
-                divisionScopeId: assignment.scopeId,
+              scopeQb.orWhere(`${alias}.divisionId = :divisionScopeId${index}`, {
+                [`divisionScopeId${index}`]: assignment.scopeId,
               });
             }
             break;
@@ -57,7 +74,7 @@ export function applyWorkerScopeFilter(
           default:
             break;
         }
-      }
+      });
 
       if (auth.assignments.length === 0) {
         scopeQb.orWhere('1=0');

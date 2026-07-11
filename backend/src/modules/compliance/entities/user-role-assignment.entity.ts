@@ -53,6 +53,10 @@ export class UserRoleAssignmentEntity {
   @Column({ type: 'uuid', nullable: true })
   scopeId: string | null;
 
+  /** Populated only for `ScopeType.COUNTRY` assignments (HRBP) — `scopeId` is a uuid column and cannot hold a country code. */
+  @Column({ type: 'varchar', length: 2, nullable: true })
+  scopeCountryCode: string | null;
+
   @Column({ type: 'date', nullable: true })
   effectiveFrom: string | null;
 

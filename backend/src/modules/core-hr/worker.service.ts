@@ -179,6 +179,12 @@ export class WorkerService {
         divisionId: query.divisionId,
       });
     }
+    if (query.q?.trim()) {
+      qb.andWhere(
+        '(worker.firstName ILIKE :q OR worker.lastName ILIKE :q OR worker.email ILIKE :q OR worker.employeeNumber ILIKE :q)',
+        { q: `%${query.q.trim()}%` },
+      );
+    }
 
     applyWorkerScopeFilter(qb, auth, actingWorkerId);
     qb.orderBy('worker.createdAt', 'DESC');
@@ -214,6 +220,33 @@ export class WorkerService {
     const worker = await this.getWorkerOrThrow(id, tenantId);
     await this.assertCanAccessWorker(worker, auth, actorId, tenantId);
 
+    const contractorProfile = await this.contractorProfileRepository.findOne({
+      where: { tenantId, workerId: worker.id },
+    });
+
+    return toWorkerResponse(worker, auth, contractorProfile);
+  }
+
+  /** Resolve the worker profile linked to the current session (Me/Profile screen). */
+  async findMe(
+    actorId: string,
+    tenantId: string = DIGITARO_TENANT_ID,
+  ): Promise<WorkerResponse> {
+    const auth = await this.rbacService.getAuthContext(actorId, tenantId);
+    const workerId = await resolveActingWorkerId(
+      this.workerRepository,
+      actorId,
+      tenantId,
+    );
+
+    if (!workerId) {
+      throw new NotFoundException({
+        code: 'WORKER_PROFILE_NOT_LINKED',
+        message: 'No worker profile is linked to this account',
+      });
+    }
+
+    const worker = await this.getWorkerOrThrow(workerId, tenantId);
     const contractorProfile = await this.contractorProfileRepository.findOne({
       where: { tenantId, workerId: worker.id },
     });
@@ -428,6 +461,8 @@ export class WorkerService {
         workerId: worker.id,
         divisionId: worker.divisionId,
         managerWorkerId: worker.managerId,
+        legalEntityId: worker.legalEntityId,
+        countryCode: worker.countryCode,
       },
       actingWorkerId,
     );

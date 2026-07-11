@@ -14,6 +14,7 @@ export const DEFAULT_LEAVE_TYPES = [
     code: 'ANNUAL',
     name: 'Annual leave',
     accrualMethod: LeaveAccrualMethod.ANNUAL,
+    daysPerYear: '20',
     carryForwardCap: '5',
   },
   {
@@ -21,6 +22,7 @@ export const DEFAULT_LEAVE_TYPES = [
     code: 'SICK',
     name: 'Sick leave',
     accrualMethod: LeaveAccrualMethod.ANNUAL,
+    daysPerYear: '10',
     carryForwardCap: '0',
   },
   {
@@ -28,13 +30,15 @@ export const DEFAULT_LEAVE_TYPES = [
     code: 'UNPAID',
     name: 'Unpaid leave',
     accrualMethod: LeaveAccrualMethod.ANNUAL,
+    daysPerYear: '0',
     carryForwardCap: '0',
   },
   {
     countryCode: 'AE',
     code: 'ANNUAL',
     name: 'Annual leave',
-    accrualMethod: LeaveAccrualMethod.ANNUAL,
+    accrualMethod: LeaveAccrualMethod.MONTHLY,
+    daysPerYear: '30',
     carryForwardCap: '5',
   },
   {
@@ -42,6 +46,7 @@ export const DEFAULT_LEAVE_TYPES = [
     code: 'SICK',
     name: 'Sick leave',
     accrualMethod: LeaveAccrualMethod.ANNUAL,
+    daysPerYear: '15',
     carryForwardCap: '0',
   },
   {
@@ -49,6 +54,7 @@ export const DEFAULT_LEAVE_TYPES = [
     code: 'ANNUAL',
     name: 'Annual leave',
     accrualMethod: LeaveAccrualMethod.ANNUAL,
+    daysPerYear: '14',
     carryForwardCap: '7',
   },
   {
@@ -56,6 +62,7 @@ export const DEFAULT_LEAVE_TYPES = [
     code: 'SICK',
     name: 'Outpatient sick leave',
     accrualMethod: LeaveAccrualMethod.ANNUAL,
+    daysPerYear: '14',
     carryForwardCap: '0',
   },
   {
@@ -63,6 +70,7 @@ export const DEFAULT_LEAVE_TYPES = [
     code: 'CHILDCARE',
     name: 'Childcare leave',
     accrualMethod: LeaveAccrualMethod.ANNUAL,
+    daysPerYear: '6',
     carryForwardCap: '0',
   },
 ] as const;

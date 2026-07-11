@@ -45,4 +45,9 @@ export const SYSTEM_ROLES: Array<{
     code: PolarisRoleCode.SUPER_ADMIN,
     name: 'Super Admin',
   },
+  {
+    id: 'b0000000-0000-4000-8000-000000000009',
+    code: PolarisRoleCode.HRBP,
+    name: 'HR Business Partner',
+  },
 ];

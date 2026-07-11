@@ -43,6 +43,10 @@ export class LeaveTypeEntity {
   })
   accrualMethod: LeaveAccrualMethod;
 
+  /** Country-default annual allotment (days). Employment-type overrides via configJson.leaveEntitlements. */
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
+  daysPerYear: string;
+
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
   carryForwardCap: string;
 

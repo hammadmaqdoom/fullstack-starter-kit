@@ -8,6 +8,7 @@ import {
   CalendarDays,
   ChevronDown,
   ClipboardList,
+  Coins,
   DoorOpen,
   FileSignature,
   FileText,
@@ -341,6 +342,12 @@ function SidebarPanel({
       href: '/finance/contractor-payments',
       label: t('finance_contractor_payments_link'),
       icon: Receipt,
+      locked: !navAccess.finance,
+    },
+    {
+      href: '/finance/fx',
+      label: t('finance_fx_link'),
+      icon: Coins,
       locked: !navAccess.finance,
     },
   ];
