@@ -44,6 +44,8 @@ import {
 } from './pay-run-lop-provider';
 import { PayRunController } from './pay-run.controller';
 import { PayRunService } from './pay-run.service';
+import { PayrollReportController } from './payroll-report.controller';
+import { PayrollReportService } from './payroll-report.service';
 import { PayrollSeedService } from './payroll-seed.service';
 import { PayslipBlobStorageService } from './payslip-blob-storage.service';
 import { PayslipPdfService } from './payslip-pdf.service';
@@ -58,6 +60,7 @@ import {
   PayRunLineRemittanceController,
   PayslipRemittanceController,
   RemittanceCorridorController,
+  RemittancePackController,
 } from './remittance.controller';
 import { RemittanceService } from './remittance.service';
 import { StatutoryRateController } from './statutory-rate.controller';
@@ -104,10 +107,12 @@ import { StatutoryRateService } from './statutory-rate.service';
     ContractorPaymentBatchController,
     ContractorPaymentLineController,
     RemittanceCorridorController,
+    RemittancePackController,
     PayRunLineRemittanceController,
     ContractorPaymentLineRemittanceController,
     PayslipRemittanceController,
     ContractorInvoiceRemittanceController,
+    PayrollReportController,
   ],
   providers: [
     BenefitService,
@@ -122,6 +127,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     ExportService,
     ContractorPaymentBatchService,
     RemittanceService,
+    PayrollReportService,
     LocalStorageService,
     { provide: PAY_RUN_LOP_PROVIDER, useClass: DefaultPayRunLopProvider },
   ],
@@ -136,6 +142,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     ExportService,
     ContractorPaymentBatchService,
     RemittanceService,
+    PayrollReportService,
     TypeOrmModule,
   ],
 })

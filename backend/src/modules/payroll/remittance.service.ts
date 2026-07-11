@@ -30,9 +30,11 @@ import {
   RemittanceCorridorAppliesTo,
   RemittanceDocumentSource,
   RemittanceDocumentStatus,
+  RemittanceDocumentType,
   RemittancePackStatus,
   RemittancePaymentSourceType,
 } from './enums/remittance.enum';
+import { buildPaymentAdvicePdf } from './payment-advice-pdf.builder';
 import { isPayrollAdmin } from './payroll-scope.util';
 import { PayslipBlobStorageService } from './payslip-blob-storage.service';
 import { buildZipBuffer } from './remittance-zip.builder';
@@ -583,6 +585,120 @@ export class RemittanceService {
     await this.recomputePackStatus(pack, actor);
 
     return savedDocument;
+  }
+
+  /**
+   * FLW-PAY-005 step 4 — generates the `payment_advice` document instead of
+   * requiring a manual Finance upload. Currently scoped to payroll
+   * (`pay_run_line`) packs, since the amount/period comes from the released
+   * payslip; contractor payment advices still go through the manual
+   * upload flow above.
+   */
+  async generatePaymentAdvice(
+    packId: string,
+    actor: ActorContext,
+  ): Promise<RemittancePackDocumentEntity> {
+    const tenantId = actor.tenantId ?? DIGITARO_TENANT_ID;
+    await this.assertPayrollAdmin(actor.userId, tenantId);
+
+    const pack = await this.packRepository.findOne({
+      where: { id: packId, tenantId },
+    });
+    if (!pack) {
+      throw new NotFoundException({
+        code: 'REMITTANCE_PACK_NOT_FOUND',
+        message: 'Remittance pack not found',
+      });
+    }
+    if (pack.paymentSourceType !== RemittancePaymentSourceType.PAY_RUN_LINE) {
+      throw new BadRequestException({
+        code: 'REMITTANCE_PAYMENT_ADVICE_UNSUPPORTED_SOURCE',
+        message:
+          'Payment advice generation currently supports payroll (pay run line) packs only',
+      });
+    }
+
+    const [worker, payslip] = await Promise.all([
+      this.workerRepository.findOne({
+        where: { id: pack.workerId, tenantId },
+      }),
+      this.payslipRepository.findOne({
+        where: { tenantId, payRunLineItemId: pack.paymentSourceId },
+      }),
+    ]);
+    if (!worker || !payslip) {
+      throw new NotFoundException({
+        code: 'REMITTANCE_PAYMENT_ADVICE_SOURCE_NOT_FOUND',
+        message: 'Worker or payslip not found for this remittance pack',
+      });
+    }
+
+    const legalEntity = await this.legalEntityRepository.findOne({
+      where: { id: payslip.legalEntityId, tenantId },
+    });
+
+    const pdfBuffer = await buildPaymentAdvicePdf({
+      packId: pack.id,
+      workerName: `${worker.firstName} ${worker.lastName}`,
+      legalEntityName: legalEntity?.registeredName ?? 'N/A',
+      periodStart: payslip.periodStart,
+      periodEnd: payslip.periodEnd,
+      netPay: payslip.netPay,
+      currencyCode: payslip.currencyCode,
+      paymentReference: pack.paymentReference,
+      generatedAt: new Date(),
+    });
+    const blobUrl = await this.blobStorageService.upload(
+      pdfBuffer,
+      'remittance-documents',
+      `${pack.id}-payment-advice-${Date.now()}.pdf`,
+    );
+
+    let document = await this.documentRepository.findOne({
+      where: {
+        tenantId,
+        packId: pack.id,
+        documentType: RemittanceDocumentType.PAYMENT_ADVICE,
+      },
+    });
+    const uploadedAt = new Date();
+    if (document) {
+      document.blobUrl = blobUrl;
+      document.status = RemittanceDocumentStatus.AVAILABLE;
+      document.source = RemittanceDocumentSource.GENERATED;
+      document.uploadedBy = actor.userId;
+      document.uploadedAt = uploadedAt;
+    } else {
+      document = this.documentRepository.create({
+        tenantId,
+        packId: pack.id,
+        documentType: RemittanceDocumentType.PAYMENT_ADVICE,
+        source: RemittanceDocumentSource.GENERATED,
+        blobUrl,
+        status: RemittanceDocumentStatus.AVAILABLE,
+        uploadedBy: actor.userId,
+        uploadedAt,
+      });
+    }
+    const saved = await this.documentRepository.save(document);
+
+    await this.auditLogService.append({
+      tenantId,
+      actorId: actor.userId,
+      action: 'payroll.remittance_pack.generate_payment_advice',
+      entityType: 'remittance_pack_document',
+      entityId: saved.id,
+      changes: {
+        packId: { old: null, new: pack.id },
+        blobUrl: { old: null, new: saved.blobUrl },
+      },
+      correlationId: actor.correlationId,
+      ipAddress: actor.ipAddress,
+    });
+
+    await this.recomputePackStatus(pack, actor);
+
+    return saved;
   }
 
   private async recomputePackStatus(

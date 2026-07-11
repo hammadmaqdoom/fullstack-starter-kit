@@ -170,6 +170,30 @@ export class PayRunLineRemittanceController {
 }
 
 @ApiTags('payroll')
+@Controller({ path: 'payroll/remittance-packs', version: '1' })
+@UseGuards(AuthGuard)
+export class RemittancePackController {
+  constructor(private readonly remittanceService: RemittanceService) {}
+
+  @Post(':id/payment-advice')
+  @Roles(...REMITTANCE_ADMIN_ROLES)
+  @ApiOperation({
+    summary: 'Generate the payment advice PDF for a payroll remittance pack',
+  })
+  generatePaymentAdvice(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.remittanceService.generatePaymentAdvice(
+      id,
+      actorFrom(session, correlationId, request),
+    );
+  }
+}
+
+@ApiTags('payroll')
 @Controller({ path: 'payroll/contractor-payment-lines', version: '1' })
 @UseGuards(AuthGuard)
 export class ContractorPaymentLineRemittanceController {

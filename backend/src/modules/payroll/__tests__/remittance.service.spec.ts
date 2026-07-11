@@ -491,6 +491,92 @@ describe('RemittanceService', () => {
     });
   });
 
+  describe('generatePaymentAdvice', () => {
+    const buildPayslip = (
+      overrides: Partial<PayslipEntity> = {},
+    ): PayslipEntity =>
+      ({
+        id: 'ps000000-0000-4000-8000-000000000001',
+        tenantId: DIGITARO_TENANT_ID,
+        legalEntityId,
+        payRunLineItemId: lineId,
+        workerId,
+        periodStart: '2026-07-01',
+        periodEnd: '2026-07-31',
+        netPay: '5000.00',
+        currencyCode: 'AED',
+        ...overrides,
+      }) as PayslipEntity;
+
+    it('renders the payment advice PDF, uploads it, and marks the document available', async () => {
+      const pack = buildPack({ paymentReference: 'REF-123' });
+      packRepository.findOne.mockResolvedValue(pack);
+      payslipRepository.findOne.mockResolvedValue(buildPayslip());
+
+      const document = await service.generatePaymentAdvice(packId, {
+        userId,
+        correlationId: 'corr-9',
+      });
+
+      expect(blobStorageService.upload).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        'remittance-documents',
+        expect.stringContaining(packId),
+      );
+      expect(document.status).toBe(RemittanceDocumentStatus.AVAILABLE);
+      expect(document.source).toBe(RemittanceDocumentSource.GENERATED);
+      expect(document.documentType).toBe(RemittanceDocumentType.PAYMENT_ADVICE);
+      expect(auditLogService.append).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'payroll.remittance_pack.generate_payment_advice',
+          entityType: 'remittance_pack_document',
+          correlationId: 'corr-9',
+        }),
+      );
+    });
+
+    it('rejects contractor payment line packs (payroll-only for now)', async () => {
+      packRepository.findOne.mockResolvedValue(
+        buildPack({
+          paymentSourceType: RemittancePaymentSourceType.CONTRACTOR_PAYMENT_LINE,
+        }),
+      );
+
+      await expect(
+        service.generatePaymentAdvice(packId, { userId }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'REMITTANCE_PAYMENT_ADVICE_UNSUPPORTED_SOURCE',
+        }),
+      });
+    });
+
+    it('throws NotFoundException when the pack does not exist', async () => {
+      packRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.generatePaymentAdvice(packId, { userId }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('throws NotFoundException when the payslip cannot be resolved', async () => {
+      packRepository.findOne.mockResolvedValue(buildPack());
+      payslipRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.generatePaymentAdvice(packId, { userId }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('throws ForbiddenException when the actor is not a payroll admin', async () => {
+      rbacService.getAuthContext.mockResolvedValue(employeeAuth);
+
+      await expect(
+        service.generatePaymentAdvice(packId, { userId }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
   describe('getPackForPayRunLine', () => {
     it('returns the pack with its documents for a payroll admin', async () => {
       const pack = buildPack();
