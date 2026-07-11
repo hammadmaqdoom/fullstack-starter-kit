@@ -21,6 +21,8 @@ import { ProfileChangeRequestEntity } from './entities/profile-change-request.en
 import { ProjectAssignmentEntity } from './entities/project-assignment.entity';
 import { WorkerImportBatchEntity } from './entities/worker-import-batch.entity';
 import { WorkerEntity } from './entities/worker.entity';
+import { LeadershipAnalyticsController } from './leadership-analytics.controller';
+import { LeadershipAnalyticsService } from './leadership-analytics.service';
 import { ManagerRelationshipController } from './manager-relationship.controller';
 import { ManagerRelationshipService } from './manager-relationship.service';
 import { OrgController } from './org.controller';
@@ -64,6 +66,7 @@ import { WorkerService } from './worker.service';
     ProjectAssignmentController,
     ApprovalRoutingConfigController,
     WorkerImportController,
+    LeadershipAnalyticsController,
   ],
   providers: [
     WorkerService,
@@ -74,6 +77,7 @@ import { WorkerService } from './worker.service';
     ProjectAssignmentService,
     ApprovalRoutingConfigService,
     WorkerImportService,
+    LeadershipAnalyticsService,
   ],
   exports: [
     WorkerService,
@@ -84,6 +88,7 @@ import { WorkerService } from './worker.service';
     ProjectAssignmentService,
     ApprovalRoutingConfigService,
     WorkerImportService,
+    LeadershipAnalyticsService,
     TypeOrmModule,
   ],
 })
