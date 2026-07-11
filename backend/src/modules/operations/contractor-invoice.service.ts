@@ -16,6 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import {
   ContractorInvoiceLineItemDto,
+  ContractorInvoiceOcrPrefill,
   CreateContractorInvoiceDto,
   QueryContractorInvoicesDto,
   RejectContractorInvoiceDto,
@@ -435,6 +436,16 @@ export class ContractorInvoiceService {
     });
 
     return saved;
+  }
+
+  /**
+   * OCR-assist stub (PRD §6.20.2) — no real OCR provider wired up in Phase 2
+   * Wave 4. Always returns an empty prefill so the frontend can build the
+   * "review & confirm" UI now and swap in a real provider later without an
+   * API contract change.
+   */
+  ocrPrefill(): ContractorInvoiceOcrPrefill {
+    return {};
   }
 
   private async isManagedBy(

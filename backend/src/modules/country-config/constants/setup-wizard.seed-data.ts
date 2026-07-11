@@ -147,6 +147,42 @@ export const DEFAULT_BENEFIT_TYPES = [
     affectsPayroll: true,
     affectsTax: false,
   },
+  {
+    code: 'AE_EOSB',
+    name: 'End-of-service gratuity',
+    category: 'statutory',
+    countryCode: 'AE',
+    deliveryMode: BenefitDeliveryMode.NON_CASH,
+    affectsPayroll: true,
+    affectsTax: false,
+  },
+  {
+    code: 'LIFE_INSURANCE',
+    name: 'Life insurance',
+    category: 'insurance',
+    countryCode: null,
+    deliveryMode: BenefitDeliveryMode.INSURANCE,
+    affectsPayroll: false,
+    affectsTax: false,
+  },
+  {
+    code: 'DENTAL_INSURANCE',
+    name: 'Dental insurance',
+    category: 'insurance',
+    countryCode: null,
+    deliveryMode: BenefitDeliveryMode.INSURANCE,
+    affectsPayroll: false,
+    affectsTax: false,
+  },
+  {
+    code: 'WELLNESS_ALLOWANCE',
+    name: 'Wellness / gym allowance',
+    category: 'allowance',
+    countryCode: null,
+    deliveryMode: BenefitDeliveryMode.CASH,
+    affectsPayroll: true,
+    affectsTax: true,
+  },
 ] as const;
 
 export const DEFAULT_DOCUMENT_TEMPLATES = [

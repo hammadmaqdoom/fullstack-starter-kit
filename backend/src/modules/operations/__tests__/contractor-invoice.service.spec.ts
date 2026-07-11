@@ -448,4 +448,10 @@ describe('ContractorInvoiceService', () => {
       );
     });
   });
+
+  describe('ocrPrefill', () => {
+    it('returns an empty prefill stub (no OCR provider wired up)', () => {
+      expect(service.ocrPrefill()).toEqual({});
+    });
+  });
 });

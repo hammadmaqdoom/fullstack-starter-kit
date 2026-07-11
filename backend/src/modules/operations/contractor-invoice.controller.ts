@@ -20,6 +20,7 @@ import type { FastifyRequest } from 'fastify';
 import { ContractorInvoiceService } from './contractor-invoice.service';
 import {
   CreateContractorInvoiceDto,
+  OcrPrefillInvoiceDto,
   QueryContractorInvoicesDto,
   RejectContractorInvoiceDto,
   UpdateContractorInvoiceDto,
@@ -85,6 +86,21 @@ export class ContractorInvoiceController {
       correlationId,
       request?.ip,
     );
+  }
+
+  @Post('ocr-prefill')
+  @Roles(
+    PolarisRoleCode.CONTRACTOR,
+    PolarisRoleCode.FINANCE,
+    PolarisRoleCode.PEOPLE_OPS,
+    PolarisRoleCode.SUPER_ADMIN,
+  )
+  @ApiOperation({
+    summary:
+      'OCR-assist stub for an uploaded invoice file (always returns an empty prefill — no provider wired up yet)',
+  })
+  ocrPrefill(@Body() _dto: OcrPrefillInvoiceDto) {
+    return { ocrPrefill: this.contractorInvoiceService.ocrPrefill() };
   }
 
   @Patch(':id')

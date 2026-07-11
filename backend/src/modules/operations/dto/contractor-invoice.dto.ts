@@ -18,6 +18,26 @@ import {
 } from 'class-validator';
 import { ContractorInvoiceStatus } from '../enums/contractor-invoice.enum';
 
+/** OCR-assist stub (PRD §6.20.2) — no real OCR provider wired up in Phase 2 Wave 4. */
+export interface ContractorInvoiceOcrPrefill {
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  dueDate?: string;
+  currencyCode?: string;
+  grossAmount?: number;
+  [key: string]: unknown;
+}
+
+export class OcrPrefillInvoiceDto {
+  @ApiPropertyOptional({
+    description: 'Blob URL of the uploaded invoice file to prefill fields from',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  blobUrl?: string;
+}
+
 export class ContractorInvoiceLineItemDto {
   @ApiProperty({ example: 'Backend development — Sprint 42' })
   @IsString()
