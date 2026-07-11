@@ -21,8 +21,11 @@ import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CreateHubSavedViewDto, QueryHubDto } from './dto/hub.dto';
-import { ContractorInvoiceStatus } from './enums/contractor-invoice.enum';
 import { HubSavedViewEntity } from './entities/hub-saved-view.entity';
+import { ContractorInvoiceStatus } from './enums/contractor-invoice.enum';
+import { ExpenseClaimStatus } from './enums/expense.enum';
+import { HelpDeskStatus } from './enums/help-desk.enum';
+import { TravelRequestStatus } from './enums/travel.enum';
 
 export type HubItemType =
   | 'profile_change_request'
@@ -33,7 +36,10 @@ export type HubItemType =
   | 'performance_review'
   | 'one_on_one'
   | 'development_plan_action'
-  | 'contractor_invoice';
+  | 'contractor_invoice'
+  | 'expense_claim'
+  | 'travel_request'
+  | 'help_desk_ticket';
 
 export type HubItem = {
   id: string;
@@ -100,6 +106,12 @@ export class HubService {
       developmentPlanActionForMe,
       contractorInvoiceMine,
       contractorInvoiceForMe,
+      expenseClaimMine,
+      expenseClaimForMe,
+      travelRequestMine,
+      travelRequestForMe,
+      helpDeskTicketMine,
+      helpDeskTicketForMe,
     ] = await Promise.all([
       this.safeProfileMine(actingWorkerId, tenantId),
       this.safeProfileForMe(actingWorkerId, auth.roleCodes, tenantId),
@@ -117,11 +129,13 @@ export class HubService {
       this.safeDevelopmentPlanActionMine(actingWorkerId, tenantId),
       this.safeDevelopmentPlanActionForMe(actingWorkerId, tenantId),
       this.safeContractorInvoiceMine(actingWorkerId, tenantId),
-      this.safeContractorInvoiceForMe(
-        actingWorkerId,
-        auth.roleCodes,
-        tenantId,
-      ),
+      this.safeContractorInvoiceForMe(actingWorkerId, auth.roleCodes, tenantId),
+      this.safeExpenseClaimMine(actingWorkerId, tenantId),
+      this.safeExpenseClaimForMe(actingWorkerId, auth.roleCodes, tenantId),
+      this.safeTravelRequestMine(actingWorkerId, tenantId),
+      this.safeTravelRequestForMe(actingWorkerId, auth.roleCodes, tenantId),
+      this.safeHelpDeskTicketMine(actingWorkerId, tenantId),
+      this.safeHelpDeskTicketForMe(actingWorkerId, auth.roleCodes, tenantId),
     ]);
 
     const policyForMe: HubItem[] = [];
@@ -136,6 +150,9 @@ export class HubService {
       ...oneOnOneMine,
       ...developmentPlanActionMine,
       ...contractorInvoiceMine,
+      ...expenseClaimMine,
+      ...travelRequestMine,
+      ...helpDeskTicketMine,
     ]);
     let forMe = this.sortItems([
       ...profileForMe,
@@ -147,6 +164,9 @@ export class HubService {
       ...oneOnOneForMe,
       ...developmentPlanActionForMe,
       ...contractorInvoiceForMe,
+      ...expenseClaimForMe,
+      ...travelRequestForMe,
+      ...helpDeskTicketForMe,
     ]);
 
     if (query.tab === 'mine') {
@@ -1009,6 +1029,462 @@ export class HubService {
       status: r.status,
       createdAt: new Date(r.createdAt),
       href,
+      entityId: r.id,
+    };
+  }
+
+  private async safeExpenseClaimMine(
+    actingWorkerId: string | null,
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    if (!actingWorkerId) {
+      return [];
+    }
+    try {
+      const rows: Array<{
+        id: string;
+        category: string;
+        amount: string;
+        status: string;
+        createdAt: Date;
+      }> = await this.dataSource.query(
+        `
+        SELECT id, category, amount, status, "createdAt"
+        FROM expense_claims
+        WHERE "tenantId" = $1
+          AND "workerId" = $2
+          AND status IN ($3, $4, $5, $6)
+        ORDER BY "createdAt" DESC
+        LIMIT 100
+        `,
+        [
+          tenantId,
+          actingWorkerId,
+          ExpenseClaimStatus.SUBMITTED,
+          ExpenseClaimStatus.APPROVED,
+          ExpenseClaimStatus.REJECTED,
+          ExpenseClaimStatus.PAID,
+        ],
+      );
+      return rows.map((r) => ({
+        id: `expense_claim:${r.id}`,
+        type: 'expense_claim' as const,
+        title: `Expense claim — ${r.category} (${r.amount})`,
+        status: r.status,
+        createdAt: new Date(r.createdAt),
+        href: `/employee/expenses?claimId=${r.id}`,
+        entityId: r.id,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private async safeExpenseClaimForMe(
+    actingWorkerId: string | null,
+    roleCodes: string[],
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    const isManager = roleCodes.includes(PolarisRoleCode.MANAGER);
+    const isFinancePrivileged = roleCodes.some((code) =>
+      [
+        PolarisRoleCode.FINANCE,
+        PolarisRoleCode.PEOPLE_OPS,
+        PolarisRoleCode.SUPER_ADMIN,
+      ].includes(code as PolarisRoleCode),
+    );
+    if (!isManager && !isFinancePrivileged) {
+      return [];
+    }
+
+    try {
+      const items: HubItem[] = [];
+
+      if (isManager && actingWorkerId) {
+        const managerRows: Array<{
+          id: string;
+          category: string;
+          amount: string;
+          status: string;
+          createdAt: Date;
+        }> = await this.dataSource.query(
+          `
+          SELECT c.id, c.category, c.amount, c.status, c."createdAt"
+          FROM expense_claims c
+          INNER JOIN workers w ON w.id = c."workerId"
+          WHERE c."tenantId" = $1
+            AND c.status = $2
+            AND w."managerId" = $3
+          ORDER BY c."createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, ExpenseClaimStatus.SUBMITTED, actingWorkerId],
+        );
+        items.push(
+          ...managerRows.map((r) => this.toExpenseClaimItem(r, 'manager')),
+        );
+      }
+
+      if (isFinancePrivileged) {
+        const financeRows: Array<{
+          id: string;
+          category: string;
+          amount: string;
+          status: string;
+          createdAt: Date;
+        }> = await this.dataSource.query(
+          `
+          SELECT id, category, amount, status, "createdAt"
+          FROM expense_claims
+          WHERE "tenantId" = $1
+            AND status = $2
+            AND "financeApprovedAt" IS NULL
+          ORDER BY "createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, ExpenseClaimStatus.APPROVED],
+        );
+        items.push(
+          ...financeRows.map((r) => this.toExpenseClaimItem(r, 'finance')),
+        );
+      }
+
+      return items;
+    } catch {
+      return [];
+    }
+  }
+
+  private toExpenseClaimItem(
+    r: {
+      id: string;
+      category: string;
+      amount: string;
+      status: string;
+      createdAt: Date;
+    },
+    bucket: 'manager' | 'finance',
+  ): HubItem {
+    return {
+      id: `expense_claim:${r.id}`,
+      type: 'expense_claim',
+      title: `Expense approval — ${r.category} (${r.amount})`,
+      status: r.status,
+      createdAt: new Date(r.createdAt),
+      href:
+        bucket === 'manager'
+          ? `/manager/cockpit?expenseClaimId=${r.id}`
+          : `/finance/expenses?expenseClaimId=${r.id}`,
+      entityId: r.id,
+    };
+  }
+
+  private async safeTravelRequestMine(
+    actingWorkerId: string | null,
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    if (!actingWorkerId) {
+      return [];
+    }
+    try {
+      const rows: Array<{
+        id: string;
+        startDate: string;
+        endDate: string;
+        status: string;
+        createdAt: Date;
+      }> = await this.dataSource.query(
+        `
+        SELECT id, "startDate", "endDate", status, "createdAt"
+        FROM travel_requests
+        WHERE "tenantId" = $1
+          AND "workerId" = $2
+          AND status != $3
+        ORDER BY "createdAt" DESC
+        LIMIT 100
+        `,
+        [tenantId, actingWorkerId, TravelRequestStatus.DRAFT],
+      );
+      return rows.map((r) => ({
+        id: `travel_request:${r.id}`,
+        type: 'travel_request' as const,
+        title: `Travel ${r.startDate} → ${r.endDate}`,
+        status: r.status,
+        createdAt: new Date(r.createdAt),
+        href: `/employee/travel?requestId=${r.id}`,
+        entityId: r.id,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private async safeTravelRequestForMe(
+    actingWorkerId: string | null,
+    roleCodes: string[],
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    const isManager = roleCodes.includes(PolarisRoleCode.MANAGER);
+    const isFinance = roleCodes.some((code) =>
+      [PolarisRoleCode.FINANCE, PolarisRoleCode.SUPER_ADMIN].includes(
+        code as PolarisRoleCode,
+      ),
+    );
+    const isPeopleOps = roleCodes.some((code) =>
+      [PolarisRoleCode.PEOPLE_OPS, PolarisRoleCode.SUPER_ADMIN].includes(
+        code as PolarisRoleCode,
+      ),
+    );
+    if (!isManager && !isFinance && !isPeopleOps) {
+      return [];
+    }
+
+    try {
+      const items: HubItem[] = [];
+
+      if (isManager && actingWorkerId) {
+        const managerRows: Array<{
+          id: string;
+          startDate: string;
+          endDate: string;
+          status: string;
+          createdAt: Date;
+        }> = await this.dataSource.query(
+          `
+          SELECT t.id, t."startDate", t."endDate", t.status, t."createdAt"
+          FROM travel_requests t
+          INNER JOIN workers w ON w.id = t."workerId"
+          WHERE t."tenantId" = $1
+            AND t.status = $2
+            AND t."managerApprovedAt" IS NULL
+            AND w."managerId" = $3
+          ORDER BY t."createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, TravelRequestStatus.SUBMITTED, actingWorkerId],
+        );
+        items.push(
+          ...managerRows.map((r) => this.toTravelRequestItem(r, 'manager')),
+        );
+      }
+
+      if (isFinance) {
+        const financeRows: Array<{
+          id: string;
+          startDate: string;
+          endDate: string;
+          status: string;
+          createdAt: Date;
+        }> = await this.dataSource.query(
+          `
+          SELECT id, "startDate", "endDate", status, "createdAt"
+          FROM travel_requests
+          WHERE "tenantId" = $1
+            AND status = $2
+            AND "managerApprovedAt" IS NOT NULL
+            AND "financeApprovedAt" IS NULL
+          ORDER BY "createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, TravelRequestStatus.SUBMITTED],
+        );
+        items.push(
+          ...financeRows.map((r) => this.toTravelRequestItem(r, 'finance')),
+        );
+      }
+
+      if (isPeopleOps) {
+        const peopleOpsRows: Array<{
+          id: string;
+          startDate: string;
+          endDate: string;
+          status: string;
+          createdAt: Date;
+        }> = await this.dataSource.query(
+          `
+          SELECT id, "startDate", "endDate", status, "createdAt"
+          FROM travel_requests
+          WHERE "tenantId" = $1
+            AND status = $2
+            AND "managerApprovedAt" IS NOT NULL
+            AND "peopleOpsApprovedAt" IS NULL
+          ORDER BY "createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, TravelRequestStatus.SUBMITTED],
+        );
+        items.push(
+          ...peopleOpsRows.map((r) =>
+            this.toTravelRequestItem(r, 'people_ops'),
+          ),
+        );
+      }
+
+      return items;
+    } catch {
+      return [];
+    }
+  }
+
+  private toTravelRequestItem(
+    r: {
+      id: string;
+      startDate: string;
+      endDate: string;
+      status: string;
+      createdAt: Date;
+    },
+    bucket: 'manager' | 'finance' | 'people_ops',
+  ): HubItem {
+    const hrefByBucket: Record<typeof bucket, string> = {
+      manager: `/manager/cockpit?travelRequestId=${r.id}`,
+      finance: `/finance/travel-requests?travelRequestId=${r.id}`,
+      people_ops: `/people-ops/travel-requests?travelRequestId=${r.id}`,
+    };
+    return {
+      id: `travel_request:${r.id}`,
+      type: 'travel_request',
+      title: `Travel approval ${r.startDate} → ${r.endDate}`,
+      status: r.status,
+      createdAt: new Date(r.createdAt),
+      href: hrefByBucket[bucket],
+      entityId: r.id,
+    };
+  }
+
+  private async safeHelpDeskTicketMine(
+    actingWorkerId: string | null,
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    if (!actingWorkerId) {
+      return [];
+    }
+    try {
+      const rows: Array<{
+        id: string;
+        subject: string;
+        status: string;
+        createdAt: Date;
+      }> = await this.dataSource.query(
+        `
+        SELECT id, subject, status, "createdAt"
+        FROM help_desk_tickets
+        WHERE "tenantId" = $1
+          AND "requesterId" = $2
+          AND status != $3
+        ORDER BY "createdAt" DESC
+        LIMIT 100
+        `,
+        [tenantId, actingWorkerId, HelpDeskStatus.CLOSED],
+      );
+      return rows.map((r) => ({
+        id: `help_desk_ticket:${r.id}`,
+        type: 'help_desk_ticket' as const,
+        title: r.subject,
+        status: r.status,
+        createdAt: new Date(r.createdAt),
+        href: `/employee/help?ticketId=${r.id}`,
+        entityId: r.id,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private async safeHelpDeskTicketForMe(
+    actingWorkerId: string | null,
+    roleCodes: string[],
+    tenantId: string,
+  ): Promise<HubItem[]> {
+    const staffQueues: Array<[string, string]> = [
+      ['it', PolarisRoleCode.IT_ADMIN],
+      ['hr', PolarisRoleCode.PEOPLE_OPS],
+      ['admin', PolarisRoleCode.PEOPLE_OPS],
+      ['finance', PolarisRoleCode.FINANCE],
+    ].filter(([, role]) => roleCodes.includes(role)) as Array<[string, string]>;
+    const isSuperAdmin = roleCodes.includes(PolarisRoleCode.SUPER_ADMIN);
+    if (staffQueues.length === 0 && !isSuperAdmin) {
+      return [];
+    }
+
+    try {
+      const items: HubItem[] = [];
+
+      if (actingWorkerId) {
+        const assignedRows: Array<{
+          id: string;
+          subject: string;
+          status: string;
+          createdAt: Date;
+        }> = await this.dataSource.query(
+          `
+          SELECT id, subject, status, "createdAt"
+          FROM help_desk_tickets
+          WHERE "tenantId" = $1
+            AND "assigneeId" = $2
+            AND status IN ($3, $4)
+          ORDER BY "createdAt" DESC
+          LIMIT 100
+          `,
+          [
+            tenantId,
+            actingWorkerId,
+            HelpDeskStatus.IN_PROGRESS,
+            HelpDeskStatus.WAITING_ON_EMPLOYEE,
+          ],
+        );
+        items.push(
+          ...assignedRows.map((r) => this.toHelpDeskTicketItem(r, 'assigned')),
+        );
+      }
+
+      const queues = isSuperAdmin
+        ? ['hr', 'it', 'admin', 'finance']
+        : staffQueues.map(([queue]) => queue);
+
+      if (queues.length > 0) {
+        const unassignedRows: Array<{
+          id: string;
+          subject: string;
+          status: string;
+          createdAt: Date;
+        }> = await this.dataSource.query(
+          `
+          SELECT id, subject, status, "createdAt"
+          FROM help_desk_tickets
+          WHERE "tenantId" = $1
+            AND status = $2
+            AND "assigneeId" IS NULL
+            AND queue = ANY($3)
+          ORDER BY "createdAt" DESC
+          LIMIT 100
+          `,
+          [tenantId, HelpDeskStatus.OPEN, queues],
+        );
+        items.push(
+          ...unassignedRows.map((r) =>
+            this.toHelpDeskTicketItem(r, 'unassigned'),
+          ),
+        );
+      }
+
+      return items;
+    } catch {
+      return [];
+    }
+  }
+
+  private toHelpDeskTicketItem(
+    r: { id: string; subject: string; status: string; createdAt: Date },
+    bucket: 'assigned' | 'unassigned',
+  ): HubItem {
+    return {
+      id: `help_desk_ticket:${r.id}`,
+      type: 'help_desk_ticket',
+      title: bucket === 'unassigned' ? `Unassigned: ${r.subject}` : r.subject,
+      status: r.status,
+      createdAt: new Date(r.createdAt),
+      href: `/hub?helpDeskTicketId=${r.id}`,
       entityId: r.id,
     };
   }

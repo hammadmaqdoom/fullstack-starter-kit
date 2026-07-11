@@ -15,8 +15,11 @@ import { LeaveRequestStatus } from '@/modules/time-leave/enums/leave.enum';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { ContractorInvoiceStatus } from '../enums/contractor-invoice.enum';
 import { HubSavedViewEntity } from '../entities/hub-saved-view.entity';
+import { ContractorInvoiceStatus } from '../enums/contractor-invoice.enum';
+import { ExpenseClaimStatus } from '../enums/expense.enum';
+import { HelpDeskStatus } from '../enums/help-desk.enum';
+import { TravelRequestStatus } from '../enums/travel.enum';
 import { HubService } from '../hub.service';
 
 describe('HubService', () => {
@@ -502,6 +505,235 @@ describe('HubService', () => {
         status: ContractorInvoiceStatus.MANAGER_APPROVED,
         href: '/finance/contractor-invoices?invoiceId=inv-fin-1',
       }),
+    );
+  });
+
+  it('aggregates submitted/approved expense claims into mine', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM expense_claims') &&
+        sql.includes('"workerId" = $2')
+      ) {
+        return [
+          {
+            id: 'claim-1',
+            category: 'travel',
+            amount: '150.00',
+            status: ExpenseClaimStatus.SUBMITTED,
+            createdAt: new Date('2026-07-05T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await service.getInbox(userId, { tab: 'mine' });
+
+    const claim = result.data.mine.find((i) => i.type === 'expense_claim');
+    expect(claim).toEqual(
+      expect.objectContaining({
+        id: 'expense_claim:claim-1',
+        title: 'Expense claim — travel (150.00)',
+        status: ExpenseClaimStatus.SUBMITTED,
+        href: '/employee/expenses?claimId=claim-1',
+      }),
+    );
+  });
+
+  it('surfaces manager expense approval queue in forMe', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM expense_claims c') &&
+        sql.includes('w."managerId" = $3')
+      ) {
+        return [
+          {
+            id: 'claim-mgr-1',
+            category: 'food',
+            amount: '30.00',
+            status: ExpenseClaimStatus.SUBMITTED,
+            createdAt: new Date('2026-07-06T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await service.getInbox(userId, { tab: 'for_me' });
+
+    const claims = result.data.forMe.filter((i) => i.type === 'expense_claim');
+    expect(claims.map((c) => c.id)).toEqual(['expense_claim:claim-mgr-1']);
+  });
+
+  it('surfaces manager-approved expense claims for Finance in forMe', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    const rbacService = {
+      getAuthContext: jest.fn().mockResolvedValue({
+        tenantId: DIGITARO_TENANT_ID,
+        userId,
+        roleCodes: [PolarisRoleCode.FINANCE],
+        assignments: [],
+        broadestScope: ScopeType.ALL,
+      }),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        HubService,
+        {
+          provide: getRepositoryToken(HubSavedViewEntity),
+          useValue: savedViewRepository,
+        },
+        {
+          provide: getRepositoryToken(WorkerEntity),
+          useValue: workerRepository,
+        },
+        {
+          provide: getRepositoryToken(ProfileChangeRequestEntity),
+          useValue: profileChangeRepository,
+        },
+        { provide: RbacService, useValue: rbacService },
+        { provide: DataSource, useValue: dataSource },
+        { provide: PolicyService, useValue: policyService },
+      ],
+    }).compile();
+    const financeService = module.get(HubService);
+
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM expense_claims') &&
+        sql.includes('"financeApprovedAt" IS NULL')
+      ) {
+        return [
+          {
+            id: 'claim-fin-1',
+            category: 'accommodation',
+            amount: '400.00',
+            status: ExpenseClaimStatus.APPROVED,
+            createdAt: new Date('2026-07-07T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await financeService.getInbox(userId, { tab: 'for_me' });
+
+    const claim = result.data.forMe.find((i) => i.type === 'expense_claim');
+    expect(claim).toEqual(
+      expect.objectContaining({ id: 'expense_claim:claim-fin-1' }),
+    );
+  });
+
+  it('aggregates non-draft travel requests into mine', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM travel_requests') &&
+        sql.includes('"workerId" = $2')
+      ) {
+        return [
+          {
+            id: 'travel-1',
+            startDate: '2026-08-01',
+            endDate: '2026-08-05',
+            status: TravelRequestStatus.SUBMITTED,
+            createdAt: new Date('2026-07-08T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await service.getInbox(userId, { tab: 'mine' });
+
+    const travel = result.data.mine.find((i) => i.type === 'travel_request');
+    expect(travel).toEqual(
+      expect.objectContaining({
+        id: 'travel_request:travel-1',
+        title: 'Travel 2026-08-01 → 2026-08-05',
+        status: TravelRequestStatus.SUBMITTED,
+      }),
+    );
+  });
+
+  it('aggregates my open/assigned help desk tickets and unassigned IT queue items', async () => {
+    profileChangeRepository.find!.mockResolvedValue([]);
+    const itAuth = {
+      tenantId: DIGITARO_TENANT_ID,
+      userId,
+      roleCodes: [PolarisRoleCode.IT_ADMIN],
+      assignments: [],
+      broadestScope: ScopeType.ALL,
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        HubService,
+        {
+          provide: getRepositoryToken(HubSavedViewEntity),
+          useValue: savedViewRepository,
+        },
+        {
+          provide: getRepositoryToken(WorkerEntity),
+          useValue: workerRepository,
+        },
+        {
+          provide: getRepositoryToken(ProfileChangeRequestEntity),
+          useValue: profileChangeRepository,
+        },
+        {
+          provide: RbacService,
+          useValue: { getAuthContext: jest.fn().mockResolvedValue(itAuth) },
+        },
+        { provide: DataSource, useValue: dataSource },
+        { provide: PolicyService, useValue: policyService },
+      ],
+    }).compile();
+    const itService = module.get(HubService);
+
+    dataSource.query.mockImplementation(async (sql: string) => {
+      if (
+        sql.includes('FROM help_desk_tickets') &&
+        sql.includes('"assigneeId" = $2')
+      ) {
+        return [
+          {
+            id: 'ticket-mine-1',
+            subject: 'VPN not connecting',
+            status: HelpDeskStatus.IN_PROGRESS,
+            createdAt: new Date('2026-07-09T10:00:00Z'),
+          },
+        ];
+      }
+      if (
+        sql.includes('FROM help_desk_tickets') &&
+        sql.includes('"assigneeId" IS NULL')
+      ) {
+        return [
+          {
+            id: 'ticket-open-1',
+            subject: 'New laptop request',
+            status: HelpDeskStatus.OPEN,
+            createdAt: new Date('2026-07-10T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    });
+
+    const result = await itService.getInbox(userId, { tab: 'for_me' });
+
+    const tickets = result.data.forMe.filter(
+      (i) => i.type === 'help_desk_ticket',
+    );
+    expect(tickets.map((t) => t.id)).toEqual(
+      expect.arrayContaining([
+        'help_desk_ticket:ticket-mine-1',
+        'help_desk_ticket:ticket-open-1',
+      ]),
     );
   });
 });

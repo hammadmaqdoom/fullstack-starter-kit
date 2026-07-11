@@ -39,7 +39,9 @@ export class CreateHubSavedViewDto {
   @MaxLength(100)
   name: string;
 
-  @ApiPropertyOptional({ example: { type: 'profile_change_request', status: 'submitted' } })
+  @ApiPropertyOptional({
+    example: { type: 'profile_change_request', status: 'submitted' },
+  })
   @IsOptional()
   @IsObject()
   filters?: Record<string, unknown>;
