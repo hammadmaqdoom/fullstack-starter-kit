@@ -2,6 +2,7 @@ import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.consta
 import { AuditLogService } from '@/modules/compliance/audit-log.service';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
 import { RbacService } from '@/modules/compliance/rbac.service';
+import { TeamsNotificationService } from '@/modules/automation/teams-notification.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -30,6 +31,7 @@ export class ProfileChangeRequestService {
     private readonly workerRepository: Repository<WorkerEntity>,
     private readonly auditLogService: AuditLogService,
     private readonly rbacService: RbacService,
+    private readonly teamsNotificationService: TeamsNotificationService,
   ) {}
 
   async submit(
@@ -83,6 +85,21 @@ export class ProfileChangeRequestService {
       correlationId,
       ipAddress,
     });
+
+    const manager = worker.managerId
+      ? await this.workerRepository.findOne({
+          where: { id: worker.managerId, tenantId },
+        })
+      : null;
+    if (manager?.userId) {
+      await this.teamsNotificationService.enqueueProfileChangePending({
+        approverUserId: manager.userId,
+        workerName: `${worker.firstName} ${worker.lastName}`.trim(),
+        fieldsSummary: Object.keys(dto.fieldChanges).join(', '),
+        requestId: request.id,
+        tenantId,
+      });
+    }
 
     return request;
   }

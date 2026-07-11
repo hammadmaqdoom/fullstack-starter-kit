@@ -4,6 +4,7 @@ import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.en
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { QueryDirectoryDto } from './dto/query-directory.dto';
+import { QueryOrgChartDto } from './dto/query-org-chart.dto';
 import { OrgService } from './org.service';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 
@@ -22,9 +23,12 @@ export class OrgController {
     PolarisRoleCode.EMPLOYEE,
     PolarisRoleCode.CONTRACTOR,
   )
-  @ApiOperation({ summary: 'Org chart data (scoped)' })
-  async getChart(@CurrentUserSession() session: CurrentUserSession) {
-    return this.orgService.getOrgChart(session.user.id);
+  @ApiOperation({ summary: 'Org chart subtree (scoped, lazy depth)' })
+  async getChart(
+    @Query() query: QueryOrgChartDto,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.orgService.getOrgChart(query, session.user.id);
   }
 
   @Get('directory')

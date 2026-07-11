@@ -1,19 +1,36 @@
+import { Queue as QueueEnum } from '@/constants/job.constant';
+import { AutomationModule } from '@/modules/automation/automation.module';
 import { ComplianceModule } from '@/modules/compliance/compliance.module';
 import { CountryConfigModule } from '@/modules/country-config/country-config.module';
 import { ScopeModule } from '@/shared/scope/scope.module';
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ApprovalDelegationController } from './approval-delegation.controller';
+import { ApprovalDelegationService } from './approval-delegation.service';
+import { ApprovalRoutingConfigController } from './approval-routing-config.controller';
+import { ApprovalRoutingConfigService } from './approval-routing-config.service';
+import { ApprovalDelegationEntity } from './entities/approval-delegation.entity';
+import { ApprovalRoutingConfigEntity } from './entities/approval-routing-config.entity';
 import { ContractorProfileEntity } from './entities/contractor-profile.entity';
 import { DepartmentEntity } from './entities/department.entity';
 import { DivisionEntity } from './entities/division.entity';
 import { LegalEntityEntity } from './entities/legal-entity.entity';
 import { ManagerRelationshipEntity } from './entities/manager-relationship.entity';
 import { ProfileChangeRequestEntity } from './entities/profile-change-request.entity';
+import { ProjectAssignmentEntity } from './entities/project-assignment.entity';
+import { WorkerImportBatchEntity } from './entities/worker-import-batch.entity';
 import { WorkerEntity } from './entities/worker.entity';
+import { ManagerRelationshipController } from './manager-relationship.controller';
+import { ManagerRelationshipService } from './manager-relationship.service';
 import { OrgController } from './org.controller';
 import { OrgService } from './org.service';
 import { ProfileChangeRequestController } from './profile-change-request.controller';
 import { ProfileChangeRequestService } from './profile-change-request.service';
+import { ProjectAssignmentController } from './project-assignment.controller';
+import { ProjectAssignmentService } from './project-assignment.service';
+import { WorkerImportController } from './worker-import.controller';
+import { WorkerImportService } from './worker-import.service';
 import { WorkerController } from './worker.controller';
 import { WorkerService } from './worker.service';
 
@@ -27,17 +44,47 @@ import { WorkerService } from './worker.service';
       LegalEntityEntity,
       ManagerRelationshipEntity,
       ProfileChangeRequestEntity,
+      ApprovalDelegationEntity,
+      ProjectAssignmentEntity,
+      ApprovalRoutingConfigEntity,
+      WorkerImportBatchEntity,
     ]),
+    BullModule.registerQueue({ name: QueueEnum.CoreHr }),
     ComplianceModule,
     CountryConfigModule,
     ScopeModule,
+    AutomationModule,
   ],
   controllers: [
     WorkerController,
     OrgController,
     ProfileChangeRequestController,
+    ApprovalDelegationController,
+    ManagerRelationshipController,
+    ProjectAssignmentController,
+    ApprovalRoutingConfigController,
+    WorkerImportController,
   ],
-  providers: [WorkerService, OrgService, ProfileChangeRequestService],
-  exports: [WorkerService, OrgService, ProfileChangeRequestService, TypeOrmModule],
+  providers: [
+    WorkerService,
+    OrgService,
+    ProfileChangeRequestService,
+    ApprovalDelegationService,
+    ManagerRelationshipService,
+    ProjectAssignmentService,
+    ApprovalRoutingConfigService,
+    WorkerImportService,
+  ],
+  exports: [
+    WorkerService,
+    OrgService,
+    ProfileChangeRequestService,
+    ApprovalDelegationService,
+    ManagerRelationshipService,
+    ProjectAssignmentService,
+    ApprovalRoutingConfigService,
+    WorkerImportService,
+    TypeOrmModule,
+  ],
 })
 export class CoreHrModule {}

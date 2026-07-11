@@ -77,6 +77,19 @@ export function buildOrgChart(
     }
   >,
 ): OrgChartNode[] {
+  return buildOrgChartSubtree(workers);
+}
+
+export function buildOrgChartSubtree(
+  workers: Array<
+    WorkerEntity & {
+      division?: { name: string } | null;
+      department?: { name: string } | null;
+    }
+  >,
+  maxDepth = 2,
+  rootId?: string,
+): OrgChartNode[] {
   const nodes = new Map<string, OrgChartNode>();
 
   for (const worker of workers) {
@@ -106,5 +119,31 @@ export function buildOrgChart(
     }
   }
 
-  return roots;
+  const chartRoots = rootId
+    ? (() => {
+        const root = nodes.get(rootId);
+        return root ? [root] : [];
+      })()
+    : roots;
+
+  for (const root of chartRoots) {
+    pruneOrgChartDepth(root, 0, maxDepth);
+  }
+
+  return chartRoots;
+}
+
+function pruneOrgChartDepth(
+  node: OrgChartNode,
+  currentDepth: number,
+  maxDepth: number,
+): void {
+  if (currentDepth >= maxDepth) {
+    node.directReports = [];
+    return;
+  }
+
+  for (const child of node.directReports) {
+    pruneOrgChartDepth(child, currentDepth + 1, maxDepth);
+  }
 }

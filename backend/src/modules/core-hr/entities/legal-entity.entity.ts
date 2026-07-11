@@ -10,7 +10,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { EntityStatus } from '../enums/org.enum';
+import { EntityStatus, LegalEntityRenderProfile } from '../enums/org.enum';
 
 @Entity('legal_entities')
 @Index('IDX_legal_entities_tenant_code', ['tenantId', 'code'], { unique: true })
@@ -58,6 +58,21 @@ export class LegalEntityEntity {
 
   @Column({ type: 'date', nullable: true })
   effectiveTo: string | null;
+
+  /** Manual-sign path shows stamp placement zone + checklist when true (PRD §6.8.1). Stamps are never auto-rendered. */
+  @Column({ type: 'boolean', default: false })
+  requiresWetStamp: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  stampInstructions: string | null;
+
+  @Column({
+    type: 'enum',
+    enum: LegalEntityRenderProfile,
+    enumName: 'legal_entity_render_profile_enum',
+    default: LegalEntityRenderProfile.FULL_DIGITAL,
+  })
+  defaultRenderProfile: LegalEntityRenderProfile;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

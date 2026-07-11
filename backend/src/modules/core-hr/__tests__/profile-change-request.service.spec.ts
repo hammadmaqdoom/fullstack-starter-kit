@@ -3,6 +3,7 @@ import { AuditLogService } from '@/modules/compliance/audit-log.service';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
 import { ScopeType } from '@/modules/compliance/enums/scope-type.enum';
 import { RbacService } from '@/modules/compliance/rbac.service';
+import { TeamsNotificationService } from '@/modules/automation/teams-notification.service';
 import { ProfileChangeRequestEntity } from '@/modules/core-hr/entities/profile-change-request.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { ApprovalStatus } from '@/modules/core-hr/enums/org.enum';
@@ -21,6 +22,9 @@ describe('ProfileChangeRequestService', () => {
     Pick<Repository<WorkerEntity>, 'findOne' | 'save'>
   >;
   let auditLogService: jest.Mocked<Pick<AuditLogService, 'append'>>;
+  let teamsNotificationService: jest.Mocked<
+    Pick<TeamsNotificationService, 'enqueueProfileChangePending'>
+  >;
 
   const worker = {
     id: 'worker-1',
@@ -47,6 +51,9 @@ describe('ProfileChangeRequestService', () => {
       save: jest.fn(async (entity) => entity as WorkerEntity),
     } as unknown as typeof workerRepository;
     auditLogService = { append: jest.fn() };
+    teamsNotificationService = {
+      enqueueProfileChangePending: jest.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -60,6 +67,10 @@ describe('ProfileChangeRequestService', () => {
           useValue: workerRepository,
         },
         { provide: AuditLogService, useValue: auditLogService },
+        {
+          provide: TeamsNotificationService,
+          useValue: teamsNotificationService,
+        },
         {
           provide: RbacService,
           useValue: {

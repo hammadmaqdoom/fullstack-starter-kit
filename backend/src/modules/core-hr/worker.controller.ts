@@ -115,6 +115,21 @@ export class WorkerController {
     return this.profileChangeRequestService.listByWorker(id, session.user.id);
   }
 
+  @Get('me')
+  @Roles(
+    PolarisRoleCode.EMPLOYEE,
+    PolarisRoleCode.CONTRACTOR,
+    PolarisRoleCode.MANAGER,
+    PolarisRoleCode.DIVISION_HEAD,
+    PolarisRoleCode.FINANCE,
+    PolarisRoleCode.PEOPLE_OPS,
+    PolarisRoleCode.SUPER_ADMIN,
+  )
+  @ApiOperation({ summary: 'Get worker profile linked to current session' })
+  async findMe(@CurrentUserSession() session: CurrentUserSession) {
+    return this.workerService.findMe(session.user.id);
+  }
+
   @Get(':id')
   @Roles(
     PolarisRoleCode.PEOPLE_OPS,

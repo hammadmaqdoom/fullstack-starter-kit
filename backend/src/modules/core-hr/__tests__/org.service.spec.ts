@@ -3,10 +3,11 @@ import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.en
 import { ScopeType } from '@/modules/compliance/enums/scope-type.enum';
 import { RbacService } from '@/modules/compliance/rbac.service';
 import { QueryDirectoryDto } from '@/modules/core-hr/dto/query-directory.dto';
+import { QueryOrgChartDto } from '@/modules/core-hr/dto/query-org-chart.dto';
 import { OrgService } from '@/modules/core-hr/org.service';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { WorkMode, WorkerStatus } from '@/modules/core-hr/enums/worker.enum';
-import { buildOrgChart, toDirectoryEntry } from '@/modules/core-hr/org.mapper';
+import { buildOrgChart, buildOrgChartSubtree, toDirectoryEntry } from '@/modules/core-hr/org.mapper';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
@@ -104,12 +105,32 @@ describe('OrgService', () => {
   });
 
   it('builds org chart with manager hierarchy', async () => {
-    const chart = await service.getOrgChart('actor-user-id');
+    const query = Object.assign(new QueryOrgChartDto(), { depth: 2 });
+    const chart = await service.getOrgChart(query, 'actor-user-id');
 
     expect(chart).toHaveLength(1);
     expect(chart[0].workerId).toBe('manager-1');
     expect(chart[0].directReports).toHaveLength(1);
     expect(chart[0].directReports[0].workerId).toBe('report-1');
+  });
+
+  it('limits org chart depth in mapper', () => {
+    const deepWorkers = [
+      ...mockWorkers,
+      {
+        id: 'report-2',
+        tenantId: DIGITARO_TENANT_ID,
+        firstName: 'Noor',
+        lastName: 'Khan',
+        email: 'noor@digitaro.com',
+        managerId: 'report-1',
+      } as WorkerEntity,
+    ];
+
+    const chart = buildOrgChartSubtree(deepWorkers, 1, 'manager-1');
+    expect(chart).toHaveLength(1);
+    expect(chart[0].directReports).toHaveLength(1);
+    expect(chart[0].directReports[0].directReports).toHaveLength(0);
   });
 
   it('redacts phone in directory for non-privileged viewers', async () => {
@@ -148,7 +169,7 @@ describe('OrgService', () => {
     expect(entry.divisionName).toBe('Labs');
     expect(entry.phone).toBe('+92000000001');
 
-    const chart = buildOrgChart(mockWorkers);
+    const chart = buildOrgChartSubtree(mockWorkers, 2);
     expect(chart[0].directReports[0].firstName).toBe('Ali');
   });
 });
