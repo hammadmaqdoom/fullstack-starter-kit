@@ -13,6 +13,7 @@ import {
   FileSignature,
   FileText,
   Gift,
+  GraduationCap,
   HelpCircle,
   Home,
   Image,
@@ -25,6 +26,7 @@ import {
   MoreVertical,
   Plane,
   Receipt,
+  Scale,
   Search,
   Send,
   Settings,
@@ -35,6 +37,7 @@ import {
   User,
   UserPlus,
   Users,
+  Users2,
   Wallet,
   X,
 } from 'lucide-react';
@@ -204,6 +207,30 @@ function SidebarPanel({
       locked: !navAccess.peopleOps,
     },
     {
+      href: '/people-ops/performance/calibration',
+      label: t('calibration_link'),
+      icon: Scale,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/recruitment',
+      label: t('recruitment_link'),
+      icon: Briefcase,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/training',
+      label: t('training_admin_link'),
+      icon: GraduationCap,
+      locked: !navAccess.peopleOps,
+    },
+    {
+      href: '/people-ops/manpower',
+      label: t('manpower_link'),
+      icon: Users2,
+      locked: !navAccess.peopleOps,
+    },
+    {
       href: '/people-ops/letterheads',
       label: t('letterheads_link'),
       icon: FileText,
@@ -270,6 +297,12 @@ function SidebarPanel({
       href: '/employee/performance',
       label: t('employee_performance_link'),
       icon: Target,
+      locked: !navAccess.employee,
+    },
+    {
+      href: '/employee/performance/pulse',
+      label: t('employee_pulse_link'),
+      icon: ClipboardList,
       locked: !navAccess.employee,
     },
     {

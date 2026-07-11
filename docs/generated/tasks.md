@@ -226,13 +226,13 @@
 
 ### 2.5 Talent modules
 
-- [ ] Recruitment: `job_requisitions`, `candidates`, `interview_scorecards`
+- [x] Recruitment: `job_requisitions`, `candidates`, `interview_scorecards` — backend + `people-ops/recruitment` UI
 - [x] Performance (IPMS): cycles, goals, feedback, 1:1, OKRs, reviews, IDPs, pulse — `backend/src/modules/talent/`
-- [ ] Performance: probation auto-cycle BullMQ job (T-14 days)
-- [ ] Performance: calibration board UI (Division Head)
-- [ ] Performance: pulse survey respondent UI
-- [ ] Training: `training_courses`, `training_assignments`, `training_completions`
-- [ ] Manpower: `manpower_plans`, `manpower_positions`
+- [x] Performance: probation auto-cycle BullMQ job (T-14 days) — `worker/queues/talent/`
+- [x] Performance: calibration board UI (Division Head) — `people-ops/performance/calibration`
+- [x] Performance: pulse survey respondent UI — `employee/performance/pulse`
+- [x] Training: `training_courses`, `training_assignments`, `training_completions` — backend + `people-ops/training` UI
+- [x] Manpower: `manpower_plans`, `manpower_positions` — backend + `people-ops/manpower` UI
 
 ### 2.6 Finance admin surfaces
 
