@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
-  const { shell, isLoading, error } = usePolarisShell();
+  const { shell, error } = usePolarisShell();
   const router = useRouter();
 
   useEffect(() => {
