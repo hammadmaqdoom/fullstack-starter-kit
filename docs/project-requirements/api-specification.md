@@ -1,1242 +1,508 @@
-# API Specification
+# Polaris — API Specification
 
-> **INSTRUCTIONS**: This document defines all API endpoints, request/response formats, authentication, and error handling. Skip this file if your project doesn't have an API.
+**Product:** Polaris  
+**Status:** Approved for implementation  
+**Last updated:** 26 June 2026  
+**Companion to:** [system-architecture.md](./system-architecture.md) · [database-design.md](./database-design.md)
 
 ---
 
-## 1. API Overview
+## 1. API overview
 
-### 1.1 Base Information
+### 1.1 Base information
 
-**Base URL**: 
-- Development: `http://localhost:3000/api`
-- Production: `https://api.yourapp.com`
+| Environment | Base URL |
+|---|---|
+| Development | `http://localhost:3000/api` |
+| Staging | `https://polaris-staging.digitaro.co/api` |
+| Production | `https://polaris.digitaro.co/api` |
 
-**API Version**: `v1`
+- **Version:** `v1` (URL path: `/api/v1/`)
+- **Protocol:** REST over HTTPS
+- **Format:** JSON, UTF-8
+- **GraphQL:** Available at `/graphql` for starter-kit patterns; REST is primary for Polaris modules
 
-**Protocol**: REST over HTTPS
+### 1.2 Design principles
 
-**Data Format**: JSON
+- RESTful, resource-based URLs
+- Consistent envelope: `{ data, meta, errors }`
+- HTTP status codes per RFC 7231
+- Idempotent mutations where applicable (`Idempotency-Key` header on pay runs, exports)
+- Row-level scope enforced server-side — never trust client filters for authorization
+- All mutations write `audit_log` entries
+- OpenAPI/Swagger auto-generated from NestJS decorators
 
-**Character Encoding**: UTF-8
+### 1.3 Universal controls (all endpoints)
 
-### 1.2 API Design Principles
+Per [feature-flows.md](../compliance/feature-flows.md) §0.3:
 
-- RESTful architecture
-- Resource-based URLs
-- HTTP methods for CRUD operations (GET, POST, PUT, PATCH, DELETE)
-- Consistent response formats
-- Proper HTTP status codes
-- Versioning via URL path (`/api/v1/`)
+1. Authenticate (Entra OIDC or Better Auth session)
+2. Authorise (RBAC + row-level scope)
+3. Validate input (DTO + business rules)
+4. Persist with audit log entry
+5. Return scoped response (field redaction applied)
 
 ---
 
 ## 2. Authentication
 
-### 2.1 Authentication Methods
+### 2.1 Employee authentication (Entra OIDC)
 
-Select the methods your API supports:
-
-- [x] **Bearer Token** (JWT)
-- [ ] **API Key**
-- [ ] **OAuth 2.0**
-- [ ] **Basic Auth**
-- [ ] **Session Cookies**
-
-### 2.2 Bearer Token (JWT)
-
-**How it works**:
-1. User logs in with credentials
-2. Server returns JWT access token
-3. Client includes token in `Authorization` header
-4. Server validates token on each request
-
-**Token Format**:
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Token Expiration**:
-- Access Token: 15 minutes
-- Refresh Token: 7 days
-
-**Token Refresh**:
 ```http
-POST /api/v1/auth/refresh
+GET /api/v1/auth/entra/login
+→ Redirect to Microsoft Entra OIDC
+
+GET /api/v1/auth/entra/callback?code=...
+→ Set session cookie, redirect to app
+```
+
+Session: HTTP-only secure cookie via Better Auth. MFA enforced through Entra.
+
+### 2.2 Contractor authentication
+
+```http
+POST /api/v1/auth/contractor/login
 Content-Type: application/json
 
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "email": "contractor@example.com",
+  "password": "..."
 }
-```
 
----
-
-## 3. Common Request/Response Patterns
-
-### 3.1 Request Headers
-
-**Required Headers**:
-```http
+POST /api/v1/auth/contractor/magic-link
 Content-Type: application/json
-Authorization: Bearer {token}
-```
 
-**Optional Headers**:
-```http
-Accept-Language: en-US
-X-Request-ID: unique-request-id
-```
-
-### 3.2 Success Response Format
-
-```json
 {
-  "success": true,
-  "data": {
-    // Response data here
-  },
+  "email": "contractor@example.com"
+}
+```
+
+Rate-limited: 5 attempts per 15 minutes per IP.
+
+### 2.3 Session management
+
+```http
+GET /api/v1/auth/session
+→ { user, worker, roles, scopes }
+
+POST /api/v1/auth/logout
+→ Clear session
+```
+
+### 2.4 E-sign token (contractors / external)
+
+```http
+GET /api/v1/esign/sign/{token}
+→ Validate email-verified signing token (time-limited, single-envelope scoped)
+```
+
+---
+
+## 3. Common patterns
+
+### 3.1 Request headers
+
+```http
+Authorization: Bearer {session_token}   # or cookie-based session
+Content-Type: application/json
+Accept: application/json
+X-Correlation-Id: {uuid}               # optional, echoed in audit log
+Idempotency-Key: {uuid}                 # required on pay run approve, export
+```
+
+### 3.2 Pagination
+
+```http
+GET /api/v1/workers?page=1&limit=25&sort=-created_at
+
+Response:
+{
+  "data": [...],
   "meta": {
-    "timestamp": "2026-01-05T10:30:00Z",
-    "requestId": "req_abc123"
-  }
-}
-```
-
-### 3.3 Error Response Format
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid input data",
-    "details": [
-      {
-        "field": "email",
-        "message": "Email is required"
-      }
-    ]
-  },
-  "meta": {
-    "timestamp": "2026-01-05T10:30:00Z",
-    "requestId": "req_abc123"
-  }
-}
-```
-
-### 3.4 Pagination
-
-**Request**:
-```http
-GET /api/v1/posts?page=2&limit=20
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": [
-    // Array of items
-  ],
-  "pagination": {
-    "page": 2,
-    "limit": 20,
-    "total": 150,
-    "totalPages": 8,
-    "hasNext": true,
-    "hasPrev": true
-  }
-}
-```
-
-### 3.5 Filtering & Sorting
-
-**Filtering**:
-```http
-GET /api/v1/posts?status=published&author=user123
-```
-
-**Sorting**:
-```http
-GET /api/v1/posts?sortBy=createdAt&order=desc
-```
-
-**Combined**:
-```http
-GET /api/v1/posts?status=published&sortBy=publishedAt&order=desc&page=1&limit=20
-```
-
----
-
-## 4. API Endpoints
-
-### 4.1 Authentication Endpoints
-
-#### POST /api/v1/auth/register
-
-**Description**: Register a new user account
-
-**Authentication**: None (public)
-
-**Request Body**:
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePass123!",
-  "fullName": "John Doe"
-}
-```
-
-**Validation Rules**:
-- `email`: Required, valid email format, unique
-- `password`: Required, min 8 characters, must include uppercase, lowercase, number
-- `fullName`: Required, 2-100 characters
-
-**Success Response** (201 Created):
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "uuid-here",
-      "email": "user@example.com",
-      "fullName": "John Doe",
-      "emailVerified": false,
-      "createdAt": "2026-01-05T10:30:00Z"
-    },
-    "message": "Registration successful. Please check your email to verify your account."
-  }
-}
-```
-
-**Error Responses**:
-
-400 Bad Request - Validation Error:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid input data",
-    "details": [
-      {
-        "field": "email",
-        "message": "Email is already registered"
-      }
-    ]
-  }
-}
-```
-
----
-
-#### POST /api/v1/auth/login
-
-**Description**: Log in with email and password
-
-**Authentication**: None (public)
-
-**Request Body**:
-```json
-{
-  "email": "user@example.com",
-  "password": "SecurePass123!"
-}
-```
-
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "uuid-here",
-      "email": "user@example.com",
-      "fullName": "John Doe",
-      "emailVerified": true
-    },
-    "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "expiresIn": 900
-    }
-  }
-}
-```
-
-**Error Responses**:
-
-401 Unauthorized - Invalid Credentials:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INVALID_CREDENTIALS",
-    "message": "Invalid email or password"
-  }
-}
-```
-
-403 Forbidden - Email Not Verified:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "EMAIL_NOT_VERIFIED",
-    "message": "Please verify your email before logging in"
-  }
-}
-```
-
----
-
-#### POST /api/v1/auth/logout
-
-**Description**: Log out current user
-
-**Authentication**: Required (Bearer Token)
-
-**Request Body**: None
-
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "message": "Logged out successfully"
-  }
-}
-```
-
----
-
-#### POST /api/v1/auth/refresh
-
-**Description**: Refresh access token using refresh token
-
-**Authentication**: None (uses refresh token in body)
-
-**Request Body**:
-```json
-{
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expiresIn": 900
-  }
-}
-```
-
----
-
-### 4.2 User Endpoints
-
-#### GET /api/v1/users/me
-
-**Description**: Get current user profile
-
-**Authentication**: Required (Bearer Token)
-
-**Request Parameters**: None
-
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "uuid-here",
-      "email": "user@example.com",
-      "fullName": "John Doe",
-      "emailVerified": true,
-      "createdAt": "2026-01-01T10:00:00Z",
-      "updatedAt": "2026-01-05T10:30:00Z"
-    }
-  }
-}
-```
-
----
-
-#### PATCH /api/v1/users/me
-
-**Description**: Update current user profile
-
-**Authentication**: Required (Bearer Token)
-
-**Request Body**:
-```json
-{
-  "fullName": "John Smith"
-}
-```
-
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "uuid-here",
-      "email": "user@example.com",
-      "fullName": "John Smith",
-      "updatedAt": "2026-01-05T10:35:00Z"
-    }
-  }
-}
-```
-
----
-
-#### DELETE /api/v1/users/me
-
-**Description**: Delete current user account
-
-**Authentication**: Required (Bearer Token)
-
-**Request Body**:
-```json
-{
-  "password": "SecurePass123!",
-  "confirmation": "DELETE"
-}
-```
-
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "message": "Account deleted successfully"
-  }
-}
-```
-
----
-
-### 4.3 Posts Endpoints
-
-#### GET /api/v1/posts
-
-**Description**: Get list of published posts
-
-**Authentication**: Optional (public posts, auth for drafts)
-
-**Query Parameters**:
-- `page` (integer, default: 1)
-- `limit` (integer, default: 20, max: 100)
-- `status` (string: draft|published|archived, default: published)
-- `authorId` (UUID, optional)
-- `sortBy` (string: createdAt|publishedAt|title, default: publishedAt)
-- `order` (string: asc|desc, default: desc)
-
-**Example Request**:
-```http
-GET /api/v1/posts?page=1&limit=20&status=published&sortBy=publishedAt&order=desc
-```
-
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "uuid-here",
-      "title": "My First Post",
-      "content": "This is the content...",
-      "status": "published",
-      "publishedAt": "2026-01-01T10:00:00Z",
-      "author": {
-        "id": "uuid-here",
-        "fullName": "John Doe"
-      },
-      "commentCount": 5,
-      "createdAt": "2026-01-01T09:00:00Z",
-      "updatedAt": "2026-01-01T10:00:00Z"
-    }
-  ],
-  "pagination": {
     "page": 1,
-    "limit": 20,
-    "total": 45,
-    "totalPages": 3,
-    "hasNext": true,
-    "hasPrev": false
+    "limit": 25,
+    "total": 142,
+    "totalPages": 6
   }
 }
 ```
+
+### 3.3 Filtering
+
+Query params: `?status=active&country_code=PK&employment_type=CONTRACTOR&division_id={uuid}`
+
+### 3.4 Error responses
+
+```json
+{
+  "errors": [{
+    "code": "LEAVE_INSUFFICIENT_BALANCE",
+    "message": "Insufficient annual leave balance. Available: 2.5 days.",
+    "field": "end_date",
+    "status": 422
+  }]
+}
+```
+
+| Status | Usage |
+|---|---|
+| 400 | Malformed request |
+| 401 | Unauthenticated |
+| 403 | Forbidden (RBAC/scope) |
+| 404 | Resource not found (or not visible in scope) |
+| 409 | Conflict (duplicate, state transition invalid) |
+| 422 | Business rule validation failed |
+| 429 | Rate limited |
+| 500 | Internal error |
 
 ---
 
-#### GET /api/v1/posts/:id
+## 4. API modules
 
-**Description**: Get single post by ID
+### 4.1 Core HR — `/api/v1/workers`
 
-**Authentication**: Optional (public for published, required for drafts)
+| Method | Path | Description | Roles |
+|---|---|---|---|
+| GET | `/workers` | List workers (scoped) | HR, Manager+, Finance (limited) |
+| POST | `/workers` | Create worker | People Ops, Super Admin |
+| GET | `/workers/{id}` | Get worker profile | Scoped |
+| PATCH | `/workers/{id}` | Update worker (HR direct) | People Ops, Super Admin |
+| DELETE | `/workers/{id}` | Soft-delete / archive | People Ops, Super Admin |
+| GET | `/workers/{id}/audit-log` | Field change history | HR, Super Admin |
+| GET | `/workers/{id}/documents` | Attached documents | Scoped |
+| POST | `/workers/{id}/documents` | Upload attachment | HR, scoped self |
+| GET | `/workers/directory` | Searchable directory | All authenticated |
+| GET | `/workers/org-chart` | Org chart data | Scoped |
 
-**Path Parameters**:
-- `id` (UUID, required)
+**Profile change requests:**
 
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "post": {
-      "id": "uuid-here",
-      "title": "My First Post",
-      "content": "This is the full content...",
-      "status": "published",
-      "publishedAt": "2026-01-01T10:00:00Z",
-      "author": {
-        "id": "uuid-here",
-        "fullName": "John Doe",
-        "email": "john@example.com"
-      },
-      "tags": [
-        { "id": "uuid-1", "name": "JavaScript" },
-        { "id": "uuid-2", "name": "Node.js" }
-      ],
-      "commentCount": 5,
-      "createdAt": "2026-01-01T09:00:00Z",
-      "updatedAt": "2026-01-01T10:00:00Z"
-    }
-  }
-}
-```
+| Method | Path | Description |
+|---|---|---|
+| POST | `/workers/{id}/change-requests` | Submit change request |
+| GET | `/workers/{id}/change-requests` | List requests |
+| POST | `/change-requests/{id}/approve` | Approve |
+| POST | `/change-requests/{id}/reject` | Reject with reason |
 
-**Error Responses**:
+**Passport & visa / work-pass (UAE & Singapore):**
 
-404 Not Found:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "POST_NOT_FOUND",
-    "message": "Post not found"
-  }
-}
-```
+| Method | Path | Description |
+|---|---|---|
+| GET | `/workers/{id}/passports` | List passport records | People Ops |
+| POST | `/workers/{id}/passports` | Add passport (renewal) | People Ops |
+| PATCH | `/workers/{id}/passports/{passportId}` | Update passport | People Ops |
+| GET | `/workers/{id}/visa-records` | List visa/work-pass records (`previous` + `current`) | People Ops |
+| POST | `/workers/{id}/visa-records` | Add record (e.g. new `current` when visa issued) | People Ops |
+| PATCH | `/workers/{id}/visa-records/{recordId}` | Update application status, dates, numbers | People Ops |
+| POST | `/workers/{id}/visa-records/{recordId}/attachments` | Upload visa/passport document | People Ops |
+| POST | `/pre-boarding/session/passport` | Candidate passport fields | Pre-boarding auth |
+| POST | `/pre-boarding/session/visa-record` | Candidate previous visa/pass fields | Pre-boarding auth |
+| POST | `/pre-boarding/session/attachments` | Upload passport/visa docs | Pre-boarding auth |
 
----
+### 4.2 Organisation — `/api/v1/org`
 
-#### POST /api/v1/posts
+| Method | Path | Description |
+|---|---|---|
+| GET/POST/PATCH | `/divisions` | Division CRUD |
+| GET/POST/PATCH | `/departments` | Department CRUD |
+| GET/POST/PATCH | `/legal-entities` | Legal entity CRUD |
+| GET/POST | `/manager-relationships` | Reporting lines |
+| GET/POST/DELETE | `/project-assignments` | Matrix assignments |
 
-**Description**: Create a new post
+### 4.3 Country config — `/api/v1/config`
 
-**Authentication**: Required (Bearer Token)
+| Method | Path | Description |
+|---|---|---|
+| GET/POST/PATCH | `/countries` | Country configurations |
+| GET/POST/PATCH | `/employment-types` | Employment type definitions |
+| GET/POST/PATCH | `/employment-type-country-configs` | Type × country rules matrix |
+| GET/POST/PATCH | `/currencies` | Currency catalog |
+| GET | `/exchange-rates` | List rates (filter by date, pair) |
+| POST | `/exchange-rates/override` | Manual rate override | Finance |
+| GET | `/exchange-rates/fetch-status` | Last Frankfurter job status |
+| GET/POST/PATCH | `/holiday-calendars` | Holiday management |
+| GET/POST/PATCH | `/work-week-patterns` | Work week definitions |
+| GET/POST/PATCH | `/statutory-rate-schedules` | Statutory rates | Finance |
 
-**Request Body**:
-```json
-{
-  "title": "My New Post",
-  "content": "This is the content...",
-  "status": "draft",
-  "tagIds": ["uuid-1", "uuid-2"]
-}
-```
+### 4.4 Leave — `/api/v1/leave`
 
-**Validation Rules**:
-- `title`: Required, 5-200 characters
-- `content`: Required, min 1 character
-- `status`: Optional, one of: draft|published, default: draft
-- `tagIds`: Optional, array of valid tag UUIDs
+| Method | Path | Description |
+|---|---|---|
+| GET | `/leave-types` | Leave types (country-filtered) |
+| GET | `/leave-balances` | Own or team balances |
+| GET/POST | `/leave-requests` | List / create request |
+| GET | `/leave-requests/{id}` | Request detail + status tracker |
+| POST | `/leave-requests/{id}/approve` | Approve | Manager+ |
+| POST | `/leave-requests/{id}/reject` | Reject | Manager+ |
+| POST | `/leave-requests/{id}/cancel` | Cancel own request |
+| GET | `/leave/team-calendar` | Team availability view |
+| POST | `/comp-off-credits` | Credit comp-off | Manager+ |
 
-**Success Response** (201 Created):
-```json
-{
-  "success": true,
-  "data": {
-    "post": {
-      "id": "uuid-here",
-      "title": "My New Post",
-      "content": "This is the content...",
-      "status": "draft",
-      "publishedAt": null,
-      "author": {
-        "id": "uuid-here",
-        "fullName": "John Doe"
-      },
-      "tags": [
-        { "id": "uuid-1", "name": "JavaScript" }
-      ],
-      "createdAt": "2026-01-05T10:40:00Z",
-      "updatedAt": "2026-01-05T10:40:00Z"
-    }
-  }
-}
-```
+### 4.5 Attendance — `/api/v1/attendance`
 
----
+| Method | Path | Description |
+|---|---|---|
+| POST | `/punches/check-in` | One-tap check-in |
+| POST | `/punches/check-out` | One-tap check-out |
+| GET | `/punches` | Punch history (scoped) |
+| GET | `/punches/today` | Today's status for worker/team |
+| GET | `/attendance/day-summaries` | Daily summaries |
+| POST | `/punch-corrections` | Request correction |
+| POST | `/punch-corrections/{id}/approve` | Approve correction |
+| GET/POST/PATCH | `/shift-rosters` | Roster management |
+| GET/POST | `/shift-assignments` | Assign shifts |
 
-#### PATCH /api/v1/posts/:id
+### 4.6 Calendar — `/api/v1/calendars`
 
-**Description**: Update existing post
+| Method | Path | Description |
+|---|---|---|
+| GET | `/staff-calendar/{workerId}` | Auto-built staff calendar |
+| GET | `/staff-calendar/me` | Own calendar |
+| GET | `/holidays` | Holidays for country/year |
 
-**Authentication**: Required (Bearer Token, must be author or admin)
+### 4.7 Documents & policies — `/api/v1/documents`
 
-**Path Parameters**:
-- `id` (UUID, required)
+| Method | Path | Description |
+|---|---|---|
+| GET/POST/PATCH | `/policies` | Policy CRUD | HR |
+| POST | `/policies/{id}/versions` | New policy version |
+| POST | `/policies/{id}/acknowledge` | Acknowledge current version |
+| GET | `/policies/acknowledgement-status` | Compliance dashboard |
+| GET/POST/PATCH | `/templates` | Document templates | HR |
+| POST | `/templates/{id}/versions` | New template version |
+| POST | `/templates/{id}/preview` | Preview with merge data |
+| POST | `/documents/generate` | Create draft document from template |
+| POST | `/documents/{id}/issue` | Issue draft — assign `document_number`, set `Issued` | HR |
+| GET | `/documents/{id}` | Generated document detail |
+| POST | `/documents/{id}/preview` | Preview PDF for render profile (`?renderProfile=`) |
+| GET | `/documents/{id}/download` | Download PDF (`?renderProfile=full_digital\|print_on_letterhead\|informational`) |
+| GET | `/documents/register` | Document register (filter: entity, type, status, signing method) | HR |
+| PATCH | `/legal-entities/{id}/document-output` | Stamp config, default render profile | Admin |
+| GET/POST/PATCH | `/letterhead-configs` | Letterhead layout + physical-stock margins | Admin |
 
-**Request Body** (all fields optional):
-```json
-{
-  "title": "Updated Title",
-  "content": "Updated content...",
-  "status": "published",
-  "tagIds": ["uuid-1", "uuid-2", "uuid-3"]
-}
-```
+### 4.8 E-sign — `/api/v1/esign`
 
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "post": {
-      "id": "uuid-here",
-      "title": "Updated Title",
-      "content": "Updated content...",
-      "status": "published",
-      "publishedAt": "2026-01-05T10:45:00Z",
-      "updatedAt": "2026-01-05T10:45:00Z"
-    }
-  }
-}
-```
+| Method | Path | Description |
+|---|---|---|
+| POST | `/envelopes` | Create envelope |
+| GET | `/envelopes/{id}` | Envelope detail + status tracker |
+| POST | `/envelopes/{id}/send` | Send to signatories |
+| POST | `/envelopes/{id}/void` | Void with reason | HR |
+| GET | `/envelopes/{id}/audit` | Audit trail |
+| GET | `/envelopes/{id}/certificate` | Certificate of completion PDF |
+| POST | `/envelopes/{id}/fields` | Place signature fields |
+| POST | `/sign/{token}/complete` | Complete signing (token auth) |
+| POST | `/envelopes/{id}/manual-upload` | Upload signed copy |
+| POST | `/envelopes/{id}/manual-upload/confirm-stamp` | Confirm wet stamp verified (when entity requires) | HR |
+| GET | `/envelopes/{id}/export-pdf` | Export for wet signature (`?renderProfile=`) |
 
-**Error Responses**:
+### 4.9 Talent — `/api/v1/talent`
 
-403 Forbidden - Not Author:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "FORBIDDEN",
-    "message": "You don't have permission to edit this post"
-  }
-}
-```
+| Method | Path | Description |
+|---|---|---|
+| GET/POST/PATCH | `/onboarding` | Onboarding instances |
+| GET/POST/PATCH | `/onboarding-templates` | Template management |
+| POST | `/onboarding/{id}/tasks/{taskId}/complete` | Complete task |
+| POST | `/pre-boarding` | Create pre-boarding packet (People Ops) |
+| POST | `/pre-boarding/{id}/invite` | Resend magic link to personal email |
+| GET/PATCH | `/pre-boarding/{id}` | Packet detail (People Ops / Finance review) |
+| POST | `/pre-boarding/auth/magic-link` | Candidate requests link | Public, rate-limited |
+| POST | `/pre-boarding/auth/verify` | Exchange token for session | Public |
+| GET/PATCH | `/pre-boarding/session/fields` | Candidate form (session-scoped) | Pre-boarding auth |
+| POST | `/pre-boarding/session/submit` | Candidate submit packet | Pre-boarding auth |
+| POST | `/pre-boarding/{id}/merge` | Force merge to worker profile | People Ops |
+| GET | `/entra-provisioning-jobs` | List scheduled/failed jobs | IT Admin |
+| POST | `/entra-provisioning-jobs/{id}/retry` | Retry failed Graph job | IT Admin |
+| POST | `/entra-provisioning-jobs/{id}/complete-manual` | Mark manually provisioned | IT Admin |
+| GET/POST | `/separations` | Separation workflows |
+| POST | `/separations/{id}/clearance/{taskId}` | Clearance sign-off |
+| GET/POST/PATCH | `/requisitions` | Job requisitions | Phase 2 |
+| GET/POST/PATCH | `/candidates` | Candidate pipeline | Phase 2 |
+| GET/POST/PATCH | `/performance-cycles` | Performance cycles | Phase 2 |
+| GET/POST/PATCH | `/training/courses` | Training catalog | Phase 2 |
+| GET/POST/PATCH | `/manpower-plans` | Manpower plans | Phase 2 |
 
----
+### 4.10 Operations — `/api/v1/ops`
 
-#### DELETE /api/v1/posts/:id
+| Method | Path | Description |
+|---|---|---|
+| GET/POST | `/expenses` | Expense claims | Phase 2 |
+| POST | `/expenses/{id}/approve` | Approve expense |
+| GET/POST | `/travel-requests` | Travel requests | Phase 2 |
+| GET/POST/PATCH | `/tickets` | Help desk tickets | Phase 2 |
+| POST | `/tickets/{id}/comments` | Add comment |
+| GET/POST | `/contractor-invoices` | Contractor invoices | Phase 2 |
+| POST | `/contractor-invoices/{id}/approve` | Approve invoice |
 
-**Description**: Delete a post
+### 4.11 Payroll — `/api/v1/payroll`
 
-**Authentication**: Required (Bearer Token, must be author or admin)
+| Method | Path | Description |
+|---|---|---|
+| GET/POST/PATCH | `/benefit-types` | Benefit type catalog | Finance |
+| GET/POST/PATCH | `/employee-benefits` | Benefit assignments |
+| POST | `/pay-runs` | Create pay run | Finance |
+| GET | `/pay-runs/{id}` | Pay run detail + anomalies |
+| POST | `/pay-runs/{id}/calculate` | Run calculation |
+| POST | `/pay-runs/{id}/approve` | Approve pay run |
+| POST | `/pay-runs/{id}/export` | Generate PDF/Excel export pack |
+| POST | `/pay-runs/{id}/release-payslips` | Release to employees |
+| POST | `/pay-run-lines/{id}/remittance-documents` | Upload SWIFT / bank proof | Finance |
+| GET | `/pay-run-lines/{id}/remittance-pack` | Remittance pack for payroll line | Finance |
+| GET | `/payslips/{id}/remittance-pack` | Pack on payslip | Employee (scoped) |
+| GET | `/payslips/{id}/remittance-pack/download` | ZIP download | Employee |
+| POST | `/payslips/{id}/remittance-documents` | Employee upload extra doc | Employee |
+| GET | `/payslips` | Own payslips (employee) |
+| GET | `/payslips/{id}/download` | Download payslip PDF |
+| POST | `/contractor-payment-batches` | Create payment batch |
+| POST | `/contractor-payment-batches/{id}/export` | Export batch |
+| POST | `/contractor-payment-lines/{id}/mark-paid` | Mark paid + payment ref | Finance |
+| POST | `/contractor-payment-lines/{id}/remittance-documents` | Upload SWIFT / bank proof | Finance |
+| GET | `/contractor-payment-lines/{id}/remittance-pack` | Remittance pack detail | Finance |
+| GET/POST/PATCH | `/remittance-corridors` | Corridor config CRUD | Finance, Super Admin |
+| GET | `/contractor-invoices/{id}/remittance-pack` | Pack for invoice | Contractor (scoped) |
+| GET | `/contractor-invoices/{id}/remittance-pack/download` | ZIP download | Contractor |
+| POST | `/contractor-invoices/{id}/remittance-documents` | Contractor upload extra doc | Contractor |
 
-**Path Parameters**:
-- `id` (UUID, required)
+### 4.12 Hub (unified inbox) — `/api/v1/hub`
 
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": {
-    "message": "Post deleted successfully"
-  }
-}
-```
+| Method | Path | Description |
+|---|---|---|
+| GET | `/hub` | Unified inbox (mine + for-me) |
+| GET | `/hub/counts` | Badge counts (action-required only) |
+| POST | `/hub/{itemId}/approve` | Quick approve from Hub |
+| POST | `/hub/{itemId}/reject` | Quick reject from Hub |
 
----
+Aggregates: leave requests, expenses, travel, invoices, e-sign envelopes, tickets, onboarding tasks, clearance items.
 
-### 4.4 Comments Endpoints
+### 4.13 Automation — `/api/v1/automation`
 
-#### GET /api/v1/posts/:postId/comments
+| Method | Path | Description |
+|---|---|---|
+| GET/POST/PATCH | `/alert-rules` | Custom alert rules |
+| GET | `/alerts` | Active compliance alerts |
+| GET/POST/PATCH | `/scheduled-reports` | Report subscriptions |
+| POST | `/scheduled-reports/{id}/run` | Trigger report now |
 
-**Description**: Get comments for a post
+### 4.14 Reports — `/api/v1/reports`
 
-**Authentication**: Optional
+| Method | Path | Description |
+|---|---|---|
+| GET | `/reports/headcount` | Headcount by division/country/FTE |
+| GET | `/reports/attrition` | Attrition metrics |
+| GET | `/reports/leave-liability` | Leave liability |
+| GET | `/reports/visa-expiry` | Upcoming visa expiries |
+| GET | `/reports/entra-coverage` | Entra provisioning status |
+| GET | `/reports/policy-compliance` | Acknowledgement gaps |
+| GET | `/reports/payroll-register` | Pay register | Finance |
+| POST | `/reports/{type}/export` | Async export (CSV/PDF) |
 
-**Path Parameters**:
-- `postId` (UUID, required)
+### 4.15 Admin — `/api/v1/admin`
 
-**Query Parameters**:
-- `page` (integer, default: 1)
-- `limit` (integer, default: 20)
+| Method | Path | Description |
+|---|---|---|
+| GET/POST/PATCH | `/roles` | Role management | Super Admin |
+| GET/POST/DELETE | `/user-roles` | Role assignments |
+| GET | `/audit-log` | Global audit search | Super Admin |
+| GET/POST | `/setup-wizard` | Guided setup state |
+| POST | `/setup-wizard/seed` | Apply PK/UAE/SG seeds |
 
-**Success Response** (200 OK):
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "uuid-here",
-      "content": "Great post!",
-      "author": {
-        "id": "uuid-here",
-        "fullName": "Jane Smith"
-      },
-      "createdAt": "2026-01-02T14:30:00Z",
-      "updatedAt": "2026-01-02T14:30:00Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 5,
-    "totalPages": 1
-  }
-}
-```
+### 4.16 Compliance exports — `/api/v1/compliance`
 
----
+| Method | Path | Description |
+|---|---|---|
+| GET | `/evidence/audit-log` | Audit log export |
+| GET | `/evidence/access-review` | Role assignment export |
+| GET | `/evidence/policy-acknowledgements` | Acknowledgement report |
+| POST | `/dsar/export` | Data subject access request export |
 
-#### POST /api/v1/posts/:postId/comments
+### 4.17 Me (shell) — `/api/v1/me`
 
-**Description**: Add a comment to a post
+Role-aware app shell capabilities and command-palette search. Authenticated; scoped by `user_role_assignments`.
 
-**Authentication**: Required (Bearer Token)
-
-**Path Parameters**:
-- `postId` (UUID, required)
-
-**Request Body**:
-```json
-{
-  "content": "Great post! Very helpful."
-}
-```
-
-**Validation Rules**:
-- `content`: Required, 1-1000 characters
-
-**Success Response** (201 Created):
-```json
-{
-  "success": true,
-  "data": {
-    "comment": {
-      "id": "uuid-here",
-      "content": "Great post! Very helpful.",
-      "author": {
-        "id": "uuid-here",
-        "fullName": "John Doe"
-      },
-      "createdAt": "2026-01-05T10:50:00Z"
-    }
-  }
-}
-```
-
----
-
-<!-- Continue with all your endpoints... -->
-
----
-
-## 5. HTTP Status Codes
-
-| Code | Meaning | Usage |
-|------|---------|-------|
-| 200 | OK | Successful GET, PATCH, DELETE |
-| 201 | Created | Successful POST (resource created) |
-| 204 | No Content | Successful DELETE (no response body) |
-| 400 | Bad Request | Validation error, malformed request |
-| 401 | Unauthorized | Missing or invalid authentication |
-| 403 | Forbidden | Authenticated but not authorized |
-| 404 | Not Found | Resource doesn't exist |
-| 409 | Conflict | Resource conflict (e.g., duplicate email) |
-| 422 | Unprocessable Entity | Semantic validation error |
-| 429 | Too Many Requests | Rate limit exceeded |
-| 500 | Internal Server Error | Server error |
-| 503 | Service Unavailable | Server temporarily unavailable |
+| Method | Path | Description |
+|---|---|---|
+| GET | `/me/shell` | Primary layout, home path, nav modules, setup progress |
+| GET | `/me/search?q=&limit=` | Role-scoped search (workers, hub, policies, actions, modules). Empty/`q` &lt; 2 → browse mode (actions + modules only) |
 
 ---
 
-## 6. Error Codes
+## 5. Webhooks & integrations
 
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| VALIDATION_ERROR | 400 | Input validation failed |
-| INVALID_CREDENTIALS | 401 | Wrong email/password |
-| UNAUTHORIZED | 401 | Missing or invalid token |
-| EMAIL_NOT_VERIFIED | 403 | Email not verified |
-| FORBIDDEN | 403 | Insufficient permissions |
-| NOT_FOUND | 404 | Resource not found |
-| POST_NOT_FOUND | 404 | Post not found |
-| USER_NOT_FOUND | 404 | User not found |
-| DUPLICATE_EMAIL | 409 | Email already registered |
-| RATE_LIMIT_EXCEEDED | 429 | Too many requests |
-| INTERNAL_ERROR | 500 | Server error |
+### 5.1 Entra provisioning webhook
+
+```http
+POST /api/v1/webhooks/entra
+X-Entra-Signature: {hmac}
+
+{ "event": "user.provisioned", "entraObjectId": "...", "email": "..." }
+→ Update worker.entra_status = provisioned
+```
+
+### 5.2 Microsoft Graph (application permissions)
+
+Polaris calls Graph as a **daemon service** (FLW-SEC-006). Credentials stored in Azure Key Vault.
+
+| Operation | Graph endpoint | When |
+|---|---|---|
+| Create user | `POST /users` | Entra provisioning job |
+| Assign license | `POST /users/{id}/assignLicense` | After user create |
+| Add to group | `POST /groups/{id}/members/$ref` | Division/country group mapping |
+| Disable user | `PATCH /users/{id}` `{ "accountEnabled": false }` | Separation LWD |
+
+Every request logs `graph_correlation_id`, HTTP status, and worker ID to `audit_log` — never client secrets or passwords.
+
+### 5.3 Teams notification callback
+
+Outbound only — Polaris sends adaptive cards via Microsoft Graph API. No inbound webhook v1.
 
 ---
 
-## 7. Rate Limiting
-
-### 7.1 Rate Limits
-
-| Endpoint Type | Limit | Window |
-|---------------|-------|--------|
-| Authentication | 5 requests | 15 minutes |
-| Public endpoints | 100 requests | 1 minute |
-| Authenticated endpoints | 1000 requests | 1 minute |
-
-### 7.2 Rate Limit Headers
+## 6. File uploads
 
 ```http
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1641384000
-```
-
-### 7.3 Rate Limit Exceeded Response
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "RATE_LIMIT_EXCEEDED",
-    "message": "Too many requests. Please try again later.",
-    "retryAfter": 60
-  }
-}
-```
-
----
-
-## 8. Versioning
-
-### 8.1 Versioning Strategy
-
-- URL-based versioning: `/api/v1/`, `/api/v2/`
-- Major version changes for breaking changes
-- Minor changes are backward-compatible
-
-### 8.2 Deprecation Policy
-
-- Deprecated endpoints supported for 6 months
-- Deprecation warnings in response headers:
-  ```http
-  X-API-Deprecated: true
-  X-API-Deprecation-Date: 2026-07-01
-  X-API-Migration-Guide: https://docs.yourapp.com/migration/v2
-  ```
-
----
-
-## 9. Webhooks (Optional)
-
-### 9.1 Webhook Events
-
-If your API supports webhooks:
-
-| Event | Trigger |
-|-------|---------|
-| `user.created` | New user registered |
-| `post.published` | Post published |
-| `comment.created` | New comment added |
-
-### 9.2 Webhook Payload
-
-```json
-{
-  "event": "post.published",
-  "timestamp": "2026-01-05T10:55:00Z",
-  "data": {
-    "post": {
-      "id": "uuid-here",
-      "title": "My Post",
-      "publishedAt": "2026-01-05T10:55:00Z"
-    }
-  }
-}
-```
-
----
-
-## 10. CMS API Endpoints
-
-### 10.1 Content Management
-
-#### List Contents
-```http
-GET /api/v1/contents?type=blog&status=published&limit=10&offset=0
-```
-
-**Query Parameters**:
-- `type` (optional): Content type (blog, page, docs, changelog)
-- `status` (optional): Content status (draft, review, published, archived)
-- `categoryId` (optional): Filter by category
-- `tagSlug` (optional): Filter by tag slug
-- `authorId` (optional): Filter by author
-- `search` (optional): Search in title/content
-- `limit` (optional): Pagination limit
-- `offset` (optional): Pagination offset
-
-**Response**:
-```json
-{
-  "data": [
-    {
-      "id": "uuid",
-      "title": "Blog Post Title",
-      "slug": "blog-post-title",
-      "content": "Markdown or HTML content",
-      "type": "blog",
-      "status": "published",
-      "publishedAt": "2026-01-05T10:00:00Z",
-      "excerpt": "Short description",
-      "featuredImage": "https://...",
-      "readingTime": 5,
-      "author": { "id": "uuid", "username": "author" },
-      "category": { "id": "uuid", "name": "Tech" },
-      "tags": [{ "id": "uuid", "name": "JavaScript" }]
-    }
-  ],
-  "meta": {
-    "total": 100,
-    "limit": 10,
-    "offset": 0
-  }
-}
-```
-
-#### Get Content by Slug
-```http
-GET /api/v1/contents/slug/:slug?includeDrafts=false
-```
-
-**Response**: Single content object (same structure as above)
-
-#### Create Content
-```http
-POST /api/v1/contents
-Authorization: Bearer <token>
-```
-
-**Request Body**:
-```json
-{
-  "title": "New Blog Post",
-  "slug": "new-blog-post",
-  "content": "Content body",
-  "type": "blog",
-  "status": "draft",
-  "excerpt": "Short description",
-  "featuredImage": "https://...",
-  "categoryId": "uuid",
-  "tagIds": ["uuid1", "uuid2"]
-}
-```
-
-#### Update Content
-```http
-PATCH /api/v1/contents/:id
-Authorization: Bearer <token>
-```
-
-**Request Body**: Partial content object (same fields as create)
-
-#### Publish Content
-```http
-POST /api/v1/contents/:id/publish
-Authorization: Bearer <token>
-```
-
-#### Delete Content
-```http
-DELETE /api/v1/contents/:id
-Authorization: Bearer <token>
-```
-
-### 10.2 Analytics Configuration
-
-#### Get Analytics Configs
-```http
-GET /api/v1/analytics/configs?active=true&environment=production
-```
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "platform": "GTM",
-    "name": "Production GTM",
-    "trackingId": "GTM-XXXXXX",
-    "isActive": true,
-    "environment": "production",
-    "priority": 0
-  }
-]
-```
-
-#### Create Analytics Config
-```http
-POST /api/v1/analytics/configs
-Authorization: Bearer <token>
-```
-
-**Request Body**:
-```json
-{
-  "platform": "GA4",
-  "name": "Production Analytics",
-  "trackingId": "G-XXXXXXXXXX",
-  "isActive": true,
-  "environment": "production",
-  "priority": 1
-}
-```
-
-#### Get Site Verifications
-```http
-GET /api/v1/analytics/verification
-```
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "platform": "GOOGLE",
-    "verificationCode": "abc123xyz",
-    "isVerified": true,
-    "verifiedAt": "2026-01-05T10:00:00Z"
-  }
-]
-```
-
-#### Get Custom Scripts
-```http
-GET /api/v1/analytics/custom-scripts?active=true&position=head-end
-```
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "name": "Custom Tracking",
-    "scriptContent": "<script>...</script>",
-    "position": "head-end",
-    "isActive": true,
-    "priority": 0
-  }
-]
-```
-
-#### Get Feature Flags
-```http
-GET /api/v1/analytics/feature-flags?environment=production
-```
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "flagName": "ENABLE_ANALYTICS",
-    "description": "Master switch for analytics",
-    "isEnabled": true,
-    "environment": "all"
-  }
-]
-```
-
-### 10.3 SEO Endpoints
-
-#### Get SEO Metadata
-```http
-GET /api/v1/seo/metadata/:contentId
-```
-
-**Response**:
-```json
-{
-  "id": "uuid",
-  "contentId": "uuid",
-  "metaTitle": "SEO Title",
-  "metaDescription": "SEO description",
-  "ogTitle": "OG Title",
-  "ogDescription": "OG description",
-  "ogImage": "https://...",
-  "canonicalUrl": "https://...",
-  "hreflang": [
-    { "locale": "en-US", "url": "https://..." }
-  ]
-}
-```
-
-#### Update SEO Metadata
-```http
-POST /api/v1/seo/metadata
-Authorization: Bearer <token>
-```
-
-**Request Body**: SEO metadata object (same structure as response)
-
-#### Get Sitemap
-```http
-GET /api/v1/seo/sitemap.xml?locale=en
-```
-
-**Response**: XML sitemap
-
-#### Get Robots.txt
-```http
-GET /api/v1/seo/robots.txt
-```
-
-**Response**: Plain text robots.txt
-
-### 10.4 Structured Data
-
-#### Generate JSON-LD
-```http
-GET /api/v1/structured-data/generate/:contentId
-```
-
-**Response**:
-```json
-[
-  {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": "Blog Post Title",
-    "datePublished": "2026-01-05T10:00:00Z"
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Blog Post Title"
-  }
-]
-```
-
-### 10.5 Media
-
-#### List Media
-```http
-GET /api/v1/media
-```
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "filename": "image.jpg",
-    "url": "https://s3.../image.jpg",
-    "mimeType": "image/jpeg",
-    "fileSize": 1024000,
-    "width": 1920,
-    "height": 1080,
-    "altText": "Description",
-    "uploadedBy": { "id": "uuid", "username": "user" }
-  }
-]
-```
-
-#### Upload Media
-```http
-POST /api/v1/media/upload
-Authorization: Bearer <token>
+POST /api/v1/files/upload
 Content-Type: multipart/form-data
+
+file: (binary)
+classification: internal | confidential
+entity_type: worker | expense | invoice | document
+entity_id: {uuid}
+
+Response: { "blobUrl": "...", "fileId": "..." }
 ```
 
-**Request**: Form data with `file` field
-
-### 10.6 Navigation
-
-#### Get Navigation Menus
-```http
-GET /api/v1/navigation?location=header&locale=en
-```
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "name": "Main Menu",
-    "location": "header",
-    "items": [
-      {
-        "label": "Home",
-        "url": "/",
-        "children": []
-      }
-    ],
-    "locale": "en",
-    "isActive": true
-  }
-]
-```
-
-### 10.7 Geo-Targeting
-
-#### Get Geo Settings
-```http
-GET /api/v1/geo/settings
-```
-
-#### Get Hreflang Tags
-```http
-GET /api/v1/geo/hreflang/:contentId
-```
-
-**Response**:
-```json
-{
-  "tags": [
-    { "locale": "en-US", "url": "https://.../en-us/blog/post" },
-    { "locale": "en-GB", "url": "https://.../en-gb/blog/post" }
-  ]
-}
-```
+- Max size: 25MB (documents), 10MB (receipts)
+- Allowed types: PDF, PNG, JPG, DOCX, XLSX
+- Virus scan via Azure Defender (production)
+- Stored in Azure Blob with tenant-scoped paths
 
 ---
 
-## 11. Testing
+## 7. Real-time (optional v1.1)
 
-### 10.1 Postman Collection
+WebSocket via starter kit socket module:
 
-Export Postman collection for API testing:
-- Include all endpoints
-- Include example requests/responses
-- Include environment variables
+- `team.status` — live check-in status for manager cockpit
+- `hub.update` — inbox badge count changes
+- `envelope.status` — e-sign status updates
 
-### 10.2 OpenAPI/Swagger
-
-Generate OpenAPI specification from this document:
-- Use AI to convert to `openapi.yaml`
-- Host Swagger UI at `/api/docs`
-- Keep in sync with implementation
+Not required for Phase 1 MVP; polling acceptable.
 
 ---
 
-## ✅ Completion Checklist
+## 8. OpenAPI generation
 
-Before moving to the next document:
+OpenAPI 3.1 spec generated at build time:
 
-- [x] All endpoints are documented with request/response examples
-- [x] Authentication method is clearly defined
-- [x] Error responses are documented
-- [x] HTTP status codes are specified
-- [x] Rate limiting is defined
-- [x] Pagination strategy is documented
-- [x] Validation rules are specified
-- [x] Success and error cases are covered
-- [x] CMS endpoints documented
-- [x] Analytics endpoints documented
-- [x] SEO endpoints documented
+```
+backend/dist/openapi.yaml
+```
+
+Frontend types generated from spec for type-safe API client.
 
 ---
 
-**Next Steps**:
+## 9. Related documents
 
-1. **Continue to**: `system-architecture.md`
-2. **Generate OpenAPI**: Use AI to create `openapi.yaml` from this spec
-3. **Implement**: Use this spec as contract for backend development
-
+- [database-design.md](./database-design.md) — entity schemas
+- [../compliance/feature-flows.md](../compliance/feature-flows.md) — operational flows per endpoint
+- [../generated/API_CONTRACTS.yaml](../generated/API_CONTRACTS.yaml) — generated OpenAPI (post-implementation)
