@@ -6,6 +6,7 @@ import { DocumentsModule } from '@/modules/documents/documents.module';
 import { EsignModule } from '@/modules/esign/esign.module';
 import { OperationsModule } from '@/modules/operations/operations.module';
 import { PayrollModule } from '@/modules/payroll/payroll.module';
+import { ShellModule } from '@/modules/shell/shell.module';
 import { TalentModule } from '@/modules/talent/talent.module';
 import { TimeLeaveModule } from '@/modules/time-leave/time-leave.module';
 import { ScopeModule } from '@/shared/scope/scope.module';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     OperationsModule,
     EsignModule,
     PayrollModule,
+    ShellModule,
   ],
   exports: [
     ComplianceModule,
@@ -37,6 +39,7 @@ import { Module } from '@nestjs/common';
     OperationsModule,
     EsignModule,
     PayrollModule,
+    ShellModule,
   ],
 })
 export class PolarisModule {}
