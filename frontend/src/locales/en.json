@@ -836,11 +836,13 @@
     "back_home": "BACK TO HOME"
   },
   "MobileTabBar": {
-    "aria_label": "Employee navigation",
+    "aria_label": "Primary navigation",
     "home": "Home",
     "hub": "Hub",
     "calendar": "Calendar",
-    "profile": "Profile"
+    "profile": "Profile",
+    "invoices": "Invoices",
+    "documents": "Documents"
   },
   "Hub": {
     "title": "Hub",

@@ -1,35 +1,36 @@
-import type { Metadata } from 'next';
-import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { UserProfile } from '@/components/auth/UserProfile';
+'use client';
 
-type IDashboardPageProps = {
-  params: Promise<{ locale: string }>;
-};
+import { usePolarisShell } from '@/libs/hooks/usePolarisShell';
+import { useRouter } from '@/libs/I18nNavigation';
+import { useTranslations } from 'next-intl';
+import { Skeleton } from 'primereact/skeleton';
+import { useEffect } from 'react';
 
-export async function generateMetadata(props: IDashboardPageProps): Promise<Metadata> {
-  const { locale } = await props.params;
-  const t = await getTranslations({
-    locale,
-    namespace: 'Dashboard',
-  });
+export default function DashboardPage() {
+  const t = useTranslations('Dashboard');
+  const { shell, isLoading, error } = usePolarisShell();
+  const router = useRouter();
 
-  return {
-    title: t('meta_title'),
-    description: t('meta_description'),
-  };
-}
+  useEffect(() => {
+    if (shell?.homePath) {
+      router.replace(shell.homePath);
+    }
+  }, [shell, router]);
 
-export default async function DashboardPage(props: IDashboardPageProps) {
-  const { locale } = await props.params;
-  setRequestLocale(locale);
+  if (error) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-12 text-center">
+        <h1 className="text-lg font-semibold text-gray-900">{t('meta_title')}</h1>
+        <p className="mt-2 text-sm text-red-600">{error.message}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="mt-2 text-gray-600">Manage your account and settings</p>
-      </div>
-      <UserProfile />
+    <div className="mx-auto max-w-lg space-y-3 px-4 py-12" aria-busy="true">
+      <Skeleton height="2rem" className="mb-2" />
+      <Skeleton height="1rem" width="70%" />
+      <Skeleton height="8rem" />
     </div>
   );
 }
