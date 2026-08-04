@@ -134,6 +134,22 @@
     "error_load": "Could not load required policies.",
     "retry": "Try again"
   },
+  "CommandPalette": {
+    "title": "Search Polaris",
+    "placeholder": "Search people, Hub items, policies, or actions…",
+    "no_results": "No matches",
+    "error_load": "Could not load search results.",
+    "retry": "Try again",
+    "group_action": "Actions",
+    "group_module": "Navigation",
+    "group_worker": "People",
+    "group_hub_item": "Hub",
+    "group_policy": "Policies"
+  },
+  "AuthenticatedShell": {
+    "check_in": "Check in",
+    "search": "Search"
+  },
   "CommonUi": {
     "offline_banner": "You're offline. Cached data may be shown; actions will sync when you're back online."
   },
