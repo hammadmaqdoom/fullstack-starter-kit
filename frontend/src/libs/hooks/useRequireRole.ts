@@ -1,38 +1,89 @@
 'use client';
 
-import { useEffect } from 'react';
-import { usePolarisNavAccess } from '@/libs/hooks/usePolarisNavAccess';
+import { usePolarisShell } from '@/libs/hooks/usePolarisShell';
 import { useRouter } from '@/libs/I18nNavigation';
+import { useEffect } from 'react';
 
-export type RequiredPolarisRole = 'peopleOps' | 'manager' | 'finance' | 'employee' | 'contractor';
+export type RequiredPolarisRole =
+  | 'peopleOps'
+  | 'manager'
+  | 'finance'
+  | 'employee'
+  | 'contractor';
 
 export type UseRequireRoleResult = {
-  /** True while the role probe is in flight — render a skeleton, never gate on false positives. */
+  /** True while the shell capabilities request is in flight. */
   isChecking: boolean;
-  /** True once the probe resolved and the current session holds the required role. */
+  /** True once shell resolved and the session holds the required role. */
   isAllowed: boolean;
 };
 
+function roleAllowed(
+  roles: string[],
+  primaryLayout: string,
+  required: RequiredPolarisRole,
+): boolean {
+  const normalized = new Set(roles.map((r) => r.toLowerCase()));
+
+  switch (required) {
+    case 'peopleOps':
+      return (
+        normalized.has('people_ops')
+        || normalized.has('hrbp')
+        || normalized.has('super_admin')
+        || primaryLayout === 'people_ops'
+        || primaryLayout === 'admin'
+      );
+    case 'manager':
+      return (
+        normalized.has('manager')
+        || normalized.has('division_head')
+        || primaryLayout === 'manager'
+        || primaryLayout === 'people_ops'
+        || primaryLayout === 'admin'
+      );
+    case 'finance':
+      return (
+        normalized.has('finance')
+        || normalized.has('super_admin')
+        || primaryLayout === 'finance'
+        || primaryLayout === 'admin'
+      );
+    case 'contractor':
+      return normalized.has('contractor') || primaryLayout === 'contractor';
+    case 'employee':
+      return (
+        normalized.has('employee')
+        || primaryLayout === 'employee'
+        || primaryLayout === 'manager'
+        || primaryLayout === 'people_ops'
+        || primaryLayout === 'admin'
+        || primaryLayout === 'finance'
+      );
+    default:
+      return false;
+  }
+}
+
 /**
- * Client-side route guard for role-scoped sections (people-ops/*, manager/*, finance/*).
- * Probes API access via `usePolarisNavAccess` (server remains the source of truth —
- * RBAC + row scope are enforced in the repository layer); this only prevents
- * unauthorized users from seeing a role-specific shell before their request 403s.
- * Redirects to `redirectTo` (default `/hub`) once the probe resolves without access.
+ * Client-side route guard for role-scoped sections.
+ * Uses `/api/v1/me/shell` (server remains the source of truth on API calls).
  */
 export function useRequireRole(
   role: RequiredPolarisRole,
   redirectTo: string = '/hub',
 ): UseRequireRoleResult {
-  const access = usePolarisNavAccess();
+  const { shell, isLoading } = usePolarisShell();
   const router = useRouter();
-  const isAllowed = access[role];
+  const isAllowed = shell
+    ? roleAllowed(shell.roles, shell.primaryLayout, role)
+    : false;
 
   useEffect(() => {
-    if (!access.isLoading && !isAllowed) {
+    if (!isLoading && !isAllowed) {
       router.replace(redirectTo);
     }
-  }, [access.isLoading, isAllowed, redirectTo, router]);
+  }, [isLoading, isAllowed, redirectTo, router]);
 
-  return { isChecking: access.isLoading, isAllowed };
+  return { isChecking: isLoading, isAllowed };
 }

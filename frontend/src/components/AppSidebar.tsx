@@ -1,61 +1,28 @@
 'use client';
 
 import type { LucideIcon } from 'lucide-react';
+import type { ShellModuleItem } from '@/libs/api/shell';
 import {
-  BarChart3,
-  Bell,
-  Briefcase,
-  CalendarDays,
   ChevronDown,
-  ClipboardList,
-  Coins,
-  DoorOpen,
-  FileSignature,
-  FileText,
-  Gift,
-  GraduationCap,
-  HelpCircle,
-  Home,
-  Image,
-  Inbox,
-  LayoutDashboard,
-  Loader2,
-  Lock,
   LogOut,
-  Megaphone,
   MoreVertical,
-  Plane,
-  Receipt,
-  Scale,
   Search,
-  Send,
-  Settings,
-  Shield,
-  ShieldCheck,
-  Smartphone,
-  Target,
-  User,
-  UserPlus,
-  Users,
-  Users2,
-  Wallet,
   X,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SignOutButton } from '@/components/auth/SignOutButton';
-import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { Logo } from '@/components/Logo';
+import { ShellSetupCard } from '@/components/nav/ShellSetupCard';
+import { shellNavIcon } from '@/components/nav/shell-nav.icons';
 import { useSession } from '@/libs/BetterAuth';
-import { usePolarisNavAccess } from '@/libs/hooks/usePolarisNavAccess';
+import { usePolarisShell } from '@/libs/hooks/usePolarisShell';
 import { Link, usePathname } from '@/libs/I18nNavigation';
 
 type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  badge?: number;
-  locked?: boolean;
   exact?: boolean;
 };
 
@@ -75,6 +42,18 @@ function isNavActive(pathname: string, href: string, exact?: boolean) {
     return pathname === href;
   }
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function toNavItem(
+  module: ShellModuleItem,
+  t: (key: string) => string,
+): NavItem {
+  return {
+    href: module.href,
+    label: t(module.labelKey),
+    icon: shellNavIcon(module.id),
+    exact: module.id === 'home' || module.id === 'hr_dashboard',
+  };
 }
 
 function SidebarNavLink({
@@ -110,314 +89,45 @@ function SidebarNavLink({
         aria-hidden
       />
       <span className="flex-1 truncate">{item.label}</span>
-      {item.badge !== undefined && (
-        <span className="flex size-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">
-          {item.badge}
-        </span>
-      )}
-      {item.locked && (
-        <Lock className="size-3.5 shrink-0 text-gray-400" aria-hidden />
-      )}
     </Link>
+  );
+}
+
+function NavSkeleton() {
+  return (
+    <ul className="space-y-2" aria-hidden>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <li key={index} className="h-8 animate-pulse rounded-md bg-gray-100" />
+      ))}
+    </ul>
   );
 }
 
 function SidebarPanel({
   onNavigate,
+  onOpenCommandPalette,
 }: {
   onNavigate?: () => void;
+  onOpenCommandPalette?: () => void;
 }) {
   const t = useTranslations('AppSidebar');
   const pathname = usePathname();
   const { data: session } = useSession();
-  const navAccess = usePolarisNavAccess();
+  const { shell, isLoading } = usePolarisShell();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  const isAdmin = session?.user?.role === 'Admin';
-
-  const primaryNav: NavItem[] = [
-    { href: '/dashboard', label: t('home_link'), icon: Home, exact: true },
-    { href: '/hub', label: t('hub_link'), icon: Inbox },
-    { href: '/dashboard/user-profile', label: t('profile_link'), icon: User },
-    { href: '/dashboard/notifications', label: t('notifications_link'), icon: Bell },
-    { href: '/dashboard/security', label: t('security_link'), icon: Shield },
-    { href: '/dashboard/sessions', label: t('sessions_link'), icon: Smartphone },
-  ];
-
-  const peopleOpsNav: NavItem[] = [
-    {
-      href: '/people-ops/dashboard',
-      label: t('hr_dashboard_link'),
-      icon: LayoutDashboard,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/workers',
-      label: t('workers_link'),
-      icon: Users,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/pre-boarding',
-      label: t('pre_boarding_link'),
-      icon: Send,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/onboarding',
-      label: t('onboarding_link'),
-      icon: UserPlus,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/templates',
-      label: t('templates_link'),
-      icon: FileText,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/separations',
-      label: t('separations_link'),
-      icon: DoorOpen,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/policies',
-      label: t('policies_link'),
-      icon: ClipboardList,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/leave',
-      label: t('leave_admin_link'),
-      icon: CalendarDays,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/performance',
-      label: t('performance_link'),
-      icon: Target,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/performance/okrs',
-      label: t('okrs_link'),
-      icon: Target,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/performance/calibration',
-      label: t('calibration_link'),
-      icon: Scale,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/recruitment',
-      label: t('recruitment_link'),
-      icon: Briefcase,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/training',
-      label: t('training_admin_link'),
-      icon: GraduationCap,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/manpower',
-      label: t('manpower_link'),
-      icon: Users2,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/letterheads',
-      label: t('letterheads_link'),
-      icon: FileText,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/people-ops/documents/register',
-      label: t('document_register_link'),
-      icon: FileText,
-      locked: !navAccess.peopleOps,
-    },
-    {
-      href: '/admin/setup',
-      label: t('setup_link'),
-      icon: Settings,
-      locked: !navAccess.peopleOps,
-    },
-  ];
-
-  const employeeNav: NavItem[] = [
-    {
-      href: '/employee/home',
-      label: t('employee_home_link'),
-      icon: Home,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/profile',
-      label: t('employee_profile_link'),
-      icon: User,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/directory',
-      label: t('employee_directory_link'),
-      icon: Search,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/leave',
-      label: t('employee_leave_link'),
-      icon: CalendarDays,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/calendar',
-      label: t('employee_calendar_link'),
-      icon: CalendarDays,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/policies',
-      label: t('employee_policies_link'),
-      icon: ClipboardList,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/documents',
-      label: t('employee_documents_link'),
-      icon: FileSignature,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/performance',
-      label: t('employee_performance_link'),
-      icon: Target,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/performance/pulse',
-      label: t('employee_pulse_link'),
-      icon: ClipboardList,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/payslips',
-      label: t('employee_payslips_link'),
-      icon: Wallet,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/expenses',
-      label: t('employee_expenses_link'),
-      icon: Receipt,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/travel',
-      label: t('employee_travel_link'),
-      icon: Plane,
-      locked: !navAccess.employee,
-    },
-    {
-      href: '/employee/help',
-      label: t('employee_help_link'),
-      icon: HelpCircle,
-      locked: !navAccess.employee,
-    },
-  ];
-
-  const managerNav: NavItem[] = [
-    {
-      href: '/manager/cockpit',
-      label: t('manager_cockpit_link'),
-      icon: Briefcase,
-      locked: !navAccess.manager,
-    },
-    {
-      href: '/manager/calendar',
-      label: t('manager_calendar_link'),
-      icon: CalendarDays,
-      locked: !navAccess.manager,
-    },
-    {
-      href: '/manager/performance',
-      label: t('manager_performance_link'),
-      icon: Target,
-      locked: !navAccess.manager,
-    },
-  ];
-
-  const financeNav: NavItem[] = [
-    {
-      href: '/finance/pay-runs',
-      label: t('finance_pay_runs_link'),
-      icon: Wallet,
-      locked: !navAccess.finance,
-    },
-    {
-      href: '/finance/benefits',
-      label: t('finance_benefits_link'),
-      icon: Gift,
-      locked: !navAccess.finance,
-    },
-    {
-      href: '/finance/statutory-rates',
-      label: t('finance_statutory_rates_link'),
-      icon: ShieldCheck,
-      locked: !navAccess.finance,
-    },
-    {
-      href: '/finance/contractor-payments',
-      label: t('finance_contractor_payments_link'),
-      icon: Receipt,
-      locked: !navAccess.finance,
-    },
-    {
-      href: '/finance/fx',
-      label: t('finance_fx_link'),
-      icon: Coins,
-      locked: !navAccess.finance,
-    },
-  ];
-
-  const contractorNav: NavItem[] = [
-    {
-      href: '/contractor/dashboard',
-      label: t('contractor_home_link'),
-      icon: Home,
-      locked: !navAccess.contractor,
-    },
-    {
-      href: '/contractor/invoices',
-      label: t('contractor_invoices_link'),
-      icon: Receipt,
-      locked: !navAccess.contractor,
-    },
-    {
-      href: '/contractor/documents',
-      label: t('contractor_documents_link'),
-      icon: FileSignature,
-      locked: !navAccess.contractor,
-    },
-    {
-      href: '/contractor/profile',
-      label: t('contractor_profile_link'),
-      icon: User,
-      locked: !navAccess.contractor,
-    },
-  ];
-
-  const adminNav: NavItem[] = [
-    { href: '/admin/cms/contents', label: t('cms_contents'), icon: FileText },
-    { href: '/admin/cms/media', label: t('cms_media'), icon: Image },
-    { href: '/admin/cms/seo', label: t('cms_seo'), icon: Search },
-    { href: '/admin/cms/analytics', label: t('cms_analytics'), icon: BarChart3 },
-  ];
+  const grouped = useMemo(() => {
+    const modules = shell?.modules ?? [];
+    const groups = new Map<string, ShellModuleItem[]>();
+    for (const module of modules) {
+      const list = groups.get(module.group) ?? [];
+      list.push(module);
+      groups.set(module.group, list);
+    }
+    return groups;
+  }, [shell?.modules]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -432,28 +142,29 @@ function SidebarPanel({
   const displayName = session?.user?.name || session?.user?.email || 'User';
   const email = session?.user?.email ?? '';
   const initials = getInitials(session?.user?.name, session?.user?.email);
+  const homeHref = shell?.homePath ?? '/dashboard';
+
+  const sectionOrder = ['primary', 'people_ops', 'finance', 'more'];
+  const orderedGroups = [
+    ...sectionOrder.filter((g) => grouped.has(g)),
+    ...[...grouped.keys()].filter((g) => !sectionOrder.includes(g)),
+  ];
 
   return (
     <div className="flex h-full flex-col">
-      {/* Workspace header */}
       <div className="flex items-center gap-2 px-3 pt-4 pb-3">
-        <Logo href="/dashboard" className="shrink-0" />
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-1 rounded-md px-1 py-0.5 text-left hover:bg-gray-50"
-          aria-label={t('workspace_menu')}
-        >
+        <Logo href={homeHref} className="shrink-0" />
+        <div className="min-w-0 flex-1 px-1">
           <span className="truncate text-sm font-semibold text-gray-900">
             {t('workspace_name')}
           </span>
-          <ChevronDown className="size-4 shrink-0 text-gray-500" aria-hidden />
-        </button>
+        </div>
       </div>
 
-      {/* Quick actions */}
       <div className="px-3 pb-3">
         <button
           type="button"
+          onClick={onOpenCommandPalette}
           className="flex h-8 w-full items-center gap-2 rounded-lg border border-gray-200 bg-gray-50/80 px-2.5 text-[13px] text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-50"
           aria-label={t('quick_actions')}
         >
@@ -465,123 +176,89 @@ function SidebarPanel({
         </button>
       </div>
 
-      {/* Primary navigation */}
       <nav aria-label={t('main_navigation')} className="flex-1 overflow-y-auto px-3">
-        <ul className="space-y-0.5">
-          {primaryNav.map(item => (
-            <li key={item.href}>
-              <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
-            </li>
-          ))}
-        </ul>
+        {isLoading || !shell ? (
+          <NavSkeleton />
+        ) : (
+          orderedGroups.map((group) => {
+            const items = (grouped.get(group) ?? []).map((module) =>
+              toNavItem(module, (key) => t(key as 'home_link')),
+            );
 
-        {!navAccess.isLoading && navAccess.peopleOps && (
-          <>
-            <p className="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
-              {t('section_people_ops')}
-            </p>
-            <ul className="space-y-0.5">
-              {peopleOpsNav.map(item => (
-                <li key={item.href}>
-                  <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
+            if (group === 'more') {
+              return (
+                <div key={group} className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((open) => !open)}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[11px] font-semibold tracking-wide text-gray-400 uppercase hover:bg-gray-50"
+                    aria-expanded={moreOpen}
+                  >
+                    <span className="flex-1 text-left">{t('section_more')}</span>
+                    <ChevronDown
+                      className={`size-3.5 transition-transform ${moreOpen ? 'rotate-180' : ''}`}
+                      aria-hidden
+                    />
+                  </button>
+                  {moreOpen && (
+                    <ul className="mt-1 space-y-0.5">
+                      {items.map((item) => (
+                        <li key={item.href}>
+                          <SidebarNavLink
+                            item={item}
+                            pathname={pathname}
+                            onNavigate={onNavigate}
+                          />
+                        </li>
+                      ))}
+                      {shell.secondaryLayouts.map((secondary) => (
+                        <li key={secondary.layout}>
+                          <SidebarNavLink
+                            item={{
+                              href: secondary.homePath,
+                              label: t(secondary.labelKey as 'switch_people_ops'),
+                              icon: shellNavIcon('hr_dashboard'),
+                            }}
+                            pathname={pathname}
+                            onNavigate={onNavigate}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            }
 
-        {!navAccess.isLoading && (
-          <>
-            <p className="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
-              {t('section_employee')}
-            </p>
-            <ul className="space-y-0.5">
-              {employeeNav.map(item => (
-                <li key={item.href}>
-                  <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-
-            <p className="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
-              {t('section_manager')}
-            </p>
-            <ul className="space-y-0.5">
-              {managerNav.map(item => (
-                <li key={item.href}>
-                  <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-
-            <p className="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
-              {t('section_finance')}
-            </p>
-            <ul className="space-y-0.5">
-              {financeNav.map(item => (
-                <li key={item.href}>
-                  <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-
-            <p className="mt-4 mb-1 px-2 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
-              {t('section_contractor')}
-            </p>
-            <ul className="space-y-0.5">
-              {contractorNav.map(item => (
-                <li key={item.href}>
-                  <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-
-        {isAdmin && (
-          <>
-            <div className="my-3 border-t border-gray-100" role="separator" />
-            <ul className="space-y-0.5">
-              {adminNav.map(item => (
-                <li key={item.href}>
-                  <SidebarNavLink item={item} pathname={pathname} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-          </>
+            return (
+              <div key={group} className={group === 'primary' ? '' : 'mt-4'}>
+                {group !== 'primary' && (
+                  <p className="mb-1 px-2 text-[11px] font-semibold tracking-wide text-gray-400 uppercase">
+                    {t(`section_${group}` as 'section_people_ops')}
+                  </p>
+                )}
+                <ul className="space-y-0.5">
+                  {items.map((item) => (
+                    <li key={`${group}-${item.href}`}>
+                      <SidebarNavLink
+                        item={item}
+                        pathname={pathname}
+                        onNavigate={onNavigate}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })
         )}
       </nav>
 
-      {/* Bottom section */}
       <div className="mt-auto border-t border-gray-100 px-3 pt-3 pb-3">
-        {/* Onboarding card */}
-        <div className="mb-3 rounded-lg border border-gray-200 bg-white p-3">
-          <div className="mb-2 flex items-start gap-2">
-            <Loader2 className="mt-0.5 size-4 shrink-0 text-gray-500" aria-hidden />
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium text-gray-900">{t('tour_title')}</p>
-              <p className="mt-0.5 text-[11px] font-medium text-blue-600">
-                {t('tour_progress', { completed: 2, total: 7 })}
-              </p>
-            </div>
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-gray-100">
-            <div className="h-full w-[28.5%] rounded-full bg-blue-600" />
-          </div>
-        </div>
+        {shell?.setup?.showCard && (
+          <ShellSetupCard setup={shell.setup} onNavigate={onNavigate} />
+        )}
 
-        <Link
-          href="https://github.com/hammadmaqdoom/fullstack-starter-kit/releases"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onNavigate}
-          className="mb-3 flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-        >
-          <Megaphone className="size-[18px] shrink-0 text-gray-500" aria-hidden />
-          {t('changelog_link')}
-        </Link>
-
-        {/* User profile */}
         {session?.user && (
           <div ref={userMenuRef} className="relative">
             <div className="flex items-center gap-2 rounded-lg px-1 py-1 hover:bg-gray-50">
@@ -594,7 +271,7 @@ function SidebarPanel({
               </div>
               <button
                 type="button"
-                onClick={() => setUserMenuOpen(open => !open)}
+                onClick={() => setUserMenuOpen((open) => !open)}
                 className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                 aria-label={t('user_menu')}
                 aria-expanded={userMenuOpen}
@@ -605,9 +282,6 @@ function SidebarPanel({
 
             {userMenuOpen && (
               <div className="absolute right-0 bottom-full left-0 z-10 mb-1 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                <div className="border-b border-gray-100 px-3 py-2">
-                  <LocaleSwitcher className="w-full rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700" />
-                </div>
                 <SignOutButton>
                   <button
                     type="button"
@@ -630,9 +304,11 @@ function SidebarPanel({
 export function AppSidebar({
   mobileOpen,
   onMobileClose,
+  onOpenCommandPalette,
 }: {
   mobileOpen: boolean;
   onMobileClose: () => void;
+  onOpenCommandPalette?: () => void;
 }) {
   const t = useTranslations('AppSidebar');
 
@@ -660,7 +336,10 @@ export function AppSidebar({
         >
           <X className="size-4" aria-hidden />
         </button>
-        <SidebarPanel onNavigate={onMobileClose} />
+        <SidebarPanel
+          onNavigate={onMobileClose}
+          onOpenCommandPalette={onOpenCommandPalette}
+        />
       </aside>
     </>
   );
