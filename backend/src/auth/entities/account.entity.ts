@@ -18,7 +18,7 @@ export class AccountEntity extends BaseModel {
   accountId: string;
 
   @Column({ type: 'varchar' })
-  providerId: 'credential';
+  providerId: string;
 
   @Column({ nullable: true })
   accessToken: string;

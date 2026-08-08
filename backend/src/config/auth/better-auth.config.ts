@@ -45,7 +45,8 @@ export function getConfig({
       },
     }),
     twoFactor(),
-    // TODO: Add passkey plugin - requires @better-auth/passkey package
+    // TODO: Enable passkey only with a better-auth major that matches
+    // @better-auth/passkey (1.4.x pulls better-call 1.1.x which breaks 1.2.7).
     // passkey({
     //   rpName: appConfig.name,
     // }),
@@ -95,6 +96,10 @@ export function getConfig({
           });
         }
       },
+    },
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ['microsoft'],
     },
     session: {
       freshAge: 0, // We perform every sensitive operation via our own API so this is irrelevant.
