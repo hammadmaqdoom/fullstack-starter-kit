@@ -12,6 +12,10 @@ export const Env = createEnv({
     NEXT_PUBLIC_BACKEND_URL: z.string().url(),
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().optional(),
+    NEXT_PUBLIC_MICROSOFT_AUTH_ENABLED: z
+      .enum(['true', 'false'])
+      .optional()
+      .default('false'),
   },
   // You need to destructure all the keys manually
   runtimeEnv: {
@@ -21,5 +25,7 @@ export const Env = createEnv({
     NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    NEXT_PUBLIC_MICROSOFT_AUTH_ENABLED:
+      process.env.NEXT_PUBLIC_MICROSOFT_AUTH_ENABLED,
   },
 });

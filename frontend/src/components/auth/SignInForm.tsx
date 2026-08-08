@@ -14,6 +14,8 @@ import {
   sendContractorMagicLink,
   signInWithMicrosoft,
 } from '@/libs/BetterAuth';
+import { Env } from '@/libs/Env';
+import { Link } from '@/libs/I18nNavigation';
 
 type SignInTab = 'employee' | 'contractor';
 
@@ -25,6 +27,7 @@ export function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const microsoftEnabled = Env.NEXT_PUBLIC_MICROSOFT_AUTH_ENABLED === 'true';
 
   const {
     register,
@@ -78,7 +81,7 @@ export function SignInForm() {
       });
 
       if (result.error) {
-        setError(result.error.message || t('contractor_error'));
+        setError(result.error.message || t('sign_in_error'));
         setIsLoading(false);
         return;
       }
@@ -88,10 +91,10 @@ export function SignInForm() {
         return;
       }
 
-      setError(t('contractor_error'));
+      setError(t('sign_in_error'));
       setIsLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('contractor_error'));
+      setError(err instanceof Error ? err.message : t('sign_in_error'));
       setIsLoading(false);
     }
   };
@@ -122,6 +125,50 @@ export function SignInForm() {
       setIsLoading(false);
     }
   };
+
+  const emailPasswordFields = (
+    <>
+      <div>
+        <label
+          htmlFor="emailOrUsername"
+          className="block text-sm font-medium text-gray-700"
+        >
+          {t('email_label')}
+        </label>
+        <input
+          id="emailOrUsername"
+          type="email"
+          {...register('emailOrUsername')}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          placeholder={t('email_placeholder')}
+        />
+        {errors.emailOrUsername && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.emailOrUsername.message}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label
+          htmlFor="password"
+          className="block text-sm font-medium text-gray-700"
+        >
+          {t('password_label')}
+        </label>
+        <input
+          id="password"
+          type="password"
+          {...register('password')}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+          placeholder={t('password_placeholder')}
+        />
+        {errors.password && (
+          <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <div className="w-full max-w-md space-y-6">
@@ -182,59 +229,32 @@ export function SignInForm() {
       {activeTab === 'employee' ? (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">{t('employee_help')}</p>
-          <button
-            type="button"
-            onClick={handleMicrosoftSignIn}
-            disabled={isLoading}
-            className="w-full rounded-md bg-[#2f2f2f] px-4 py-2 text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isLoading ? t('signing_in') : t('microsoft_button')}
-          </button>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {emailPasswordFields}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? t('signing_in') : t('password_sign_in')}
+            </button>
+          </form>
+          {microsoftEnabled ? (
+            <button
+              type="button"
+              onClick={handleMicrosoftSignIn}
+              disabled={isLoading}
+              className="w-full rounded-md bg-[#2f2f2f] px-4 py-2 text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? t('signing_in') : t('microsoft_button')}
+            </button>
+          ) : (
+            <p className="text-sm text-gray-500">{t('microsoft_unavailable')}</p>
+          )}
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label
-              htmlFor="emailOrUsername"
-              className="block text-sm font-medium text-gray-700"
-            >
-              {t('email_label')}
-            </label>
-            <input
-              id="emailOrUsername"
-              type="email"
-              {...register('emailOrUsername')}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder={t('email_placeholder')}
-            />
-            {errors.emailOrUsername && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.emailOrUsername.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
-              {t('password_label')}
-            </label>
-            <input
-              id="password"
-              type="password"
-              {...register('password')}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
-              placeholder={t('password_placeholder')}
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
+          {emailPasswordFields}
           <button
             type="submit"
             disabled={isLoading}
@@ -253,6 +273,24 @@ export function SignInForm() {
           </button>
         </form>
       )}
+
+      <div className="flex flex-col items-center gap-2 text-center text-sm text-gray-600">
+        <Link
+          href="/forgot-password"
+          className="font-medium text-blue-600 hover:text-blue-500"
+        >
+          {t('forgot_password_link')}
+        </Link>
+        <p>
+          {t('signup_prompt')}{' '}
+          <Link
+            href="/sign-up"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
+            {t('signup_link')}
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
