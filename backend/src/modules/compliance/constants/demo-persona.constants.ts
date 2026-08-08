@@ -1,0 +1,186 @@
+import { PolarisRoleCode } from '../enums/polaris-role-code.enum';
+import { ScopeType } from '../enums/scope-type.enum';
+
+export const DEMO_PASSWORD = 'PolarisDemo!2026';
+
+export type DemoPersona = {
+  key: string;
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  userId: string;
+  workerId: string;
+  roleCode: PolarisRoleCode;
+  scopeType: ScopeType;
+  /** For division_head: Labs division id from org seed */
+  scopeId: string | null;
+  employeeNumber: string;
+  countryCode: 'PK' | 'AE' | 'SG';
+  employmentTypeCode: 'FULL_TIME' | 'CONTRACTOR';
+  reportsToKey: string | null;
+};
+
+/** Stable UUIDs — do not change after first local DBs exist. */
+export const DEMO_PERSONAS: DemoPersona[] = [
+  {
+    key: 'superadmin',
+    email: 'superadmin.demo@digitaro.local',
+    username: 'superadmin.demo',
+    firstName: 'Super',
+    lastName: 'Admin',
+    userId: 'a1000000-0000-4000-8000-000000000001',
+    workerId: 'a2000000-0000-4000-8000-000000000001',
+    roleCode: PolarisRoleCode.SUPER_ADMIN,
+    scopeType: ScopeType.ALL,
+    scopeId: null,
+    employeeNumber: 'DEMO-001',
+    countryCode: 'PK',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: null,
+  },
+  {
+    key: 'peopleops',
+    email: 'peopleops.demo@digitaro.local',
+    username: 'peopleops.demo',
+    firstName: 'People',
+    lastName: 'Ops',
+    userId: 'a1000000-0000-4000-8000-000000000002',
+    workerId: 'a2000000-0000-4000-8000-000000000002',
+    roleCode: PolarisRoleCode.PEOPLE_OPS,
+    scopeType: ScopeType.ALL,
+    scopeId: null,
+    employeeNumber: 'DEMO-002',
+    countryCode: 'PK',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: null,
+  },
+  {
+    key: 'hrbp',
+    email: 'hrbp.demo@digitaro.local',
+    username: 'hrbp.demo',
+    firstName: 'HR',
+    lastName: 'BP',
+    userId: 'a1000000-0000-4000-8000-000000000003',
+    workerId: 'a2000000-0000-4000-8000-000000000003',
+    roleCode: PolarisRoleCode.HRBP,
+    scopeType: ScopeType.COUNTRY,
+    scopeId: null,
+    employeeNumber: 'DEMO-003',
+    countryCode: 'PK',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: null,
+  },
+  {
+    key: 'itadmin',
+    email: 'itadmin.demo@digitaro.local',
+    username: 'itadmin.demo',
+    firstName: 'IT',
+    lastName: 'Admin',
+    userId: 'a1000000-0000-4000-8000-000000000004',
+    workerId: 'a2000000-0000-4000-8000-000000000004',
+    roleCode: PolarisRoleCode.IT_ADMIN,
+    scopeType: ScopeType.ALL,
+    scopeId: null,
+    employeeNumber: 'DEMO-004',
+    countryCode: 'SG',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: null,
+  },
+  {
+    key: 'finance',
+    email: 'finance.demo@digitaro.local',
+    username: 'finance.demo',
+    firstName: 'Fin',
+    lastName: 'Ance',
+    userId: 'a1000000-0000-4000-8000-000000000005',
+    workerId: 'a2000000-0000-4000-8000-000000000005',
+    roleCode: PolarisRoleCode.FINANCE,
+    scopeType: ScopeType.ALL,
+    scopeId: null,
+    employeeNumber: 'DEMO-005',
+    countryCode: 'AE',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: null,
+  },
+  {
+    key: 'divhead',
+    email: 'divhead.demo@digitaro.local',
+    username: 'divhead.demo',
+    firstName: 'Division',
+    lastName: 'Head',
+    userId: 'a1000000-0000-4000-8000-000000000006',
+    workerId: 'a2000000-0000-4000-8000-000000000006',
+    roleCode: PolarisRoleCode.DIVISION_HEAD,
+    scopeType: ScopeType.DIVISION,
+    scopeId: 'd0000000-0000-4000-8000-000000000001',
+    employeeNumber: 'DEMO-006',
+    countryCode: 'PK',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: null,
+  },
+  {
+    key: 'manager',
+    email: 'manager.demo@digitaro.local',
+    username: 'manager.demo',
+    firstName: 'Team',
+    lastName: 'Manager',
+    userId: 'a1000000-0000-4000-8000-000000000007',
+    workerId: 'a2000000-0000-4000-8000-000000000007',
+    roleCode: PolarisRoleCode.MANAGER,
+    scopeType: ScopeType.TEAM,
+    scopeId: null,
+    employeeNumber: 'DEMO-007',
+    countryCode: 'PK',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: 'divhead',
+  },
+  {
+    key: 'employee',
+    email: 'employee.demo@digitaro.local',
+    username: 'employee.demo',
+    firstName: 'Emp',
+    lastName: 'One',
+    userId: 'a1000000-0000-4000-8000-000000000008',
+    workerId: 'a2000000-0000-4000-8000-000000000008',
+    roleCode: PolarisRoleCode.EMPLOYEE,
+    scopeType: ScopeType.OWN,
+    scopeId: null,
+    employeeNumber: 'DEMO-008',
+    countryCode: 'PK',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: 'manager',
+  },
+  {
+    key: 'employee2',
+    email: 'employee2.demo@digitaro.local',
+    username: 'employee2.demo',
+    firstName: 'Emp',
+    lastName: 'Two',
+    userId: 'a1000000-0000-4000-8000-000000000009',
+    workerId: 'a2000000-0000-4000-8000-000000000009',
+    roleCode: PolarisRoleCode.EMPLOYEE,
+    scopeType: ScopeType.OWN,
+    scopeId: null,
+    employeeNumber: 'DEMO-009',
+    countryCode: 'PK',
+    employmentTypeCode: 'FULL_TIME',
+    reportsToKey: 'manager',
+  },
+  {
+    key: 'contractor',
+    email: 'contractor.demo@digitaro.local',
+    username: 'contractor.demo',
+    firstName: 'Con',
+    lastName: 'Tractor',
+    userId: 'a1000000-0000-4000-8000-000000000010',
+    workerId: 'a2000000-0000-4000-8000-000000000010',
+    roleCode: PolarisRoleCode.CONTRACTOR,
+    scopeType: ScopeType.OWN,
+    scopeId: null,
+    employeeNumber: 'DEMO-010',
+    countryCode: 'AE',
+    employmentTypeCode: 'CONTRACTOR',
+    reportsToKey: 'manager',
+  },
+];
