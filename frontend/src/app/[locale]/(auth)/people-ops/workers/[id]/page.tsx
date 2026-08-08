@@ -1,5 +1,6 @@
 'use client';
 
+import type { ProfileChangeRequest } from '@/libs/api/profile-change';
 import type { Worker } from '@/libs/api/workers';
 import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -8,10 +9,12 @@ import { Button } from 'primereact/button';
 import { Skeleton } from 'primereact/skeleton';
 import { Tag } from 'primereact/tag';
 import { useCallback, useEffect, useState } from 'react';
+import { ChangeRequestList } from '@/components/employee/ChangeRequestList';
 import { WorkerForm } from '@/components/workers/WorkerForm';
 import { ApiRequestError } from '@/libs/api/client';
-import { getWorker } from '@/libs/api/workers';
 import { DIVISIONS } from '@/libs/constants/org';
+import { listProfileChangeRequests } from '@/libs/api/profile-change';
+import { getWorker } from '@/libs/api/workers';
 import { Link } from '@/libs/I18nNavigation';
 
 function divisionName(divisionId: string | null): string {
@@ -30,6 +33,9 @@ export default function WorkerDetailPage() {
   const [worker, setWorker] = useState<Worker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [changeRequests, setChangeRequests] = useState<ProfileChangeRequest[]>([]);
+  const [changeRequestsLoading, setChangeRequestsLoading] = useState(true);
+  const [changeRequestsError, setChangeRequestsError] = useState<string | null>(null);
 
   const loadWorker = useCallback(async () => {
     setIsLoading(true);
@@ -44,9 +50,26 @@ export default function WorkerDetailPage() {
     }
   }, [workerId, t]);
 
+  const loadChangeRequests = useCallback(async () => {
+    setChangeRequestsLoading(true);
+    setChangeRequestsError(null);
+    try {
+      const { data } = await listProfileChangeRequests(workerId);
+      setChangeRequests(data ?? []);
+    } catch (err) {
+      setChangeRequests([]);
+      setChangeRequestsError(
+        err instanceof ApiRequestError ? err.message : t('error_load_change_requests'),
+      );
+    } finally {
+      setChangeRequestsLoading(false);
+    }
+  }, [workerId, t]);
+
   useEffect(() => {
     void loadWorker();
-  }, [loadWorker]);
+    void loadChangeRequests();
+  }, [loadWorker, loadChangeRequests]);
 
   if (isLoading) {
     return (
@@ -117,6 +140,18 @@ export default function WorkerDetailPage() {
             setWorker(updated);
             router.refresh();
           }}
+        />
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-gray-900">{t('change_requests_title')}</h2>
+        <ChangeRequestList
+          requests={changeRequests}
+          isLoading={changeRequestsLoading}
+          error={changeRequestsError}
+          onRetry={() => void loadChangeRequests()}
+          canApprove
+          onChanged={() => void loadChangeRequests()}
         />
       </div>
     </div>

@@ -13,37 +13,28 @@ import { expect, test } from '@playwright/test';
 // Check the example at https://feedback.checklyhq.com/changelog/new-changelog-436
 
 test.describe('Sanity', () => {
-  test.describe('Static pages', () => {
-    test('should display the homepage', async ({ page, baseURL }) => {
+  test.describe('Auth entry', () => {
+    test('should redirect home to sign-in', async ({ page, baseURL }) => {
       await page.goto(`${baseURL}/`);
 
+      await expect(page).toHaveURL(/sign-in/);
       await expect(
-        page.getByRole('heading', { name: 'Boilerplate Code for Your Next.js Project with Tailwind CSS' }),
+        page.getByRole('heading', { name: 'Sign in' }),
       ).toBeVisible();
     });
 
-    test('should navigate to the about page', async ({ page, baseURL }) => {
-      await page.goto(`${baseURL}/`);
-
-      await page.getByRole('link', { name: 'About' }).click();
-
-      await expect(page).toHaveURL(/about$/);
+    test('should show Microsoft sign-in option', async ({ page, baseURL }) => {
+      await page.goto(`${baseURL}/sign-in`);
 
       await expect(
-        page.getByText('Welcome to our About page', { exact: false }),
+        page.getByRole('button', { name: 'Sign in with Microsoft' }),
       ).toBeVisible();
-    });
-
-    test('should navigate to the portfolio page', async ({ page, baseURL }) => {
-      await page.goto(`${baseURL}/`);
-
-      await page.getByRole('link', { name: 'Portfolio' }).click();
-
-      await expect(page).toHaveURL(/portfolio$/);
-
       await expect(
-        page.locator('main').getByRole('link', { name: /^Portfolio/ }),
-      ).toHaveCount(6);
+        page.getByRole('link', { name: 'Forgot password?' }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('link', { name: 'Create an account' }),
+      ).toBeVisible();
     });
   });
 });

@@ -6,6 +6,7 @@
 
 export { useAuth, signInWithEmail, signUpWithEmail, signOut, getSession } from './useAuth';
 export { usePasswordReset } from './usePasswordReset';
+export { useMagicLink } from './useMagicLink';
 export { useTwoFactorSetup, useTwoFactorVerification } from './useTwoFactor';
 export { useSessions } from './useSessions';
 export type { Session } from './useSessions';

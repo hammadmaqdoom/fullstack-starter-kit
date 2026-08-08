@@ -10,7 +10,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ApiRequestError } from '@/libs/api/client';
@@ -156,21 +156,16 @@ export function WorkerForm({
   const defaultTypeId
     = worker?.employmentTypeId ?? employmentTypes[0]?.id ?? '';
 
-  const selectedType = employmentTypes.find(
-    et => et.id === (worker?.employmentTypeId ?? defaultTypeId),
-  );
-  const isContractor = selectedType
-    ? CONTRACTOR_TYPE_CODES.has(selectedType.code)
-    : false;
-
-  const statutoryKeys = useMemo(
-    () => [...(STATUTORY_FIELDS_BY_COUNTRY[defaultCountry] ?? [])],
-    [defaultCountry],
-  );
-
-  const schema = useMemo(
-    () => buildSchema([...statutoryKeys], isContractor),
-    [statutoryKeys, isContractor],
+  const resolveSchema = useCallback(
+    (countryCode: string, employmentTypeId: string) => {
+      const type = employmentTypes.find(et => et.id === employmentTypeId);
+      const isContractorType = type
+        ? CONTRACTOR_TYPE_CODES.has(type.code)
+        : false;
+      const keys = [...(STATUTORY_FIELDS_BY_COUNTRY[countryCode] ?? [])];
+      return buildSchema(keys, isContractorType);
+    },
+    [employmentTypes],
   );
 
   const {
@@ -180,7 +175,10 @@ export function WorkerForm({
     reset,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: async (values, context, options) =>
+      zodResolver(
+        resolveSchema(values.countryCode, values.employmentTypeId),
+      )(values, context, options),
     defaultValues: {
       employmentTypeId: defaultTypeId,
       countryCode: defaultCountry,
@@ -198,7 +196,7 @@ export function WorkerForm({
       fteFraction: worker ? Number(worker.fteFraction) : 1,
       timezone: worker?.timezone ?? '',
       statutoryFields: Object.fromEntries(
-        statutoryKeys.map(key => [
+        (STATUTORY_FIELDS_BY_COUNTRY[defaultCountry] ?? []).map(key => [
           key,
           worker?.statutoryFields?.[key] ?? '',
         ]),
@@ -410,14 +408,16 @@ export function WorkerForm({
                   options={countries}
                   className="w-full"
                   onChange={(e) => {
-                    field.onChange(e.value);
+                    const nextCountry = e.value as string;
+                    const nextKeys = STATUTORY_FIELDS_BY_COUNTRY[nextCountry] ?? [];
+                    const current = watch();
+                    field.onChange(nextCountry);
                     reset({
-                      ...watch(),
-                      countryCode: e.value,
+                      ...current,
+                      countryCode: nextCountry,
+                      bankCountryCode: nextCountry,
                       statutoryFields: Object.fromEntries(
-                        (STATUTORY_FIELDS_BY_COUNTRY[e.value as string] ?? []).map(
-                          key => [key, ''],
-                        ),
+                        nextKeys.map(key => [key, current.statutoryFields?.[key] ?? '']),
                       ),
                     });
                   }}

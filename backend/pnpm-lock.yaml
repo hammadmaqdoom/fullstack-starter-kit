@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  better-call: 1.0.24
+
 importers:
 
   .:
@@ -29,9 +32,6 @@ importers:
       '@azure/storage-blob':
         specifier: ^12.33.0
         version: 12.33.0
-      '@better-auth/passkey':
-        specifier: ^1.4.10
-        version: 1.4.10(@better-auth/core@1.4.10(@better-auth/utils@0.2.4)(@better-fetch/fetch@1.1.18)(better-call@1.0.9)(jose@5.10.0)(kysely@0.27.6)(nanostores@0.11.4))(@better-auth/utils@0.2.4)(@better-fetch/fetch@1.1.18)(better-auth@1.2.7)(better-call@1.0.9)(nanostores@0.11.4)
       '@bull-board/api':
         specifier: ^5.23.0
         version: 5.23.0(@bull-board/ui@5.23.0)
@@ -141,7 +141,7 @@ importers:
         specifier: ^1.7.7
         version: 1.7.8
       better-auth:
-        specifier: ^1.2.7
+        specifier: 1.2.7
         version: 1.2.7
       bufferutil:
         specifier: ^4.0.8
@@ -987,31 +987,14 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
-  '@better-auth/core@1.4.10':
-    resolution: {integrity: sha512-AThrfb6CpG80wqkanfrbN2/fGOYzhGladHFf3JhaWt/3/Vtf4h084T6PJLrDE7M/vCCGYvDI1DkvP3P1OB2HAg==}
-    peerDependencies:
-      '@better-auth/utils': 0.3.0
-      '@better-fetch/fetch': 1.1.21
-      better-call: 1.1.7
-      jose: ^6.1.0
-      kysely: ^0.28.5
-      nanostores: ^1.0.1
-
-  '@better-auth/passkey@1.4.10':
-    resolution: {integrity: sha512-haowDA85hIoqm8YwDLDG3aB9oZgS00DN///P2F0j/vjARDGpUbrFUPslV5XYyPzbMow7+NsD9qIvY2mnDnmmSA==}
-    peerDependencies:
-      '@better-auth/core': 1.4.10
-      '@better-auth/utils': 0.3.0
-      '@better-fetch/fetch': 1.1.21
-      better-auth: 1.4.10
-      better-call: 1.1.7
-      nanostores: ^1.0.1
-
   '@better-auth/utils@0.2.4':
     resolution: {integrity: sha512-ayiX87Xd5sCHEplAdeMgwkA0FgnXsEZBgDn890XHHwSWNqqRZDYOq3uj2Ei2leTv1I2KbG5HHn60Ah1i2JWZjQ==}
 
-  '@better-fetch/fetch@1.1.18':
-    resolution: {integrity: sha512-rEFOE1MYIsBmoMJtQbl32PGHHXuG2hDxvEd7rUHE0vCBoFQVSDqaVs9hkZEtHCxRoY+CljXKFCOuJ8uxqw1LcA==}
+  '@better-auth/utils@0.3.0':
+    resolution: {integrity: sha512-W+Adw6ZA6mgvnSnhOki270rwJ42t4XzSK6YWGF//BbVXL6SwCLWfyzBc1lN2m/4RM28KubdBKQ4X5VMoLRNPQw==}
+
+  '@better-fetch/fetch@1.1.21':
+    resolution: {integrity: sha512-/ImESw0sskqlVR94jB+5+Pxjf+xBwDZF/N5+y2/q4EqD7IARUTSpPfIo8uf39SYpCxyOCtbyYpUrZ3F/k0zT4A==}
 
   '@bufbuild/protobuf@2.2.2':
     resolution: {integrity: sha512-UNtPCbrwrenpmrXuRwn9jYpPoweNXj8X5sMvYgsqYyaH8jQ6LfUJSk3dJLnBK+6sfYPrF4iAIo5sd5HQ+tg75A==}
@@ -2731,15 +2714,8 @@ packages:
     resolution: {integrity: sha512-ArOP0MIhCfdChh1oZkog81TPeSY2e5TvHQmXJ682T4+SKb6Z609uAZhqMQZ9xm+YenEf/eNMSE5KVwU+EudXug==}
     engines: {node: '>=12', yarn: '>=1.22.18'}
 
-  '@simplewebauthn/browser@13.1.0':
-    resolution: {integrity: sha512-WuHZ/PYvyPJ9nxSzgHtOEjogBhwJfC8xzYkPC+rR/+8chl/ft4ngjiK8kSU5HtRJfczupyOh33b25TjYbvwAcg==}
-
   '@simplewebauthn/browser@13.2.2':
     resolution: {integrity: sha512-FNW1oLQpTJyqG5kkDg5ZsotvWgmBaC6jCHR7Ej0qUNep36Wl9tj2eZu7J5rP+uhXgHaLk+QQ3lqcw2vS5MX1IA==}
-
-  '@simplewebauthn/server@13.1.1':
-    resolution: {integrity: sha512-1hsLpRHfSuMB9ee2aAdh0Htza/X3f4djhYISrggqGe3xopNjOcePiSDkDDoPzDYaaMCrbqGP1H2TYU7bgL9PmA==}
-    engines: {node: '>=20.0.0'}
 
   '@simplewebauthn/server@13.2.2':
     resolution: {integrity: sha512-HcWLW28yTMGXpwE9VLx9J+N2KEUaELadLrkPEEI9tpI5la70xNEVEsu/C+m3u7uoq4FulLqZQhgBCzR9IZhFpA==}
@@ -2972,9 +2948,6 @@ packages:
 
   '@sqltools/formatter@1.2.5':
     resolution: {integrity: sha512-Uy0+khmZqUrUGm5dmMqVlnvufZRSK0FbYzVgp0UMstm+F5+W2/jnEEQyc9vo1ZR/E5ZI/B1WjjoTqBqwJL6Krw==}
-
-  '@standard-schema/spec@1.1.0':
-    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
   '@swc/cli@0.4.0':
     resolution: {integrity: sha512-4JdVrPtF/4rCMXp6Q1h5I6YkYZrCCcqod7Wk97ZQq7K8vNGzJUryBv4eHCvqx5sJOJBrbYm9fcswe1B0TygNoA==}
@@ -3715,8 +3688,8 @@ packages:
   better-auth@1.2.7:
     resolution: {integrity: sha512-2hCB263GSrgetsMUZw8vv9O1e4S4AlYJW3P4e8bX9u3Q3idv4u9BzDFCblpTLuL4YjYovghMCN0vurAsctXOAQ==}
 
-  better-call@1.0.9:
-    resolution: {integrity: sha512-Qfm0gjk0XQz0oI7qvTK1hbqTsBY4xV2hsHAxF8LZfUYl3RaECCIifXuVqtPpZJWvlCCMlQSvkvhhyuApGUba6g==}
+  better-call@1.0.24:
+    resolution: {integrity: sha512-iGqL29cstPp4xLD2MjKL1EmyAqQHjYS+cBMt4W27rPs3vf+kuqkVPA0NYaf7JciBOzVsJdNj4cbZWXC5TardWQ==}
 
   big-integer@1.6.52:
     resolution: {integrity: sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==}
@@ -8388,8 +8361,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.8.3:
-    resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -8734,11 +8707,8 @@ packages:
     resolution: {integrity: sha512-9qv4rlDiopXg4E69k+vMHjNN63YFMe9sZMrdlvKnCjlCRWeCBswPPMPUfx+ipsAWq1LXHe70RcbaHdJJpS6hyQ==}
     engines: {node: '>= 10'}
 
-  zod@3.24.3:
-    resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
-
-  zod@4.3.5:
-    resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
 snapshots:
 
@@ -9865,35 +9835,14 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@better-auth/core@1.4.10(@better-auth/utils@0.2.4)(@better-fetch/fetch@1.1.18)(better-call@1.0.9)(jose@5.10.0)(kysely@0.27.6)(nanostores@0.11.4)':
-    dependencies:
-      '@better-auth/utils': 0.2.4
-      '@better-fetch/fetch': 1.1.18
-      '@standard-schema/spec': 1.1.0
-      better-call: 1.0.9
-      jose: 5.10.0
-      kysely: 0.27.6
-      nanostores: 0.11.4
-      zod: 4.3.5
-
-  '@better-auth/passkey@1.4.10(@better-auth/core@1.4.10(@better-auth/utils@0.2.4)(@better-fetch/fetch@1.1.18)(better-call@1.0.9)(jose@5.10.0)(kysely@0.27.6)(nanostores@0.11.4))(@better-auth/utils@0.2.4)(@better-fetch/fetch@1.1.18)(better-auth@1.2.7)(better-call@1.0.9)(nanostores@0.11.4)':
-    dependencies:
-      '@better-auth/core': 1.4.10(@better-auth/utils@0.2.4)(@better-fetch/fetch@1.1.18)(better-call@1.0.9)(jose@5.10.0)(kysely@0.27.6)(nanostores@0.11.4)
-      '@better-auth/utils': 0.2.4
-      '@better-fetch/fetch': 1.1.18
-      '@simplewebauthn/browser': 13.2.2
-      '@simplewebauthn/server': 13.2.2
-      better-auth: 1.2.7
-      better-call: 1.0.9
-      nanostores: 0.11.4
-      zod: 4.3.5
-
   '@better-auth/utils@0.2.4':
     dependencies:
-      typescript: 5.8.3
+      typescript: 5.9.3
       uncrypto: 0.1.3
 
-  '@better-fetch/fetch@1.1.18': {}
+  '@better-auth/utils@0.3.0': {}
+
+  '@better-fetch/fetch@1.1.21': {}
 
   '@bufbuild/protobuf@2.2.2': {}
 
@@ -11723,19 +11672,7 @@ snapshots:
 
   '@signpdf/utils@3.3.0': {}
 
-  '@simplewebauthn/browser@13.1.0': {}
-
   '@simplewebauthn/browser@13.2.2': {}
-
-  '@simplewebauthn/server@13.1.1':
-    dependencies:
-      '@hexagon/base64': 1.1.28
-      '@levischuck/tiny-cbor': 0.2.11
-      '@peculiar/asn1-android': 2.3.16
-      '@peculiar/asn1-ecc': 2.3.15
-      '@peculiar/asn1-rsa': 2.3.15
-      '@peculiar/asn1-schema': 2.3.15
-      '@peculiar/asn1-x509': 2.3.15
 
   '@simplewebauthn/server@13.2.2':
     dependencies:
@@ -12103,8 +12040,6 @@ snapshots:
       - supports-color
 
   '@sqltools/formatter@1.2.5': {}
-
-  '@standard-schema/spec@1.1.0': {}
 
   '@swc/cli@0.4.0(@swc/core@1.9.3(@swc/helpers@0.5.15))(chokidar@4.0.3)':
     dependencies:
@@ -13001,21 +12936,22 @@ snapshots:
   better-auth@1.2.7:
     dependencies:
       '@better-auth/utils': 0.2.4
-      '@better-fetch/fetch': 1.1.18
+      '@better-fetch/fetch': 1.1.21
       '@noble/ciphers': 0.6.0
       '@noble/hashes': 1.8.0
-      '@simplewebauthn/browser': 13.1.0
-      '@simplewebauthn/server': 13.1.1
-      better-call: 1.0.9
+      '@simplewebauthn/browser': 13.2.2
+      '@simplewebauthn/server': 13.2.2
+      better-call: 1.0.24
       defu: 6.1.4
       jose: 5.10.0
       kysely: 0.27.6
       nanostores: 0.11.4
-      zod: 3.24.3
+      zod: 3.25.76
 
-  better-call@1.0.9:
+  better-call@1.0.24:
     dependencies:
-      '@better-fetch/fetch': 1.1.18
+      '@better-auth/utils': 0.3.0
+      '@better-fetch/fetch': 1.1.21
       rou3: 0.5.1
       set-cookie-parser: 2.7.1
       uncrypto: 0.1.3
@@ -18502,7 +18438,7 @@ snapshots:
 
   typescript@5.7.2: {}
 
-  typescript@5.8.3: {}
+  typescript@5.9.3: {}
 
   uc.micro@2.1.0:
     optional: true
@@ -18840,6 +18776,4 @@ snapshots:
       compress-commons: 4.1.2
       readable-stream: 3.6.2
 
-  zod@3.24.3: {}
-
-  zod@4.3.5: {}
+  zod@3.25.76: {}

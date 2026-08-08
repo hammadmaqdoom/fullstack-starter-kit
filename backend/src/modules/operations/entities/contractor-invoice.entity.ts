@@ -13,7 +13,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ContractorInvoiceStatus } from '../enums/contractor-invoice.enum';
-import { ContractorInvoiceLineItemEntity } from './contractor-invoice-line-item.entity';
+import type { ContractorInvoiceLineItemEntity } from './contractor-invoice-line-item.entity';
 
 @Entity('contractor_invoices')
 @Index(
@@ -101,7 +101,8 @@ export class ContractorInvoiceEntity {
   @Column({ type: 'timestamptz', nullable: true })
   financeApprovedAt: Date | null;
 
-  @OneToMany(() => ContractorInvoiceLineItemEntity, (line) => line.invoice)
+  /** Inverse side — string relation name avoids circular import with line-item entity. */
+  @OneToMany('ContractorInvoiceLineItemEntity', 'invoice')
   lineItems?: ContractorInvoiceLineItemEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })

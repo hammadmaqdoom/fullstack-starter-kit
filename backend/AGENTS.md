@@ -1,60 +1,51 @@
-# AI Agent Configuration - Backend (NestJS)
+# AI Agent Configuration — Backend (Polaris / NestJS)
 
-This document provides specific guidelines for AI agents working on the **backend** part of this project.
+Backend guidelines for **Polaris** (Digitaro HRMS). Read `../AGENTS.md` and `../docs/AGENTS.md` first.
 
-## 🎯 Backend Overview
+## Polaris backend rules
 
-- **Framework**: NestJS 10.x
-- **Language**: TypeScript 5.x (strict mode)
-- **Database**: PostgreSQL with TypeORM
-- **Authentication**: Better Auth (NOT NextAuth)
-- **API**: REST (Fastify) + GraphQL (Apollo)
-- **Cache**: Redis with cache-manager
-- **Queue**: BullMQ with Redis
-- **Worker**: Dedicated worker instance for background jobs
-- **Email**: Nodemailer + React Email templates
-- **Monitoring**: Prometheus + Grafana
-- **Testing**: Jest
+| Rule | Detail |
+|---|---|
+| **New HR code** | `backend/src/modules/<context>/` — not `api/` (starter-kit legacy) |
+| **API prefix** | `/api/v1/` with `{ data, meta, errors }` envelope |
+| **Auth** | Better Auth + Entra OIDC (employees) + email (contractors) |
+| **Every mutation** | Write `audit_log` via interceptor |
+| **Queries** | Filter `tenant_id` + row scope (own/team/division/all) |
+| **Country** | Resolve via `country-config` module — never hard-code PK/UAE/SG |
+| **Phase** | Phase 0 now — see `../docs/generated/tasks.md` |
 
-### Architecture
+**Bounded contexts:** `core-hr`, `country-config`, `compliance`, `time-leave`, `talent`, `documents`, `esign`, `operations`, `payroll`, `automation` — see `../docs/project-requirements/system-architecture.md` §3.
 
-This backend uses a **dual-instance architecture**:
+**Per feature:** PRD §6.x → FLW-* in `../docs/compliance/feature-flows.md` → `database-design.md` → `api-specification.md` → implement → e2e test.
 
-1. **Main API Server** (`pnpm start:dev`) - Port 8000
-   - Handles HTTP/GraphQL requests
-   - Adds jobs to Redis queue
-   - Does NOT process jobs
+## Backend overview
 
-2. **Worker Instance** (`pnpm start:worker:dev`) - Port 8001
-   - Processes background jobs
-   - Sends emails
-   - Performs heavy computations
-   - Does NOT handle HTTP requests
+- **Framework**: NestJS 10.x (Fastify)
+- **Database**: PostgreSQL + TypeORM migrations
+- **Auth**: Better Auth + Entra OIDC (NOT NextAuth)
+- **Cache/Queue**: Redis + BullMQ
+- **Testing**: Jest (unit + e2e)
 
-Both share the same database and Redis instance.
+### Dual-instance architecture
 
-## 📁 Backend Structure
+1. **API** (`pnpm start:dev`) — port 8000, HTTP only, enqueues jobs
+2. **Worker** (`pnpm start:worker:dev`) — port 8001, processes BullMQ jobs (FX fetch, PDF seal, Entra sync, alerts)
+
+## Backend structure
 
 ```
 backend/src/
-├── api/                    # API modules (REST + GraphQL)
-│   ├── file/              # File upload/management
-│   ├── health/            # Health checks
-│   └── user/              # User management
-├── auth/                   # Authentication & authorization
-│   ├── better-auth.service.ts  # Better Auth integration
-│   ├── auth.guard.ts      # Auth guard
-│   └── entities/          # Auth entities (User, Session, etc.)
-├── common/                 # Shared DTOs and types
-├── config/                 # Configuration modules
-├── database/               # Database setup, migrations, seeds
-├── decorators/             # Custom decorators
-├── shared/                 # Shared modules (cache, mail, socket)
-├── services/               # External services (AWS, GCP)
-├── worker/                 # Background jobs
-├── tools/                  # Dev tools (Grafana, Swagger)
-├── app.module.ts           # Root module
-└── main.ts                 # Application entry
+├── modules/                # Polaris HR bounded contexts (CREATE HERE)
+│   ├── core-hr/
+│   ├── country-config/
+│   ├── compliance/
+│   └── ...
+├── api/                    # Legacy starter-kit (CMS, user, media)
+├── auth/                   # Better Auth, Entra, RBAC guards
+├── database/               # Migrations, seeds
+├── shared/                 # Cache, mail, interceptors
+├── worker/                 # BullMQ processors
+└── app.module.ts
 ```
 
 ## 🚨 Critical Backend Rules

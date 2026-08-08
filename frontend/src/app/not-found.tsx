@@ -15,7 +15,7 @@ export default async function RootNotFound() {
   const homeUrl = '/';
 
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <html lang={locale}>
       <body suppressHydrationWarning>
         <div className="flex min-h-screen items-center justify-center bg-black">
           <div className="text-center">

@@ -40,7 +40,8 @@ export function ResetPasswordForm({ locale, token }: ResetPasswordFormProps) {
   const onSubmit = async (data: ResetPasswordFormData) => {
     setError(null);
 
-    if (!token && !data.token) {
+    const resolvedToken = token ?? data.token;
+    if (!resolvedToken) {
       setError('Invalid or missing reset token');
       return;
     }
@@ -49,7 +50,7 @@ export function ResetPasswordForm({ locale, token }: ResetPasswordFormProps) {
       const { confirmPassword, ...resetData } = data;
       await resetPassword({
         ...resetData,
-        token: token || data.token,
+        token: resolvedToken,
       });
       setSuccess(true);
       

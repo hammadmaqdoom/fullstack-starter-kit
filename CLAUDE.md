@@ -1,63 +1,36 @@
-# Claude AI Configuration - Fullstack Starter Kit
+# Claude — Polaris Quick Reference
 
-> **👋 First time here?** Read `ai-config/START-HERE-AI-AGENTS.md` first (5 min), then come back here!
+> Full guidelines: `AGENTS.md`. Entry point: `ai-config/START-HERE-AI-AGENTS.md`.
 
-> **Note**: This file is a quick reference. For comprehensive guidelines, see `AGENTS.md`.
+## Product
 
-## Quick Reference
+**Polaris** — Digitaro internal HR platform (Labs + Studio, Pakistan/UAE/Singapore). Replaces M365/Xero/spreadsheet HR.
 
-This is a **fullstack starter kit** for building any type of software project with:
-- **Frontend**: Next.js 16 (App Router) + TypeScript + Tailwind CSS 4
-- **Backend**: NestJS 10 + TypeORM + PostgreSQL + Better Auth
-- **Documentation**: Specification-driven development system
+## Stack
 
-## 🚀 Getting Started
+Next.js 16 + PrimeReact + NestJS 10 + PostgreSQL + Better Auth + Entra OIDC + Azure Blob/Key Vault
 
-**Recommended Reading Order:**
-1. `ai-config/START-HERE-AI-AGENTS.md` (5 min) - Quick introduction
-2. This file (`CLAUDE.md`) - Quick reference
-3. `AGENTS.md` (10 min) - Comprehensive guidelines
-4. Folder-specific `AGENTS.md` (15 min) - Detailed patterns
+## Non-negotiables
 
-## 🚨 Most Important Rules
+1. Specs first — `docs/project-requirements/`, `docs/compliance/`
+2. Phase-gated — `docs/generated/tasks.md` (Phase 0 → 1 → 2)
+3. Better Auth, not NextAuth
+4. Country rules via config tables, never inline branches
+5. Every mutation writes `audit_log`
+6. Lucide icons only
+7. **English only** for all UI — `locales/en.json` only; no ar/fr/RTL
 
-1. **Requirements-First**: ALWAYS check `docs/project-requirements/` before implementing
-2. **Better Auth**: This project uses Better Auth (NOT NextAuth)
-3. **Context-Aware**: Read folder-specific `AGENTS.md` files:
-   - Root: `AGENTS.md`
-   - Backend: `backend/AGENTS.md`
-   - Frontend: `frontend/AGENTS.md`
-   - Docs: `docs/AGENTS.md`
+## Read order (new feature)
 
-## 📚 Complete Documentation
+1. `docs/generated/tasks.md`
+2. `docs/project-requirements/prd.md` §6.x
+3. `docs/compliance/feature-flows.md` (matching FLW-*)
+4. `docs/project-requirements/user-stories.md`
+5. `backend/AGENTS.md` or `frontend/AGENTS.md`
+6. `docs/PROMPTS.md` — copy-paste implementation prompts
 
-For comprehensive guidelines, see:
-- **`AGENTS.md`** - Complete AI agent configuration (READ THIS FIRST)
-- `ai-config/START-HERE-AI-AGENTS.md` - Quick start guide
-- `ai-config/AI-QUICK-REFERENCE.md` - Quick reference card
-- `docs/GETTING-STARTED.md` - Project walkthrough
-- `docs/PROMPTS.md` - AI prompts for development
-- `INTEGRATION-GUIDE.md` - Frontend-backend integration
+## Current build focus
 
-## 🔍 Quick Checklist
+Phase 0: module scaffold, audit_log, RBAC, Entra auth, country config, worker CRUD, setup wizard.
 
-Before implementing:
-- [ ] Requirements documented in `docs/project-requirements/`
-- [ ] Design specs defined (if frontend) in `docs/design-specs/`
-- [ ] Local `AGENTS.md` rules reviewed
-- [ ] TypeScript types defined
-- [ ] Tests planned
-- [ ] Security considered
-
-## 🎯 Workflow
-
-1. **Check Requirements** → `docs/project-requirements/`
-2. **Read Local Rules** → Folder-specific `AGENTS.md`
-3. **Implement** → Follow existing patterns
-4. **Test** → Write tests
-5. **Document** → Update docs if needed
-
----
-
-**For full details, read `AGENTS.md` in the root folder.**
-
+Plan: `docs/superpowers/plans/2026-07-03-polaris-build-plan.md`

@@ -1,52 +1,32 @@
 import { expect, takeSnapshot, test } from '@chromatic-com/playwright';
 
 test.describe('Visual testing', () => {
-  test.describe('Static pages', () => {
-    test('should take screenshot of the homepage', async ({ page }, testInfo) => {
-      await page.goto('/');
+  test.describe('Auth pages', () => {
+    test('should take screenshot of the sign-in page', async ({ page }, testInfo) => {
+      await page.goto('/sign-in');
 
       await expect(
-        page.getByRole('heading', { name: 'Boilerplate Code for Your Next.js Project with Tailwind CSS' }),
+        page.getByRole('heading', { name: 'Sign in' }),
       ).toBeVisible();
 
       await takeSnapshot(page, testInfo);
     });
 
-    test('should take screenshot of the portfolio page', async ({ page }, testInfo) => {
-      await page.goto('/portfolio');
+    test('should take screenshot of the sign-up page', async ({ page }, testInfo) => {
+      await page.goto('/sign-up');
 
       await expect(
-        page.getByText('Welcome to my portfolio page!'),
+        page.getByRole('heading', { name: 'Create account' }),
       ).toBeVisible();
 
       await takeSnapshot(page, testInfo);
     });
 
-    test('should take screenshot of the about page', async ({ page }, testInfo) => {
-      await page.goto('/about');
+    test('should take screenshot of the forgot-password page', async ({ page }, testInfo) => {
+      await page.goto('/forgot-password');
 
       await expect(
-        page.getByText('Welcome to our About page!'),
-      ).toBeVisible();
-
-      await takeSnapshot(page, testInfo);
-    });
-
-    test('should take screenshot of the portfolio details page', async ({ page }, testInfo) => {
-      await page.goto('/portfolio/2');
-
-      await expect(
-        page.getByText('Created a set of promotional'),
-      ).toBeVisible();
-
-      await takeSnapshot(page, testInfo);
-    });
-
-    test('should take screenshot of the French homepage', async ({ page }, testInfo) => {
-      await page.goto('/fr');
-
-      await expect(
-        page.getByRole('heading', { name: 'Code de démarrage pour Next.js avec Tailwind CSS' }),
+        page.getByRole('heading', { name: 'Forgot your password?' }),
       ).toBeVisible();
 
       await takeSnapshot(page, testInfo);

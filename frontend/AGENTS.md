@@ -1,42 +1,56 @@
-# AI Agent Configuration - Frontend (Next.js)
+# AI Agent Configuration — Frontend (Polaris / Next.js)
 
-This document provides specific guidelines for AI agents working on the **frontend** part of this project.
+Frontend guidelines for **Polaris** (Digitaro HRMS). Read `../AGENTS.md` and `../docs/AGENTS.md` first.
 
-## 🎯 Frontend Overview
+## Polaris frontend rules
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript 5.x (strict mode)
-- **Styling**: Tailwind CSS 4
-- **Authentication**: Better Auth client (connects to backend)
-- **Forms**: React Hook Form + Zod validation
-- **i18n**: next-intl
-- **Data Management**: All data managed by backend API (NO frontend database)
+| Rule | Detail |
+|---|---|
+| **UI library** | PrimeReact (Styled mode) + Digitaro theme — see `../docs/design-specs/primereact-setup.md` |
+| **Layout** | `AuthenticatedShell` + `AppSidebar`; mobile bottom tabs, desktop sidebar |
+| **Screens** | Match `../docs/design-specs/ui-specifications/` + wireframes |
+| **Hub** | Unified inbox — not per-module request lists (UX §5.1) |
+| **Workflows** | Status tracker on every request-bearing flow |
+| **Daily actions** | One-tap check-in, swipe approve |
+| **States** | skeleton, empty, error, offline, success |
+| **Responsive** | Employee flows: 375px, 768px, 1280px |
+| **Auth UI** | Entra SSO button + contractor email tab |
+| **i18n** | **English only** — `locales/en.json` only; do not edit `ar.json`/`fr.json` (starter-kit leftovers) |
+| **PWA** | Service worker + offline queue for check-in (Phase 1) |
+| **Phase** | Phase 0 — People Ops worker screens; see `../docs/generated/tasks.md` |
+
+**Per screen:** ui-specification → wireframe → PRD §6.x → implement → Playwright smoke test.
+
+## Frontend overview
+
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript strict
+- **Components**: PrimeReact + Tailwind 4 (layout/spacing)
+- **Icons**: Lucide React only — see [Icons](#-icons-lucide-react)
+- **Auth**: Better Auth client + Entra OIDC
+- **Forms**: React Hook Form + Zod
+- **i18n**: next-intl — **English only** (`locales/en.json`; ignore `ar.json`/`fr.json`)
 - **Testing**: Vitest + Playwright
-- **Analytics**: PostHog (optional)
-- **Error Tracking**: Sentry (optional)
-- **Security**: Arcjet (optional)
+- **No frontend DB** — all data from `/api/v1/`
 
-## 📁 Frontend Structure
+## Frontend structure
 
 ```
 frontend/src/
-├── app/                    # Next.js App Router
-│   └── [locale]/          # Internationalized routes
-│       ├── (auth)/        # Auth-related pages
-│       │   ├── (center)/  # Centered layout (sign-in, sign-up)
-│       │   └── dashboard/ # Protected dashboard
-│       └── (marketing)/   # Public pages
-├── components/            # React components
-│   ├── auth/             # Auth components
-│   └── ...               # Other components
-├── libs/                  # Core libraries
-│   ├── BetterAuth.ts     # Better Auth client
-│   ├── Env.ts            # Environment variables
-│   └── ...
-├── locales/              # i18n translations
-├── styles/               # Global styles
-├── utils/                # Utility functions
-└── validations/          # Zod schemas
+├── app/[locale]/
+│   ├── (auth)/                    # Authenticated Polaris app
+│   │   ├── (center)/              # Sign-in (Entra + contractor)
+│   │   ├── employee/              # Employee portal (Phase 1)
+│   │   ├── manager/               # Manager cockpit (Phase 1)
+│   │   ├── people-ops/            # HR admin (Phase 0)
+│   │   ├── finance/               # Finance (Phase 2)
+│   │   └── hub/                   # Unified inbox (Phase 1)
+│   └── page.tsx                   # Marketing landing
+├── components/
+│   ├── AppSidebar.tsx
+│   ├── AuthenticatedShell.tsx
+│   └── shared/                    # StatusTracker, etc.
+├── libs/BetterAuth.ts
+└── locales/en.json
 ```
 
 ## 🚨 Critical Frontend Rules
@@ -328,6 +342,53 @@ export function SignInForm() {
   );
 }
 ```
+
+## 🎨 Icons (Lucide React)
+
+**Always use [Lucide React](https://lucide.dev) for icons.** `lucide-react` is already installed. Do not use emoji, inline SVGs, or other icon libraries.
+
+```typescript
+// ✅ Good: Lucide icon with Tailwind sizing
+import { Check, ChevronDown, LogOut } from 'lucide-react';
+
+export function SignOutButton() {
+  return (
+    <button type="button" aria-label="Sign out">
+      <LogOut className="size-5" aria-hidden />
+    </button>
+  );
+}
+
+// ✅ Good: Pass LucideIcon type to reusable components
+import type { LucideIcon } from 'lucide-react';
+
+type NavItemProps = {
+  icon: LucideIcon;
+  label: string;
+};
+
+export function NavItem({ icon: Icon, label }: NavItemProps) {
+  return (
+    <span className="flex items-center gap-2">
+      <Icon className="size-5 shrink-0" aria-hidden />
+      {label}
+    </span>
+  );
+}
+
+// ❌ Bad: Emoji as icon
+<span className="text-2xl">🚀</span>
+
+// ❌ Bad: Other icon libraries
+import { FaRocket } from 'react-icons/fa';
+import { RocketLaunchIcon } from '@heroicons/react/24/outline';
+```
+
+**Sizing:** `size-4` (16px inline), `size-5` (20px default UI), `size-6` (24px cards), `size-8` (32px nav/hero).
+
+**Accessibility:** Decorative icons get `aria-hidden`. If the icon conveys meaning without adjacent text, put `aria-label` on the interactive parent.
+
+Full token reference: `../docs/design-specs/design-system.md` → Icons.
 
 ## 🎨 Styling with Tailwind CSS
 

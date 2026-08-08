@@ -13,7 +13,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ExpenseCategory, ExpenseClaimStatus } from '../enums/expense.enum';
-import { ExpenseClaimLineEntity } from './expense-claim-line.entity';
+import type { ExpenseClaimLineEntity } from './expense-claim-line.entity';
 
 /** Policy check result recorded for manager/finance visibility (FLW-OPS-001 step 1). */
 export interface ExpensePolicyViolation {
@@ -122,7 +122,8 @@ export class ExpenseClaimEntity {
   @Column({ type: 'jsonb', nullable: true })
   policyViolation: ExpensePolicyViolation | null;
 
-  @OneToMany(() => ExpenseClaimLineEntity, (line) => line.claim)
+  /** Inverse side — string relation name avoids circular import with expense-claim-line.entity. */
+  @OneToMany('ExpenseClaimLineEntity', 'claim')
   lines?: ExpenseClaimLineEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })

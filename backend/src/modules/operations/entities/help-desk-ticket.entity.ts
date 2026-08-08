@@ -16,7 +16,7 @@ import {
   HelpDeskQueue,
   HelpDeskStatus,
 } from '../enums/help-desk.enum';
-import { TicketCommentEntity } from './ticket-comment.entity';
+import type { TicketCommentEntity } from './ticket-comment.entity';
 
 @Entity('help_desk_tickets')
 @Index('IDX_help_desk_tickets_tenant_requester', ['tenantId', 'requesterId'])
@@ -98,7 +98,8 @@ export class HelpDeskTicketEntity {
   @Column({ type: 'timestamptz', nullable: true })
   closedAt: Date | null;
 
-  @OneToMany(() => TicketCommentEntity, (comment) => comment.ticket)
+  /** Inverse side — string relation name avoids circular import with ticket-comment.entity. */
+  @OneToMany('TicketCommentEntity', 'ticket')
   comments?: TicketCommentEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })

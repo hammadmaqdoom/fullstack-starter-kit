@@ -2,12 +2,19 @@ import type { AsyncSink } from '@logtape/logtape';
 import { configure, fromAsyncSink, getConsoleSink, getJsonLinesFormatter, getLogger } from '@logtape/logtape';
 import { Env } from './Env';
 
+const betterStackHost = process.env.BETTER_STACK_INGESTING_HOST;
+const betterStackToken = Env.LOGTAIL_SOURCE_TOKEN;
+
 const betterStackSink: AsyncSink = async (record) => {
-  await fetch(`https://${Env.NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST}`, {
+  if (!betterStackHost || !betterStackToken) {
+    return;
+  }
+
+  await fetch(`https://${betterStackHost}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${Env.NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN}`,
+      Authorization: `Bearer ${betterStackToken}`,
     },
     body: JSON.stringify(record),
   });
@@ -22,7 +29,7 @@ await configure({
     { category: ['logtape', 'meta'], sinks: ['console'], lowestLevel: 'warning' },
     {
       category: ['app'],
-      sinks: Env.NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN && Env.NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST
+      sinks: betterStackHost && betterStackToken
         ? ['console', 'betterStack']
         : ['console'],
       lowestLevel: 'debug',

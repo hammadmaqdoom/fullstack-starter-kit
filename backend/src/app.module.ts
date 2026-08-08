@@ -24,22 +24,26 @@ import { LoggerModule } from 'nestjs-pino';
 import { FastifyAdapter } from '@bull-board/fastify';
 import { GracefulShutdownModule } from 'nestjs-graceful-shutdown';
 import { ApiModule } from './api/api.module';
+import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
-import { PolarisModule } from './modules/polaris.module';
+import { RbacGuard } from './auth/guards/rbac.guard';
 import { default as awsConfig } from './config/aws/aws.config';
+import { default as azureConfig } from './config/azure/azure.config';
 import {
   BULL_BOARD_PATH,
   default as bullConfig,
 } from './config/bull/bull.config';
 import { default as useBullFactory } from './config/bull/bull.factory';
+import entraWebhookConfig from './config/entra-webhook/entra-webhook.config';
 import grafanaConfig from './config/grafana/grafana.config';
+import graphConfig from './config/graph/graph.config';
 import { default as sentryConfig } from './config/sentry/sentry.config';
 import { default as throttlerConfig } from './config/throttler/throttler.config';
 import { default as useThrottlerFactory } from './config/throttler/throttler.factory';
 import { AppThrottlerGuard } from './config/throttler/throttler.guard';
-import { RbacGuard } from './auth/guards/rbac.guard';
 import { default as useGraphqlFactory } from './graphql/graphql.factory';
 import { default as useI18nFactory } from './i18n/i18n.factory';
+import { PolarisModule } from './modules/polaris.module';
 import { CacheModule as CacheManagerModule } from './shared/cache/cache.module';
 import { MailModule } from './shared/mail/mail.module';
 import { SocketModule } from './shared/socket/socket.module';
@@ -64,7 +68,10 @@ export class AppModule {
             sentryConfig,
             throttlerConfig,
             awsConfig,
+            azureConfig,
             grafanaConfig,
+            graphConfig,
+            entraWebhookConfig,
           ],
           envFilePath: ['.env'],
         }),
@@ -133,6 +140,11 @@ export class AppModule {
         {
           provide: APP_GUARD,
           useClass: AppThrottlerGuard,
+        },
+        // Auth must run before Rbac: @Roles/@Scope read request.session set here.
+        {
+          provide: APP_GUARD,
+          useClass: AuthGuard,
         },
         {
           provide: APP_GUARD,

@@ -32,6 +32,7 @@
     "^@/mail(.*)$": "<rootDir>/mail$1",
     "^@/modules(.*)$": "<rootDir>/modules$1",
     "^@/redis(.*)$": "<rootDir>/redis$1",
+    "^@/services(.*)$": "<rootDir>/services$1",
     "^@/shared(.*)$": "<rootDir>/shared$1",
     "^@/utils(.*)$": "<rootDir>/utils$1",
     "^@/tools(.*)$": "<rootDir>/tools$1"

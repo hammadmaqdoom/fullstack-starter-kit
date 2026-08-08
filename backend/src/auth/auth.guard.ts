@@ -3,17 +3,23 @@ import type {
   ContextType,
   ExecutionContext,
 } from '@nestjs/common';
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Optional,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { Socket } from 'socket.io';
 
+import { IS_PUBLIC } from '@/constants/app.constant';
 import {
   AUTH_INSTANCE_KEY,
   IS_OPTIONAL_AUTH,
   IS_PUBLIC_AUTH,
 } from '@/constants/auth.constant';
-import type { Auth } from 'better-auth/auth';
+import type { Auth } from 'better-auth';
 import { fromNodeHeaders } from 'better-auth/node';
 import { FastifyRequest } from 'fastify';
 
@@ -22,8 +28,10 @@ export class AuthGuard implements CanActivate {
   constructor(
     @Inject(Reflector)
     private readonly reflector: Reflector,
+    /** Optional so the worker process can boot queue modules that register HTTP controllers. */
+    @Optional()
     @Inject(AUTH_INSTANCE_KEY)
-    private readonly auth: Auth,
+    private readonly auth: Auth | null,
   ) {}
 
   /**
@@ -33,12 +41,23 @@ export class AuthGuard implements CanActivate {
    * @returns True if the request is authorized to proceed, throws an error otherwise
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isAuthPublic = this.reflector.getAllAndOverride<boolean>(
-      IS_PUBLIC_AUTH,
-      [context.getHandler(), context.getClass()],
-    );
+    const isPublic =
+      this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_AUTH, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ||
+      this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
 
-    if (isAuthPublic) return true;
+    if (isPublic) return true;
+
+    if (!this.auth) {
+      throw new UnauthorizedException({
+        code: 'UNAUTHORIZED',
+      });
+    }
 
     const contextType: ContextType & 'graphql' = context.getType();
 

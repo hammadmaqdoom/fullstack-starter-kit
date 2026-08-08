@@ -7,7 +7,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Auth } from 'better-auth/auth';
+import type { Auth } from 'better-auth';
 import type { FastifyRequest } from 'fastify';
 
 @Injectable()

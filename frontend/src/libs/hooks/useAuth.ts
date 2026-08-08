@@ -45,11 +45,13 @@ export async function signUpWithEmail(data: {
   email: string;
   password: string;
   name: string;
+  role?: string;
 }) {
   return authClient.signUp.email({
     email: data.email,
     password: data.password,
     name: data.name,
+    role: data.role ?? 'contractor',
   });
 }
 

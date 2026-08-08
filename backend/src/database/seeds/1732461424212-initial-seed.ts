@@ -19,13 +19,14 @@ export class InitialSeed1732461424212 implements Seeder {
       const user = await $userRepository.save(
         $userRepository.create({
           username: 'admin',
-          email: 'admin@admin.com',
+          email: 'admin@digitaro.co',
           role: Role.Admin,
           isEmailVerified: true,
         }),
       );
-      // For security reasons, admin password is not set here.
-      // Use reset password feature to set password for this account.
+      // Legacy user.role = Admin (starter-kit enum). Polaris RBAC is seeded
+      // separately as super_admin → user_role_assignments.
+      // Password is not set here — use reset-password for this account.
       await $accountRepository.save(
         $accountRepository.create({
           accountId: user.id,

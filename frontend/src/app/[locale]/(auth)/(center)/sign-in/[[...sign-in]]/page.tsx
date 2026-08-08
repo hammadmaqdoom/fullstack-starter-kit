@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Suspense } from 'react';
 import { SignInForm } from '@/components/auth/SignInForm';
 
 type ISignInPageProps = {
@@ -25,7 +26,9 @@ export default async function SignInPage(props: ISignInPageProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <SignInForm />
+      <Suspense fallback={<div className="h-64 w-full max-w-md animate-pulse rounded-lg bg-gray-100" />}>
+        <SignInForm />
+      </Suspense>
     </div>
   );
 }

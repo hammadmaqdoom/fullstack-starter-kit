@@ -5,10 +5,10 @@ import { setRequestLocale } from 'next-intl/server';
  * 
  * This layout is intentionally minimal - it just sets the locale.
  * The root layout ([locale]/layout.tsx) handles the authentication-based
- * template rendering (AuthenticatedTemplate vs BaseTemplate).
- * 
+ * template rendering (AuthenticatedTemplate vs GuestTemplate).
+ *
  * For authenticated users, the root layout will render AuthenticatedTemplate
- * which includes the AppSidebar (no footer).
+ * which includes the AppSidebar.
  */
 export default async function DashboardLayout(props: {
   children: React.ReactNode;

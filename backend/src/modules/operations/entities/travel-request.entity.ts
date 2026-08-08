@@ -12,7 +12,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { TravelRequestStatus, TravelType } from '../enums/travel.enum';
-import { TravelItineraryEntity } from './travel-itinerary.entity';
+import type { TravelItineraryEntity } from './travel-itinerary.entity';
 
 @Entity('travel_requests')
 @Index('IDX_travel_requests_tenant_worker_status', [
@@ -95,7 +95,8 @@ export class TravelRequestEntity {
   @Column({ type: 'text', nullable: true })
   rejectionReason: string | null;
 
-  @OneToMany(() => TravelItineraryEntity, (leg) => leg.travelRequest)
+  /** Inverse side — string relation name avoids circular import with travel-itinerary.entity. */
+  @OneToMany('TravelItineraryEntity', 'travelRequest')
   itineraries?: TravelItineraryEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })

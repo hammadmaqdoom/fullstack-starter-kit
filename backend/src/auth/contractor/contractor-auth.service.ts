@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Auth } from 'better-auth/auth';
+import type { Auth } from 'better-auth';
 import type { FastifyRequest } from 'fastify';
 import { ContractorLoginDto } from './dto/contractor-login.dto';
 import { ContractorMagicLinkDto } from './dto/contractor-magic-link.dto';

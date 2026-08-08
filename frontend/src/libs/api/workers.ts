@@ -45,6 +45,8 @@ export type Worker = {
   employeeNumber: string | null;
   startDate: string;
   endDate: string | null;
+  /** Not yet modeled on the worker entity — reserved for the human-moments birthday card when available. */
+  dateOfBirth?: string | null;
   fteFraction: string;
   timezone: string | null;
   statutoryFields: Record<string, string> | null;
@@ -63,6 +65,7 @@ export type Worker = {
 export type WorkerListQuery = {
   page?: number;
   limit?: number;
+  q?: string;
   status?: WorkerStatus;
   countryCode?: string;
   employmentTypeId?: string;
@@ -109,6 +112,11 @@ export async function listWorkers(query: WorkerListQuery = {}) {
 
 export async function getWorker(id: string) {
   return apiRequest<Worker>(`${BASE}/${id}`);
+}
+
+/** Worker profile linked to the current session (Me/Profile screen). */
+export async function getMyWorker() {
+  return apiRequest<Worker>(`${BASE}/me`);
 }
 
 export async function createWorker(input: CreateWorkerInput) {

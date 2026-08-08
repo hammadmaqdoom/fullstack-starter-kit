@@ -103,6 +103,27 @@
     "user_profile_link": "Profil",
     "sign_out": "Se déconnecter"
   },
+  "AppSidebar": {
+    "workspace_name": "Polaris",
+    "workspace_menu": "Changer d'espace de travail",
+    "quick_actions": "Actions rapides",
+    "main_navigation": "Navigation principale",
+    "home_link": "Accueil",
+    "profile_link": "Profil",
+    "security_link": "Sécurité",
+    "sessions_link": "Sessions",
+    "cms_contents": "Contenus",
+    "cms_media": "Médias",
+    "cms_seo": "SEO",
+    "cms_analytics": "Analytique",
+    "changelog_link": "Journal des modifications",
+    "tour_title": "Visite guidée de l'application",
+    "tour_progress": "{completed}/{total} étapes terminées",
+    "sign_out": "Se déconnecter",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu",
+    "user_menu": "Menu utilisateur"
+  },
   "ForgotPassword": {
     "meta_title": "Mot de passe oublié",
     "meta_description": "Réinitialisez votre mot de passe en entrant votre adresse e-mail"

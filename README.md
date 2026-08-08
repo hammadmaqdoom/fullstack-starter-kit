@@ -265,8 +265,6 @@ This project includes comprehensive AI agent configuration for Cursor, Claude, G
 - `ai-config/START-HERE-AI-AGENTS.md` - Quick start guide
 - `ai-config/AI-QUICK-REFERENCE.md` - Quick reference card
 - `ai-config/AI-FILES-INDEX.md` - Navigation index
-- `ai-config/AI-CONFIGURATION.md` - System explanation
-- `ai-config/AI-CONFIGURATION-DIAGRAM.md` - Visual guide
 
 **For AI Agents**: Start by reading `AGENTS.md`, then read the folder-specific `AGENTS.md` for your work area.
 

@@ -103,6 +103,27 @@
     "user_profile_link": "الملف الشخصي",
     "sign_out": "تسجيل الخروج"
   },
+  "AppSidebar": {
+    "workspace_name": "Polaris",
+    "workspace_menu": "تبديل مساحة العمل",
+    "quick_actions": "إجراءات سريعة",
+    "main_navigation": "التنقل الرئيسي",
+    "home_link": "الرئيسية",
+    "profile_link": "الملف الشخصي",
+    "security_link": "الأمان",
+    "sessions_link": "الجلسات",
+    "cms_contents": "المحتويات",
+    "cms_media": "الوسائط",
+    "cms_seo": "SEO",
+    "cms_analytics": "التحليلات",
+    "changelog_link": "سجل التغييرات",
+    "tour_title": "جولة في التطبيق",
+    "tour_progress": "{completed}/{total} خطوات مكتملة",
+    "sign_out": "تسجيل الخروج",
+    "open_menu": "فتح القائمة",
+    "close_menu": "إغلاق القائمة",
+    "user_menu": "قائمة المستخدم"
+  },
   "ForgotPassword": {
     "meta_title": "نسيت كلمة المرور",
     "meta_description": "إعادة تعيين كلمة المرور الخاصة بك عن طريق إدخال عنوان بريدك الإلكتروني"

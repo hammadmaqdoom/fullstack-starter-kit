@@ -21,56 +21,84 @@ export interface ContentMetadata {
   hreflang?: Array<{ locale: string; url: string }>;
 }
 
+interface ContentSlugResponse {
+  id?: string;
+  title?: string;
+  excerpt?: string;
+}
+
+async function fetchJson<T>(url: string): Promise<T | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateContentMetadata(
   slug: string,
   locale: string,
 ): Promise<Metadata> {
   try {
-    const [contentResponse, seoResponse, hreflangResponse] = await Promise.all([
-      fetch(`${BACKEND_URL}/api/v1/contents/slug/${slug}?includeDrafts=false`).then(r => r.json()),
-      fetch(`${BACKEND_URL}/api/v1/seo/metadata/${contentResponse?.id || ''}`).catch(() => null),
-      fetch(`${BACKEND_URL}/api/v1/geo/hreflang/${contentResponse?.id || ''}`).catch(() => null),
+    const content = await fetchJson<ContentSlugResponse>(
+      `${BACKEND_URL}/api/v1/contents/slug/${slug}?includeDrafts=false`,
+    );
+
+    if (!content?.id) {
+      return {
+        title: 'Default Title',
+        description: 'Default Description',
+      };
+    }
+
+    const [seoMetadata, hreflang] = await Promise.all([
+      fetchJson<ContentMetadata>(`${BACKEND_URL}/api/v1/seo/metadata/${content.id}`),
+      fetchJson<Array<{ locale: string; url: string }>>(
+        `${BACKEND_URL}/api/v1/geo/hreflang/${content.id}`,
+      ),
     ]);
 
-    const content = contentResponse;
-    const seoMetadata: ContentMetadata = seoResponse || {};
-    const hreflang = hreflangResponse || [];
+    const seo = seoMetadata ?? {};
+    const hreflangEntries = hreflang ?? [];
 
-    const title = seoMetadata.metaTitle || content?.title || 'Default Title';
-    const description = seoMetadata.metaDescription || content?.excerpt || 'Default Description';
-    const canonical = seoMetadata.canonicalUrl || `${process.env.NEXT_PUBLIC_SITE_URL || ''}/${locale}/${slug}`;
+    const title = seo.metaTitle || content.title || 'Default Title';
+    const description = seo.metaDescription || content.excerpt || 'Default Description';
+    const canonical = seo.canonicalUrl || `${process.env.NEXT_PUBLIC_SITE_URL || ''}/${locale}/${slug}`;
 
     const metadata: Metadata = {
       title,
       description,
       alternates: {
         canonical,
-        languages: hreflang.reduce((acc: Record<string, string>, item: { locale: string; url: string }) => {
+        languages: hreflangEntries.reduce((acc: Record<string, string>, item) => {
           acc[item.locale] = item.url;
           return acc;
         }, {}),
       },
       openGraph: {
-        title: seoMetadata.ogTitle || title,
-        description: seoMetadata.ogDescription || description,
-        images: seoMetadata.ogImage ? [{ url: seoMetadata.ogImage }] : undefined,
-        type: (seoMetadata.ogType as any) || 'website',
-        url: seoMetadata.ogUrl || canonical,
-        siteName: seoMetadata.ogSiteName,
+        title: seo.ogTitle || title,
+        description: seo.ogDescription || description,
+        images: seo.ogImage ? [{ url: seo.ogImage }] : undefined,
+        type: (seo.ogType as 'website') || 'website',
+        url: seo.ogUrl || canonical,
+        siteName: seo.ogSiteName,
       },
       twitter: {
-        card: (seoMetadata.twitterCard as any) || 'summary_large_image',
-        site: seoMetadata.twitterSite,
-        creator: seoMetadata.twitterCreator,
-        images: seoMetadata.twitterImage ? [seoMetadata.twitterImage] : undefined,
+        card: (seo.twitterCard as 'summary_large_image') || 'summary_large_image',
+        site: seo.twitterSite,
+        creator: seo.twitterCreator,
+        images: seo.twitterImage ? [seo.twitterImage] : undefined,
       },
-      keywords: seoMetadata.metaKeywords?.split(',').map(k => k.trim()),
+      keywords: seo.metaKeywords?.split(',').map(k => k.trim()),
     };
 
-    // Add verification meta tags
     const config = await loadRuntimeConfig();
     const other: Record<string, string> = {};
-    config.verification.forEach(v => {
+    config.verification.forEach((v) => {
       if (v.verificationCode) {
         other[getMetaNameForPlatform(v.platform)] = v.verificationCode;
       }
@@ -86,4 +114,3 @@ export async function generateContentMetadata(
     };
   }
 }
-

@@ -2,10 +2,10 @@ import type { LocalePrefixMode } from 'next-intl/routing';
 
 const localePrefix: LocalePrefixMode = 'as-needed';
 
-// FIXME: Update this configuration file based on your project information
+/** Polaris v1 is English-only — do not add ar/fr/RTL locales. */
 export const AppConfig = {
-  name: 'Nextjs Starter',
-  locales: ['en', 'fr', 'ar'],
+  name: 'Polaris',
+  locales: ['en'],
   defaultLocale: 'en',
   localePrefix,
 };

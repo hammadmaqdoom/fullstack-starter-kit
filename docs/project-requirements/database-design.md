@@ -1,991 +1,1636 @@
-# Database Design
+# Polaris — Database Design
 
-> **INSTRUCTIONS**: This document defines your complete data model. Include ER diagrams, table schemas, relationships, normalization decisions, and indexes. Skip this file if your project doesn't need a database.
+**Product:** Polaris  
+**Status:** Approved for implementation  
+**Last updated:** 26 June 2026  
+**Companion to:** [prd.md](./prd.md) §10 · [system-architecture.md](./system-architecture.md)
 
 ---
 
 ## 1. Overview
 
-### 1.1 Database Type
+### 1.1 Database type
 
-Select your database type:
-- [ ] **Relational** (PostgreSQL, MySQL, etc.)
-- [ ] **NoSQL** (MongoDB, DynamoDB, etc.)
-- [ ] **Hybrid** (Both relational and NoSQL)
+**PostgreSQL 15+** on Azure Database for PostgreSQL (Flexible Server).
 
-**Chosen**: [Your choice]
+**Justification:** ACID compliance for payroll and leave balances; strong JSON support for dynamic benefit fields; mature TypeORM integration; append-only table enforcement via grants; point-in-time recovery.
 
-**Justification**: [Why this database type?]
+### 1.2 Database goals
 
-Example: "PostgreSQL chosen for ACID compliance, complex queries, and strong support for JSON data types when needed."
+| Goal | Approach |
+|---|---|
+| Data integrity | Foreign keys, check constraints, TypeORM migrations |
+| Performance | Indexes on `tenant_id`, `country_code`, `worker_id`, status fields, effective dates |
+| Scalability | ~500 workers, ~10M audit rows over 5 years — single instance sufficient v1 |
+| Multi-tenant readiness | `tenant_id` UUID on all core tables |
+| Compliance | Append-only audit tables; 5-year retention; soft-delete not hard-delete |
 
-### 1.2 Database Goals
+### 1.3 Naming conventions
 
-What are the key requirements for your database?
+- Tables: `snake_case`, plural (`workers`, `leave_requests`)
+- Primary keys: `id` UUID v4
+- Foreign keys: `{entity}_id`
+- Timestamps: `created_at`, `updated_at` (UTC)
+- Soft delete: `deleted_at` nullable timestamp
+- Effective dating: `effective_from`, `effective_to` (nullable = open-ended)
 
-- [ ] **Data Integrity**: Ensure referential integrity and data consistency
-- [ ] **Performance**: Fast queries for [specific use cases]
-- [ ] **Scalability**: Handle [X] records and [Y] concurrent connections
-- [ ] **Flexibility**: Support for [specific features]
+### 1.4 Multi-tenancy & scoping rules
+
+Polaris is **tenant-first** in the data model. v1 runs a single Digitaro tenant, but every business table carries `tenant_id` so multi-tenant productization is a configuration change, not a schema rewrite.
+
+#### Mandatory columns
+
+| Column | Rule |
+|---|---|
+| **`tenant_id`** | **Required on every business table** except global ISO reference tables (`currency_codes`). NOT NULL, FK → `tenants(id)`. Denormalised on child tables even when parent FK exists — enables RLS and safe queries without joins. |
+| **`legal_entity_id`** | Required on payroll, finance export, generated documents, payslips, contractor payment batches, and statutory rate schedules. Optional default on `workers` (resolved from country + division). Nullable on operational records (leave, attendance) unless tied to a pay run. |
+
+#### Scoping hierarchy
+
+```
+tenants
+  └── legal_entities          (employer of record — payroll, docs, finance)
+  └── divisions / departments
+  └── workers                 (+ default legal_entity_id)
+        └── leave, attendance, expenses, …  (tenant_id; legal_entity_id when financial)
+```
+
+#### Query rule (enforced in repository layer + PostgreSQL RLS)
+
+Every SELECT/UPDATE/DELETE MUST filter by `tenant_id = :currentTenantId` from the authenticated session. Never trust client-supplied tenant IDs without verification.
+
+```sql
+-- Example RLS policy (applied to all tenant-scoped tables)
+CREATE POLICY tenant_isolation ON workers
+  USING (tenant_id = current_setting('app.current_tenant_id')::uuid);
+```
+
+#### Global vs tenant-scoped reference data
+
+| Table | Scope | Notes |
+|---|---|---|
+| `currency_codes` | **Global** | ISO 4217 master list (PKR, AED, SGD, USD…) — read-only seed |
+| `tenant_currencies` | Tenant | Which currencies are enabled per tenant |
+| `exchange_rates` | Tenant | Rate history; Frankfurter job writes per tenant |
+| Everything else | **Tenant** | Includes roles, policies, templates, holidays, etc. |
+
+#### Legal entity resolution
+
+| Context | How `legal_entity_id` is set |
+|---|---|
+| Worker hire | Resolved from `legal_entity_division_mappings` (country + division); stored as default on worker |
+| Document generation | Snapshot `legal_entity_id` on `generated_documents` at issue time |
+| Pay run | Explicit on `pay_runs`; drives currency and export profile |
+| Payslip / invoice | Copied from pay run or worker default at creation |
+| Leave / attendance | `tenant_id` only — no legal entity unless exported to payroll |
+
+#### Composite unique constraints
+
+All unique constraints include `tenant_id`:
+
+```sql
+UNIQUE (tenant_id, code)           -- employment_types, leave_types, roles
+UNIQUE (tenant_id, email)          -- workers
+UNIQUE (tenant_id, worker_id, leave_type_id, as_of_date)  -- leave_balances
+```
+
+#### Child table pattern
+
+Child tables **always** carry denormalised `tenant_id`:
+
+```sql
+-- ✅ Correct: tenant_id on child
+leave_requests (id, tenant_id, worker_id, …)
+
+-- ❌ Wrong: relying only on worker FK for tenant isolation
+leave_requests (id, worker_id, …)  -- no direct tenant filter
+```
+
+Application layer validates `worker.tenant_id = leave_request.tenant_id` on insert.
+
+### 1.5 Scoping matrix (all tables)
+
+| Table | tenant_id | legal_entity_id | Notes |
+|---|---|---|---|
+| **Organisation** | | | |
+| tenants | — | — | Root |
+| divisions | ✅ | — | |
+| departments | ✅ | — | |
+| legal_entities | ✅ | — | Entity is tenant-owned |
+| legal_entity_statutory_ids | ✅ | via FK | Denormalised tenant_id |
+| legal_entity_division_mappings | ✅ | via FK | |
+| legal_entity_currencies | ✅ | via FK | |
+| letterhead_configs | ✅ | via FK | |
+| legal_entity_signatories | ✅ | via FK | |
+| signing_certificates | ✅ | via FK | |
+| finance_export_profiles | ✅ | via FK | |
+| office_locations | ✅ | — | Geofence hubs |
+| **Workers** | | | |
+| workers | ✅ | ✅ default | Default employer of record |
+| employment_types | ✅ | — | |
+| employment_type_country_configs | ✅ | — | |
+| contractor_profiles | ✅ | — | |
+| worker_statutory_ids | ✅ | — | |
+| profile_change_requests | ✅ | — | |
+| manager_relationships | ✅ | — | |
+| project_assignments | ✅ | — | |
+| employment_records | ✅ | — | Career history |
+| employee_skills | ✅ | — | |
+| audit_log | ✅ | — | |
+| **Time & leave** | | | |
+| leave_types | ✅ | — | |
+| leave_balances | ✅ | — | |
+| leave_requests | ✅ | — | |
+| comp_off_credits | ✅ | — | |
+| holiday_calendars | ✅ | — | |
+| holidays | ✅ | — | |
+| company_closures | ✅ | — | |
+| work_week_patterns | ✅ | — | |
+| staff_calendar_days | ✅ | — | |
+| attendance_punches | ✅ | — | |
+| attendance_day_summaries | ✅ | — | |
+| punch_correction_requests | ✅ | — | |
+| shift_rosters | ✅ | — | |
+| shift_assignments | ✅ | — | |
+| **Documents & e-sign** | | | |
+| policies | ✅ | — | |
+| policy_versions | ✅ | — | |
+| policy_acknowledgements | ✅ | — | |
+| document_templates | ✅ | — | |
+| document_template_versions | ✅ | — | |
+| generated_documents | ✅ | ✅ | Snapshot at issue |
+| esign_envelopes | ✅ | ✅ | |
+| esign_signatories | ✅ | — | |
+| esign_fields | ✅ | — | |
+| esign_audit_events | ✅ | — | Append-only |
+| **Payroll & finance** | | | |
+| currency_codes | — | — | Global ISO reference |
+| tenant_currencies | ✅ | — | Enabled currencies |
+| exchange_rates | ✅ | — | |
+| exchange_rate_fetch_batches | ✅ | — | |
+| country_currency_configs | ✅ | — | |
+| pay_components | ✅ | — | |
+| compensation_records | ✅ | — | |
+| benefit_types | ✅ | — | |
+| benefit_type_fields | ✅ | — | |
+| employee_benefits | ✅ | — | |
+| statutory_rate_schedules | ✅ | ✅ | Per entity + country |
+| statutory_rate_entries | ✅ | — | |
+| pay_runs | ✅ | ✅ | |
+| pay_run_line_items | ✅ | ✅ | |
+| pay_run_export_batches | ✅ | ✅ | |
+| payslips | ✅ | ✅ | |
+| contractor_invoices | ✅ | ✅ | |
+| contractor_invoice_line_items | ✅ | ✅ | |
+| contractor_payment_batches | ✅ | ✅ | |
+| contractor_payment_lines | ✅ | ✅ | |
+| remittance_corridor_configs | ✅ | — | |
+| remittance_packs | ✅ | — | pay_run_line + contractor_payment_line |
+| remittance_pack_documents | ✅ | — | |
+| **Operations & talent** | | | |
+| expense_claims | ✅ | ✅ | Entity for finance export |
+| expense_claim_lines | ✅ | — | |
+| expense_policies | ✅ | — | |
+| travel_requests | ✅ | — | |
+| travel_itineraries | ✅ | — | |
+| help_desk_tickets | ✅ | — | |
+| ticket_comments | ✅ | — | |
+| onboarding_templates | ✅ | — | |
+| onboarding_instances | ✅ | — | |
+| onboarding_tasks | ✅ | — | |
+| separations | ✅ | — | |
+| clearance_tasks | ✅ | — | |
+| job_requisitions | ✅ | — | |
+| candidates | ✅ | — | |
+| pre_boarding_packets | ✅ | — | |
+| pre_boarding_field_values | ✅ | — | |
+| worker_passports | ✅ | — | AE/SG |
+| worker_visa_records | ✅ | — | AE/SG previous + current |
+| worker_visa_attachments | ✅ | — | |
+| entra_provisioning_jobs | ✅ | — | |
+| interview_scorecards | ✅ | — | |
+| performance_cycles | ✅ | — | |
+| performance_goals | ✅ | — | |
+| performance_reviews | ✅ | — | |
+| training_courses | ✅ | — | |
+| training_assignments | ✅ | — | |
+| training_completions | ✅ | — | |
+| manpower_plans | ✅ | — | |
+| manpower_positions | ✅ | — | |
+| alert_rules | ✅ | — | |
+| scheduled_report_subscriptions | ✅ | — | |
+| compliance_alerts | ✅ | — | |
+| **Auth & RBAC** | | | |
+| users | ✅ | — | Better Auth + tenant link |
+| roles | ✅ | — | |
+| user_role_assignments | ✅ | — | |
+| country_configs | ✅ | — | PK/UAE/SG settings per tenant |
 
 ---
 
-## 2. Entity-Relationship Diagram
-
-### 2.1 ER Diagram
-
-<!-- Use Mermaid, dbdiagram.io, or paste an image -->
+## 2. Entity-relationship diagram (core)
 
 ```mermaid
 erDiagram
-    USER ||--o{ POST : creates
-    USER ||--o{ COMMENT : writes
-    POST ||--o{ COMMENT : has
-    USER ||--o{ USER_ROLE : has
-    ROLE ||--o{ USER_ROLE : assigned_to
-    POST ||--o{ POST_TAG : tagged_with
-    TAG ||--o{ POST_TAG : used_in
-    
-    USER {
-        uuid id PK
-        string email UK
-        string password_hash
-        string full_name
-        boolean email_verified
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    POST {
-        uuid id PK
-        uuid author_id FK
-        string title
-        text content
-        string status
-        timestamp published_at
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    COMMENT {
-        uuid id PK
-        uuid post_id FK
-        uuid user_id FK
-        text content
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    ROLE {
-        uuid id PK
-        string name UK
-        text description
-    }
-    
-    USER_ROLE {
-        uuid user_id FK
-        uuid role_id FK
-        timestamp assigned_at
-    }
-    
-    TAG {
-        uuid id PK
-        string name UK
-        string slug UK
-    }
-    
-    POST_TAG {
-        uuid post_id FK
-        uuid tag_id FK
-    }
-```
+    TENANT ||--o{ WORKER : employs
+    TENANT ||--o{ DEPARTMENT : has
+    TENANT ||--o{ DIVISION : has
+    TENANT ||--o{ COUNTRY_CONFIG : configures
+    TENANT ||--o{ LEGAL_ENTITY : owns
 
-**Alternative**: Upload an image from dbdiagram.io or draw.io
+    LEGAL_ENTITY ||--o{ LEGAL_ENTITY_STATUTORY_ID : has
+    LEGAL_ENTITY ||--o{ LEGAL_ENTITY_DIVISION_MAPPING : maps_to
+    LEGAL_ENTITY ||--o{ LEGAL_ENTITY_CURRENCY : allows
+    LEGAL_ENTITY ||--o{ LETTERHEAD_CONFIG : versions
+    LEGAL_ENTITY ||--o{ LEGAL_ENTITY_SIGNATORY : has
+    LEGAL_ENTITY ||--o{ SIGNING_CERTIFICATE : seals_with
+    LEGAL_ENTITY ||--o{ FINANCE_EXPORT_PROFILE : exports_via
+    DIVISION ||--o{ LEGAL_ENTITY_DIVISION_MAPPING : resolves
 
-![ER Diagram](./diagrams/er-diagram.png)
+    DIVISION ||--o{ DEPARTMENT : contains
+    DEPARTMENT ||--o{ WORKER : assigns
+    WORKER ||--o{ MANAGER_RELATIONSHIP : reports_via
+    WORKER ||--o{ EMPLOYMENT_RECORD : has_history
+    WORKER ||--o{ LEAVE_BALANCE : holds
+    WORKER ||--o{ LEAVE_REQUEST : submits
+    WORKER ||--o{ ATTENDANCE_PUNCH : records
+    WORKER ||--o{ PROFILE_CHANGE_REQUEST : requests
 
-### 2.2 Diagram Legend
+    EMPLOYMENT_TYPE ||--o{ WORKER : classifies
+    EMPLOYMENT_TYPE ||--o{ EMPLOYMENT_TYPE_COUNTRY_CONFIG : rules
 
-| Symbol | Meaning |
-|--------|---------|
-| `||--o{` | One-to-Many relationship |
-| `||--||` | One-to-One relationship |
-| `}o--o{` | Many-to-Many relationship |
-| PK | Primary Key |
-| FK | Foreign Key |
-| UK | Unique Key |
+    COUNTRY_CONFIG ||--o{ HOLIDAY_CALENDAR : defines
+    COUNTRY_CONFIG ||--o{ STATUTORY_RATE_SCHEDULE : defines
+    COUNTRY_CONFIG ||--o{ COUNTRY_CURRENCY_CONFIG : defines
 
----
+    CURRENCY ||--o{ EXCHANGE_RATE : quoted_in
+    CURRENCY ||--o{ COUNTRY_CURRENCY_CONFIG : default_for
 
-## 3. Table Schemas
+    POLICY ||--o{ POLICY_VERSION : versioned
+    POLICY_VERSION ||--o{ POLICY_ACKNOWLEDGEMENT : acknowledged
 
-### 3.1 Users Table
+    DOCUMENT_TEMPLATE ||--o{ DOCUMENT_TEMPLATE_VERSION : versioned
+    DOCUMENT_TEMPLATE_VERSION ||--o{ GENERATED_DOCUMENT : produces
+    GENERATED_DOCUMENT }o--|| LEGAL_ENTITY : issued_by
+    GENERATED_DOCUMENT ||--o| ESIGN_ENVELOPE : may_have
 
-**Table Name**: `users`
+    ESIGN_ENVELOPE ||--o{ ESIGN_SIGNATORY : has
+    ESIGN_ENVELOPE ||--o{ ESIGN_FIELD : contains
+    ESIGN_ENVELOPE ||--o{ ESIGN_AUDIT_EVENT : audited_by
 
-**Purpose**: Store user account information
+    PAY_RUN ||--o{ PAY_RUN_LINE_ITEM : contains
+    PAY_RUN ||--o{ PAY_RUN_EXPORT_BATCH : exports
+    WORKER ||--o{ PAYSLIP : receives
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique user identifier |
-| email | VARCHAR(255) | NOT NULL, UNIQUE | User email address |
-| password_hash | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
-| full_name | VARCHAR(100) | NOT NULL | User's full name |
-| email_verified | BOOLEAN | DEFAULT FALSE | Email verification status |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Account creation time |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Last update time |
+    USER ||--o{ USER_ROLE_ASSIGNMENT : has
+    ROLE ||--o{ USER_ROLE_ASSIGNMENT : assigned
 
-**Indexes**:
-- PRIMARY KEY on `id` (automatic)
-- UNIQUE INDEX on `email`
-- INDEX on `email_verified` (for filtering unverified users)
-- INDEX on `created_at` (for sorting/pagination)
-
-**Constraints**:
-- `email` must be valid email format (check constraint or application-level)
-- `password_hash` must be bcrypt format (application-level)
-- `full_name` must be 2-100 characters (check constraint)
-
-**Sample Data**:
-```sql
-INSERT INTO users (id, email, password_hash, full_name, email_verified)
-VALUES 
-  ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'john@example.com', '$2b$12$...', 'John Doe', true),
-  ('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', 'jane@example.com', '$2b$12$...', 'Jane Smith', true);
+    WORKER ||--o{ AUDIT_LOG : tracked
 ```
 
 ---
 
-### 3.2 Posts Table
+## 3. Core entities
 
-**Table Name**: `posts`
+### 3.1 Organisation & tenancy
 
-**Purpose**: Store blog posts or articles
+#### `tenants`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| name | VARCHAR(255) | "Digitaro" |
+| slug | VARCHAR(100) UK | `digitaro` |
+| base_reporting_currency | CHAR(3) FK | → currencies |
+| created_at | TIMESTAMPTZ | |
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique post identifier |
-| author_id | UUID | NOT NULL, FOREIGN KEY → users(id) | Post author |
-| title | VARCHAR(200) | NOT NULL | Post title |
-| content | TEXT | NOT NULL | Post content (Markdown or HTML) |
-| status | VARCHAR(20) | NOT NULL, DEFAULT 'draft' | Post status (draft, published, archived) |
-| published_at | TIMESTAMP | NULL | Publication timestamp |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Creation time |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Last update time |
+#### `divisions`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| name | VARCHAR(100) | Labs, Studio |
+| head_worker_id | UUID FK | Division Head |
 
-**Indexes**:
-- PRIMARY KEY on `id`
-- INDEX on `author_id` (for user's posts)
-- INDEX on `status` (for filtering by status)
-- INDEX on `published_at DESC` (for sorting published posts)
-- COMPOSITE INDEX on `(status, published_at DESC)` (for published posts query)
+#### `departments`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| division_id | UUID FK | |
+| name | VARCHAR(100) | |
+| parent_department_id | UUID FK | nullable, hierarchy |
 
-**Foreign Keys**:
-- `author_id` REFERENCES `users(id)` ON DELETE CASCADE
+#### `legal_entities`
 
-**Constraints**:
-- CHECK `status` IN ('draft', 'published', 'archived')
-- CHECK `published_at` IS NULL when `status` = 'draft'
-- CHECK `title` length >= 5 characters
+Employer of record for payroll, document generation, and finance export. One tenant may have multiple entities (e.g. Digitaro Labs PK, Digitaro Studio UAE). Resolved for a worker by **country + division** unless explicitly overridden on a document (PRD §6.8.1).
 
-**Sample Data**:
-```sql
-INSERT INTO posts (id, author_id, title, content, status, published_at)
-VALUES 
-  ('c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 
-   'My First Post', 'This is the content...', 'published', '2026-01-01 10:00:00');
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| code | VARCHAR(50) UK per tenant | `DIGITARO_LABS_PK`, `DIGITARO_STUDIO_UAE` |
+| registered_name | VARCHAR(255) NOT NULL | Legal name on contracts; merge field `{{legal_entity.registered_name}}` |
+| trading_name | VARCHAR(255) | Display / letterhead name if different |
+| country_code | CHAR(2) NOT NULL | PK, AE, SG — jurisdiction of incorporation |
+| functional_currency | CHAR(3) FK NOT NULL | Accounting currency for pay runs & export packs (PRD §6.21.2) |
+| status | ENUM | active, inactive |
+| logo_blob_url | VARCHAR(500) | Company logo for letterhead (Azure Blob) |
+| address_line_1 | VARCHAR(255) | Registered address |
+| address_line_2 | VARCHAR(255) | nullable |
+| city | VARCHAR(100) | |
+| state_province | VARCHAR(100) | nullable — e.g. province for PK |
+| postal_code | VARCHAR(20) | nullable |
+| phone | VARCHAR(50) | |
+| email | VARCHAR(255) | e.g. admin@digitaro.co |
+| website | VARCHAR(255) | nullable |
+| footer_text | TEXT | Confidentiality notice, legal disclaimers |
+| page_numbering_enabled | BOOLEAN | default true |
+| payroll_export_profile | VARCHAR(50) | FK to export template config — column mappings for Xero manual entry |
+| requires_wet_stamp | BOOLEAN | default false — manual-sign path shows stamp zone + checklist (PRD §6.8.1) |
+| stamp_instructions | TEXT | nullable — entity-specific stamp guidance |
+| default_render_profile | ENUM | `full_digital`, `print_on_letterhead` — default at export |
+| effective_from | DATE NOT NULL | Entity config effective date |
+| effective_to | DATE | nullable — open-ended if null |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
+| created_by | UUID FK | audit |
+
+**Indexes:** `(tenant_id, country_code, status)`, `(tenant_id, code)` UNIQUE
+
+**Examples (Digitaro seed data):**
+
+| code | registered_name | country | functional_currency |
+|---|---|---|---|
+| DIGITARO_LABS_PK | Digitaro Labs (Private) Limited | PK | PKR |
+| DIGITARO_STUDIO_UAE | Digitaro Studio FZ-LLC | AE | AED |
+| DIGITARO_SG | Digitaro Pte. Ltd. | SG | SGD |
+
+#### `legal_entity_statutory_ids`
+
+Country-conditional registration numbers — same pattern as `worker_statutory_ids`. Surfaced in letterhead and merge fields.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | Denormalised for RLS |
+| legal_entity_id | UUID FK NOT NULL | |
+| field_key | VARCHAR(50) | Country-specific — see below |
+| field_value | VARCHAR(255) | |
+| expiry_date | DATE | nullable — e.g. trade licence renewal |
+
+**Unique:** `(tenant_id, legal_entity_id, field_key)`
+
+**Field keys by country:**
+
+| Country | field_key examples |
+|---|---|
+| PK | `ntn`, `secp_registration`, `eobi_employer_number` |
+| AE | `trade_licence_number`, `mohre_establishment_id`, `vat_trn` |
+| SG | `uen`, `cpf_employer_ref`, `gst_registration` |
+
+#### `legal_entity_division_mappings`
+
+Resolves which legal entity applies when generating documents or pay runs for a worker. Letterhead resolved by worker's **country + division** (PRD §6.8.1).
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | Denormalised for RLS |
+| legal_entity_id | UUID FK NOT NULL | |
+| division_id | UUID FK | nullable — null = all divisions in country |
+| country_code | CHAR(2) | PK, AE, SG |
+| is_default | BOOLEAN | Fallback when multiple entities match |
+| priority | INT | Lower = preferred when multiple match |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+
+**Unique constraint:** `(tenant_id, legal_entity_id, division_id, country_code, effective_from)`
+
+#### `legal_entity_currencies`
+
+Allowed transaction currencies per entity (PRD §6.21.2). Worker's compensation currency must appear in this list.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| currency_code | CHAR(3) FK | → currency_codes |
+| is_default | BOOLEAN | Default for new worker comp in this entity |
+| is_active | BOOLEAN | Inactive = no new records; historical retained |
+
+**Unique:** `(tenant_id, legal_entity_id, currency_code)`
+
+#### `letterhead_configs`
+
+Versioned letterhead layout separate from entity master data. Changes apply to **future generations only** — issued PDFs retain snapshot (PRD §6.8.1).
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| version | INT NOT NULL | Incremented on each save |
+| layout_json | JSONB | Logo position, margins, header/footer blocks, font sizes |
+| preview_blob_url | VARCHAR(500) | Cached preview PDF |
+| is_current | BOOLEAN | Only one current per entity |
+| effective_from | TIMESTAMPTZ | |
+| created_by | UUID FK | |
+| created_at | TIMESTAMPTZ | |
+
+**Unique:** `(tenant_id, legal_entity_id, version)`
+
+**layout_json structure (example):**
+
+```json
+{
+  "logo": { "position": "top-left", "maxHeightPx": 48 },
+  "header": { "showRegisteredName": true, "showTradingName": false, "showAddress": true },
+  "footer": { "showPageNumbers": true, "customText": "Confidential — Digitaro internal" },
+  "margins": { "top": 72, "bottom": 72, "left": 72, "right": 72 },
+  "physicalStock": {
+    "enabled": true,
+    "contentTopMarginMm": 45,
+    "contentBottomMarginMm": 25,
+    "showPrintWatermark": true
+  },
+  "renderProfiles": {
+    "print_on_letterhead": { "showHeader": false, "showFooterDocNumber": true, "showStampZone": "from_entity_config" },
+    "full_digital": { "showHeader": true, "showSignatoryBlock": true },
+    "informational": { "showHeader": true, "showNoSignatureBanner": true }
+  }
+}
+```
+
+#### `legal_entity_signatories`
+
+Default company signatory block for HR documents and e-sign envelopes (PRD §6.8.1, §6.13).
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | nullable — link to internal signatory profile |
+| name | VARCHAR(255) NOT NULL | merge field `{{signatory.name}}` |
+| title | VARCHAR(100) NOT NULL | e.g. "Director", "CEO" |
+| email | VARCHAR(255) | For e-sign routing |
+| signature_image_blob_url | VARCHAR(500) | Optional pre-drawn signature for letterhead |
+| is_default | BOOLEAN | Default for auto-generated docs |
+| is_active | BOOLEAN | |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+
+#### `signing_certificates`
+
+Organisation X.509 certificate for PAdES PDF sealing (PRD §6.13.9). Cert subject = legal entity registered name. Stored in Azure Key Vault; metadata here.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| key_vault_secret_name | VARCHAR(255) | Reference in Azure Key Vault |
+| certificate_subject | VARCHAR(255) | Must match `registered_name` |
+| issuer | VARCHAR(255) | CA name |
+| serial_number | VARCHAR(100) | |
+| valid_from | TIMESTAMPTZ | |
+| valid_to | TIMESTAMPTZ | |
+| thumbprint | VARCHAR(64) | For verification |
+| status | ENUM | active, expiring_soon, expired, revoked |
+| last_reviewed_at | TIMESTAMPTZ | Annual cert review (compliance) |
+| created_at | TIMESTAMPTZ | |
+
+#### `finance_export_profiles`
+
+Column mapping templates for PDF/Excel export packs per legal entity (PRD §6.12.5, §6.21). Finance enters data into Xero manually using these exports.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| export_type | ENUM | pay_run, contractor_batch, expense_summary |
+| name | VARCHAR(100) | e.g. "PK Pay Run — Xero journal" |
+| column_mappings | JSONB | Source field → export column header |
+| file_format | ENUM | xlsx, csv, pdf |
+| is_default | BOOLEAN | |
+| version | INT | |
+| created_at | TIMESTAMPTZ | |
+
+**Unique:** `(tenant_id, legal_entity_id, export_type, version)`
+
+**column_mappings example:**
+
+```json
+[
+  { "source": "worker.employee_number", "header": "Employee ID", "order": 1 },
+  { "source": "line.gross_pay", "header": "Gross (PKR)", "order": 2 },
+  { "source": "line.eobi_deduction", "header": "EOBI", "order": 3 },
+  { "source": "line.net_pay", "header": "Net Pay", "order": 4 },
+  { "source": "line.bank_account", "header": "Bank Account", "order": 5 }
+]
+```
+
+**Entity resolution flow:**
+
+```
+Worker (country_code + division_id)
+    → legal_entity_division_mappings (match country + division)
+    → legal_entities (registered_name, functional_currency, letterhead)
+    → letterhead_configs (current version)
+    → legal_entity_signatories (default signatory)
+    → signing_certificates (active cert for sealing)
+    → finance_export_profiles (pay run export format)
 ```
 
 ---
 
-### 3.3 Comments Table
+### 3.2 Workers & employment
 
-**Table Name**: `comments`
+#### `workers`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK | Default employer of record; resolved from country + division at hire |
+| user_id | UUID FK | nullable — links to auth user |
+| employment_type_id | UUID FK | |
+| division_id | UUID FK | |
+| department_id | UUID FK | |
+| manager_id | UUID FK | self-ref, same tenant |
+| country_code | CHAR(2) | PK, AE, SG — work location / employment country |
+| bank_country_code | CHAR(2) | Country of bank account — drives remittance corridor (§6.20.6) |
+| personal_email | VARCHAR(255) | nullable — pre-boarding / personal contact |
+| work_mode | ENUM | remote, hybrid, in_office |
+| status | ENUM | draft, active, on_leave, separated, archived |
+| employee_number | VARCHAR(50) | UK per tenant |
+| first_name | VARCHAR(100) | |
+| last_name | VARCHAR(100) | |
+| email | VARCHAR(255) | UK per tenant |
+| phone | VARCHAR(50) | |
+| entra_status | ENUM | not_required, pending, provisioned, disabled |
+| entra_object_id | VARCHAR(255) | nullable |
+| probation_end_date | DATE | nullable |
+| start_date | DATE | |
+| end_date | DATE | nullable |
+| fte_fraction | DECIMAL(3,2) | default 1.00 |
+| timezone | VARCHAR(50) | IANA |
+| deleted_at | TIMESTAMPTZ | soft delete |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
 
-**Purpose**: Store user comments on posts
+**Indexes:** `(tenant_id, email)` UNIQUE, `(tenant_id, employee_number)` UNIQUE, `(tenant_id, status, country_code)`, `(tenant_id, legal_entity_id)`, `(tenant_id, manager_id)`
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique comment identifier |
-| post_id | UUID | NOT NULL, FOREIGN KEY → posts(id) | Associated post |
-| user_id | UUID | NOT NULL, FOREIGN KEY → users(id) | Comment author |
-| content | TEXT | NOT NULL | Comment content |
-| created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Creation time |
-| updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Last update time |
+#### `employment_types`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| code | VARCHAR(50) | UK per tenant — FULL_TIME, CONTRACTOR, etc. |
+| display_name | VARCHAR(100) | |
+| is_fte | BOOLEAN | |
 
-**Indexes**:
-- PRIMARY KEY on `id`
-- INDEX on `post_id` (for post's comments)
-- INDEX on `user_id` (for user's comments)
-- INDEX on `created_at DESC` (for sorting)
+**Unique:** `(tenant_id, code)`
 
-**Foreign Keys**:
-- `post_id` REFERENCES `posts(id)` ON DELETE CASCADE
-- `user_id` REFERENCES `users(id)` ON DELETE CASCADE
+#### `employment_type_country_configs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| employment_type_id | UUID FK | |
+| country_code | CHAR(2) | |
+| leave_enabled | BOOLEAN | |
+| check_in_required | BOOLEAN | |
+| payroll_route | ENUM | employee_pay_run, contractor_invoice, excluded |
+| performance_included | BOOLEAN | |
+| config_json | JSONB | extended rules |
 
-**Constraints**:
-- CHECK `content` length >= 1 character
+**Unique:** `(tenant_id, employment_type_id, country_code)`
 
----
+#### `contractor_profiles`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK UK | |
+| billing_model | ENUM | day_rate, hourly, fixed_fee, retainer |
+| contract_start | DATE | |
+| contract_end | DATE | |
+| payment_terms_days | INT | net-15, net-30 |
+| payment_currency | CHAR(3) FK | |
+| agency_name | VARCHAR(255) | nullable |
 
-### 3.4 Roles Table
+#### `worker_statutory_ids`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| country_code | CHAR(2) | |
+| field_key | VARCHAR(50) | cnic, nric, emirates_id, ntn, passport_number, etc. |
+| field_value | VARCHAR(255) | encrypted at app layer for sensitive |
+| expiry_date | DATE | nullable |
 
-**Table Name**: `roles`
+**Unique:** `(tenant_id, worker_id, field_key)`
 
-**Purpose**: Define user roles (admin, moderator, user, etc.)
+#### `worker_passports`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| passport_number | VARCHAR(50) | encrypted at app layer |
+| nationality_code | CHAR(2) | ISO country |
+| issuing_country_code | CHAR(2) | |
+| place_of_issue | VARCHAR(100) | nullable |
+| issue_date | DATE | |
+| expiry_date | DATE | alert source |
+| is_current | BOOLEAN | one current per worker |
+| source | ENUM | pre_boarding, manual, renewal |
+| created_at | TIMESTAMPTZ | |
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique role identifier |
-| name | VARCHAR(50) | NOT NULL, UNIQUE | Role name |
-| description | TEXT | NULL | Role description |
+#### `worker_visa_records`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| country_code | CHAR(2) | AE, SG |
+| record_type | ENUM | previous, current |
+| status_code | VARCHAR(50) | e.g. never_had_uae_visa, cancelled, pending_sponsorship, active |
+| visa_or_pass_type | VARCHAR(50) | employment, EP, S_Pass, etc. |
+| document_number | VARCHAR(100) | visa # or FIN — encrypted |
+| sponsor_or_employer | VARCHAR(255) | nullable |
+| uid_number | VARCHAR(50) | UAE MOHRE UID — nullable |
+| labour_card_number | VARCHAR(50) | UAE — nullable |
+| emirates_id | VARCHAR(50) | UAE — nullable |
+| nric | VARCHAR(20) | SG citizen/PR — nullable |
+| ipa_reference | VARCHAR(100) | SG — nullable |
+| application_status | ENUM | pending_sponsorship, application_in_progress, ipa_approved, approved, stamped, issued, active, renewed |
+| issue_date | DATE | nullable |
+| expiry_date | DATE | nullable — alert source |
+| cancellation_date | DATE | nullable |
+| cancellation_reason | TEXT | nullable |
+| passport_id | UUID FK | links to `worker_passports` |
+| superseded_by_id | UUID FK | nullable — history chain |
+| created_at | TIMESTAMPTZ | |
 
-**Indexes**:
-- PRIMARY KEY on `id`
-- UNIQUE INDEX on `name`
+**Index:** `(tenant_id, worker_id, country_code, record_type)`
 
-**Sample Data**:
-```sql
-INSERT INTO roles (id, name, description)
-VALUES 
-  ('d3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', 'admin', 'Full system access'),
-  ('e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55', 'moderator', 'Can moderate content'),
-  ('f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66', 'user', 'Standard user');
-```
+#### `worker_visa_attachments`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| visa_record_id | UUID FK | |
+| passport_id | UUID FK | nullable — direct passport docs |
+| attachment_type | ENUM | passport_bio, passport_full, previous_visa, previous_pass, cancellation_stamp, entry_permit, labour_card, emirates_id, ipa_letter, mom_approval, other |
+| blob_id | UUID FK | Restricted classification |
+| uploaded_at | TIMESTAMPTZ | |
+| uploaded_by | UUID FK | candidate session or People Ops user |
 
----
+#### `profile_change_requests`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| field_changes | JSONB | {field: {old, new}} |
+| status | ENUM | submitted, approved, rejected |
+| approver_id | UUID FK | |
+| reason | TEXT | rejection reason |
+| created_at | TIMESTAMPTZ | |
 
-### 3.5 User_Roles Table (Junction Table)
+#### `manager_relationships`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| manager_id | UUID FK | |
+| relationship_type | ENUM | direct, dotted_line |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
 
-**Table Name**: `user_roles`
+#### `project_assignments`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| project_name | VARCHAR(255) | |
+| project_lead_id | UUID FK | nullable |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
 
-**Purpose**: Many-to-many relationship between users and roles
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| user_id | UUID | NOT NULL, FOREIGN KEY → users(id) | User identifier |
-| role_id | UUID | NOT NULL, FOREIGN KEY → roles(id) | Role identifier |
-| assigned_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Assignment time |
-
-**Indexes**:
-- COMPOSITE PRIMARY KEY on `(user_id, role_id)`
-- INDEX on `role_id` (for finding users with a role)
-
-**Foreign Keys**:
-- `user_id` REFERENCES `users(id)` ON DELETE CASCADE
-- `role_id` REFERENCES `roles(id)` ON DELETE CASCADE
-
----
-
-### 3.6 Tags Table
-
-**Table Name**: `tags`
-
-**Purpose**: Store content tags
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique tag identifier |
-| name | VARCHAR(50) | NOT NULL, UNIQUE | Tag name |
-| slug | VARCHAR(50) | NOT NULL, UNIQUE | URL-friendly slug |
-
-**Indexes**:
-- PRIMARY KEY on `id`
-- UNIQUE INDEX on `name`
-- UNIQUE INDEX on `slug`
-
----
-
-### 3.7 Post_Tags Table (Junction Table)
-
-**Table Name**: `post_tags`
-
-**Purpose**: Many-to-many relationship between posts and tags
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| post_id | UUID | NOT NULL, FOREIGN KEY → posts(id) | Post identifier |
-| tag_id | UUID | NOT NULL, FOREIGN KEY → tags(id) | Tag identifier |
-
-**Indexes**:
-- COMPOSITE PRIMARY KEY on `(post_id, tag_id)`
-- INDEX on `tag_id` (for finding posts with a tag)
-
-**Foreign Keys**:
-- `post_id` REFERENCES `posts(id)` ON DELETE CASCADE
-- `tag_id` REFERENCES `tags(id)` ON DELETE CASCADE
-
----
-
-<!-- Continue for all your tables... -->
-
----
-
-## 4. Relationships
-
-### 4.1 One-to-Many Relationships
-
-| Parent Table | Child Table | Relationship | On Delete |
-|--------------|-------------|--------------|-----------|
-| users | posts | One user has many posts | CASCADE |
-| users | comments | One user has many comments | CASCADE |
-| posts | comments | One post has many comments | CASCADE |
-
-**Explanation**:
-- When a user is deleted, all their posts and comments are deleted (CASCADE)
-- When a post is deleted, all its comments are deleted (CASCADE)
-
-### 4.2 Many-to-Many Relationships
-
-| Table 1 | Junction Table | Table 2 | Description |
-|---------|----------------|---------|-------------|
-| users | user_roles | roles | Users can have multiple roles |
-| posts | post_tags | tags | Posts can have multiple tags |
-
-**Explanation**:
-- A user can have multiple roles (admin, moderator)
-- A role can be assigned to multiple users
-- A post can have multiple tags
-- A tag can be used on multiple posts
-
-### 4.3 One-to-One Relationships
-
-<!-- If you have any one-to-one relationships -->
-
-| Table 1 | Table 2 | Description |
-|---------|---------|-------------|
-| users | user_profiles | Each user has one profile |
-
----
-
-## 5. Normalization
-
-### 5.1 Normal Forms Achieved
-
-- [x] **1NF (First Normal Form)**: All columns contain atomic values
-- [x] **2NF (Second Normal Form)**: No partial dependencies on composite keys
-- [x] **3NF (Third Normal Form)**: No transitive dependencies
-- [x] **BCNF (Boyce-Codd Normal Form)**: Every determinant is a candidate key
-
-### 5.2 Normalization Decisions
-
-**Example 1: Separating User Roles**
-
-❌ **Before (Not Normalized)**:
-```
-users table:
-- id
-- email
-- roles (comma-separated string: "admin,moderator")
-```
-
-✅ **After (Normalized)**:
-```
-users table:
-- id
-- email
-
-roles table:
-- id
-- name
-
-user_roles table (junction):
-- user_id
-- role_id
-```
-
-**Reason**: Allows querying users by role, adding/removing roles easily, and maintaining data integrity.
+#### `audit_log` (append-only)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| entity_type | VARCHAR(100) | |
+| entity_id | UUID | |
+| action | VARCHAR(50) | create, update, delete |
+| actor_id | UUID FK | |
+| changes | JSONB | {field: {old, new}} |
+| correlation_id | UUID | |
+| ip_address | INET | |
+| created_at | TIMESTAMPTZ | **No UPDATE/DELETE grants** |
 
 ---
 
-**Example 2: Separating Tags**
+### 3.3 Time, leave & attendance
 
-❌ **Before**:
-```
-posts table:
-- id
-- title
-- tags (JSON array: ["javascript", "nodejs"])
-```
+#### `leave_types`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| country_code | CHAR(2) | |
+| code | VARCHAR(50) | UK per tenant |
+| name | VARCHAR(100) | |
+| accrual_method | ENUM | annual, monthly |
+| carry_forward_cap | DECIMAL(5,2) | |
 
-✅ **After**:
-```
-posts table:
-- id
-- title
+**Unique:** `(tenant_id, country_code, code)`
 
-tags table:
-- id
-- name
+#### `leave_balances`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| leave_type_id | UUID FK | |
+| balance_days | DECIMAL(5,2) | |
+| used_days | DECIMAL(5,2) | |
+| as_of_date | DATE | |
 
-post_tags table:
-- post_id
-- tag_id
-```
+**Unique:** `(tenant_id, worker_id, leave_type_id, as_of_date)`
 
-**Reason**: Allows querying posts by tag, prevents duplicate tag names, and enables tag management.
+#### `leave_requests`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| leave_type_id | UUID FK | |
+| start_date | DATE | |
+| end_date | DATE | |
+| is_half_day | BOOLEAN | |
+| status | ENUM | draft, submitted, approved, rejected, cancelled |
+| approver_id | UUID FK | |
+| notes | TEXT | |
+| created_at | TIMESTAMPTZ | |
 
----
+**Index:** `(tenant_id, worker_id, status)`, `(tenant_id, approver_id, status)`
 
-### 5.3 Denormalization Decisions
+#### `comp_off_credits`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| credited_days | DECIMAL(5,2) | |
+| earned_date | DATE | |
+| expiry_date | DATE | |
+| source_reference | VARCHAR(255) | overtime/weekend work ref |
+| status | ENUM | active, used, expired |
 
-Sometimes we intentionally denormalize for performance:
+#### `staff_calendar_days`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| calendar_date | DATE | |
+| day_type | ENUM | working, holiday, leave, closure, non_working |
+| leave_request_id | UUID FK | nullable |
+| source | ENUM | auto_generated, manual_override |
 
-**Example: Caching Comment Count**
+**Unique:** `(tenant_id, worker_id, calendar_date)`
 
-```
-posts table:
-- id
-- title
-- comment_count (denormalized)
-```
+#### `holiday_calendars`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| country_code | CHAR(2) | |
+| name | VARCHAR(100) | e.g. "Pakistan Public Holidays 2026" |
+| effective_year | INT | |
+| is_active | BOOLEAN | |
 
-**Reason**: Frequently displayed, expensive to calculate, updated via trigger/application logic.
+#### `holidays`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| holiday_calendar_id | UUID FK | |
+| name | VARCHAR(100) | |
+| holiday_date | DATE | |
+| is_company_closure | BOOLEAN | |
+| is_optional_working | BOOLEAN | |
 
-**Trade-off**: Slight data redundancy for significant performance gain.
+#### `company_closures`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| name | VARCHAR(100) | e.g. "Year-end shutdown" |
+| start_date | DATE | |
+| end_date | DATE | |
+| division_id | UUID FK | nullable — null = all divisions |
+| country_code | CHAR(2) | nullable |
 
----
+#### `work_week_patterns`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| scope_type | ENUM | global, country, division, worker |
+| scope_id | UUID | nullable |
+| country_code | CHAR(2) | nullable |
+| days_json | JSONB | {mon: {start, end, is_working}, ...} |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
 
-## 6. Indexes
+#### `attendance_punches`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| punch_type | ENUM | check_in, check_out |
+| punched_at | TIMESTAMPTZ | UTC stored |
+| work_mode | ENUM | remote, in_office, hybrid |
+| latitude | DECIMAL(10,7) | restricted visibility |
+| longitude | DECIMAL(10,7) | restricted visibility |
+| accuracy_meters | DECIMAL | |
+| source | ENUM | geolocation, ip, manual |
+| office_match | BOOLEAN | geofence match |
+| device_info | VARCHAR(255) | |
 
-### 6.1 Index Strategy
+**Index:** `(tenant_id, worker_id, punched_at)`
 
-| Table | Index | Type | Purpose |
-|-------|-------|------|---------|
-| users | email | UNIQUE | Login lookup |
-| users | created_at | B-tree | Sorting/pagination |
-| posts | author_id | B-tree | User's posts |
-| posts | (status, published_at) | Composite | Published posts query |
-| comments | post_id | B-tree | Post's comments |
-| comments | user_id | B-tree | User's comments |
+#### `attendance_day_summaries`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| summary_date | DATE | |
+| total_hours | DECIMAL(5,2) | |
+| status | ENUM | present, absent, on_leave, holiday |
+| lop_days | DECIMAL(3,2) | loss of pay — feeds payroll |
 
-### 6.2 Query Optimization
+**Unique:** `(tenant_id, worker_id, summary_date)`
 
-**Common Query 1**: Get published posts with author info
-```sql
-SELECT p.*, u.full_name 
-FROM posts p
-JOIN users u ON p.author_id = u.id
-WHERE p.status = 'published'
-ORDER BY p.published_at DESC
-LIMIT 20;
-```
+#### `punch_correction_requests`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| punch_id | UUID FK | nullable |
+| requested_at | TIMESTAMPTZ | |
+| reason | TEXT | |
+| status | ENUM | submitted, approved, rejected |
+| approver_id | UUID FK | |
 
-**Indexes Used**:
-- Composite index on `posts(status, published_at DESC)`
-- Primary key on `users(id)`
+#### `shift_rosters`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| name | VARCHAR(100) | |
+| division_id | UUID FK | nullable |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
 
----
+#### `shift_assignments`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| shift_roster_id | UUID FK | |
+| worker_id | UUID FK | |
+| shift_date | DATE | |
+| start_time | TIME | |
+| end_time | TIME | |
 
-**Common Query 2**: Get user's posts with comment count
-```sql
-SELECT p.*, COUNT(c.id) as comment_count
-FROM posts p
-LEFT JOIN comments c ON p.post_id = c.post_id
-WHERE p.author_id = ?
-GROUP BY p.id
-ORDER BY p.created_at DESC;
-```
-
-**Indexes Used**:
-- Index on `posts(author_id)`
-- Index on `comments(post_id)`
-
----
-
-## 7. Constraints & Validation
-
-### 7.1 Check Constraints
-
-```sql
--- Post status must be valid
-ALTER TABLE posts 
-ADD CONSTRAINT check_post_status 
-CHECK (status IN ('draft', 'published', 'archived'));
-
--- Email format (PostgreSQL)
-ALTER TABLE users
-ADD CONSTRAINT check_email_format
-CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$');
-
--- Name length
-ALTER TABLE users
-ADD CONSTRAINT check_name_length
-CHECK (LENGTH(full_name) >= 2 AND LENGTH(full_name) <= 100);
-```
-
-### 7.2 Foreign Key Constraints
-
-All foreign keys defined with appropriate ON DELETE behavior:
-- **CASCADE**: Delete child records when parent is deleted
-- **SET NULL**: Set foreign key to NULL when parent is deleted
-- **RESTRICT**: Prevent deletion of parent if children exist
-
-### 7.3 Unique Constraints
-
-- `users.email` - Prevent duplicate emails
-- `roles.name` - Prevent duplicate role names
-- `tags.name` - Prevent duplicate tag names
-- `tags.slug` - Prevent duplicate slugs
-
----
-
-## 8. Database Schema SQL
-
-### 8.1 Complete Schema
-
-```sql
--- Enable UUID extension (PostgreSQL)
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Users table
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100) NOT NULL,
-    email_verified BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$'),
-    CONSTRAINT check_name_length CHECK (LENGTH(full_name) >= 2 AND LENGTH(full_name) <= 100)
-);
-
-CREATE INDEX idx_users_email_verified ON users(email_verified);
-CREATE INDEX idx_users_created_at ON users(created_at);
-
--- Posts table
-CREATE TABLE posts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title VARCHAR(200) NOT NULL,
-    content TEXT NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'draft',
-    published_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_post_status CHECK (status IN ('draft', 'published', 'archived')),
-    CONSTRAINT check_title_length CHECK (LENGTH(title) >= 5)
-);
-
-CREATE INDEX idx_posts_author_id ON posts(author_id);
-CREATE INDEX idx_posts_status ON posts(status);
-CREATE INDEX idx_posts_published_at ON posts(published_at DESC);
-CREATE INDEX idx_posts_status_published_at ON posts(status, published_at DESC);
-
--- Comments table
-CREATE TABLE comments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_content_length CHECK (LENGTH(content) >= 1)
-);
-
-CREATE INDEX idx_comments_post_id ON comments(post_id);
-CREATE INDEX idx_comments_user_id ON comments(user_id);
-CREATE INDEX idx_comments_created_at ON comments(created_at DESC);
-
--- Roles table
-CREATE TABLE roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT NULL
-);
-
--- User_Roles junction table
-CREATE TABLE user_roles (
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, role_id)
-);
-
-CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
-
--- Tags table
-CREATE TABLE tags (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) NOT NULL UNIQUE,
-    slug VARCHAR(50) NOT NULL UNIQUE
-);
-
--- Post_Tags junction table
-CREATE TABLE post_tags (
-    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
-    tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (post_id, tag_id)
-);
-
-CREATE INDEX idx_post_tags_tag_id ON post_tags(tag_id);
-```
-
-### 8.2 Seed Data
-
-```sql
--- Insert default roles
-INSERT INTO roles (name, description) VALUES
-  ('admin', 'Full system access'),
-  ('moderator', 'Can moderate content'),
-  ('user', 'Standard user');
-
--- Insert sample tags
-INSERT INTO tags (name, slug) VALUES
-  ('JavaScript', 'javascript'),
-  ('Node.js', 'nodejs'),
-  ('PostgreSQL', 'postgresql');
-```
+**Unique:** `(tenant_id, worker_id, shift_date)`
 
 ---
 
-## 9. Migration Strategy
+### 3.4 Documents & e-sign
 
-### 9.1 Initial Migration
+#### `policies`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| code | VARCHAR(50) | UK per tenant |
+| title | VARCHAR(255) | |
+| category | ENUM | hr, security, conduct, it |
+| status | ENUM | draft, active, archived |
+| created_at | TIMESTAMPTZ | |
 
-```bash
-# Create initial schema
-psql -U postgres -d mydb -f schema.sql
+#### `policy_versions`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| policy_id | UUID FK | |
+| version | INT | |
+| content | TEXT | |
+| effective_from | DATE | |
+| requires_reacknowledgement | BOOLEAN | |
+| published_by | UUID FK | |
+| published_at | TIMESTAMPTZ | |
 
-# Run seed data
-psql -U postgres -d mydb -f seed.sql
-```
+**Unique:** `(tenant_id, policy_id, version)`
 
-### 9.2 Future Migrations
+#### `policy_acknowledgements`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| policy_version_id | UUID FK | |
+| worker_id | UUID FK | |
+| acknowledged_at | TIMESTAMPTZ | |
+| ip_address | INET | |
 
-Use migration tool (e.g., TypeORM, Prisma, Flyway):
+**Unique:** `(tenant_id, policy_version_id, worker_id)`
 
-```
-migrations/
-├── 001_initial_schema.sql
-├── 002_add_user_profiles.sql
-├── 003_add_post_views_count.sql
-```
+#### `document_templates`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| code | VARCHAR(50) | UK per tenant |
+| document_type | ENUM | offer_letter, contract, nda, sow, etc. |
+| audience | ENUM | employee, contractor, shared |
+| country_code | CHAR(2) | nullable — null = all countries |
+| employment_type_id | UUID FK | nullable |
+| division_id | UUID FK | nullable |
+| requires_signature | BOOLEAN | default true — when false, default render profile is `informational` |
+| status | ENUM | draft, active, archived |
 
----
+#### `document_template_versions`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| template_id | UUID FK | |
+| version | INT | |
+| body | TEXT | Rich-text / Markdown |
+| merge_field_schema | JSONB | Validated field definitions |
+| created_by | UUID FK | |
+| created_at | TIMESTAMPTZ | |
 
-## 10. Backup & Recovery
+**Unique:** `(tenant_id, template_id, version)`
 
-### 10.1 Backup Strategy
+#### `generated_documents`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| legal_entity_id | UUID FK NOT NULL | Resolved at generation; immutable snapshot |
+| letterhead_config_id | UUID FK | Letterhead version used |
+| template_version_id | UUID FK | |
+| template_snapshot | JSONB | Full template body at generation time |
+| document_number | VARCHAR(50) UK per tenant | Assigned at issue; immutable (PRD §6.8.4) |
+| blob_url | VARCHAR(500) | Azure Blob — canonical issued PDF (`full_digital` at issue) |
+| status | ENUM | draft, issued, sent_for_signature, signed, archived |
+| merge_data | JSONB | Snapshot of all merge field values |
+| issued_at | TIMESTAMPTZ | |
+| issued_by | UUID FK | People Ops actor |
 
-- **Frequency**: Daily automated backups
-- **Retention**: 30 days
-- **Method**: pg_dump for PostgreSQL
-- **Storage**: Encrypted S3 bucket
+**Export audit:** `document.exported` events in `audit_log` record `{ renderProfile, actorId }` — no separate `document_exports` table in v1.
 
-### 10.2 Recovery Plan
+#### `esign_envelopes`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| generated_document_id | UUID FK | |
+| status | ENUM | draft, sent, in_progress, completed, voided, expired |
+| voided_reason | TEXT | |
+| sealed_blob_url | VARCHAR(500) | PAdES sealed PDF |
+| completed_at | TIMESTAMPTZ | |
 
-```bash
-# Restore from backup
-psql -U postgres -d mydb < backup_2026-01-05.sql
-```
+#### `esign_signatories`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| envelope_id | UUID FK | |
+| worker_id | UUID FK | nullable |
+| email | VARCHAR(255) | external signers |
+| signing_order | INT | |
+| status | ENUM | pending, viewed, signed, declined |
+| signed_at | TIMESTAMPTZ | |
+| signature_method | ENUM | draw, type, upload, manual_upload |
 
----
+#### `esign_fields`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| envelope_id | UUID FK | |
+| signatory_id | UUID FK | |
+| field_type | ENUM | signature, date, text, checkbox |
+| page_number | INT | |
+| position_json | JSONB | x, y, width, height |
+| value | TEXT | nullable until completed |
 
-## 11. CMS System Tables
-
-### 11.1 Analytics Configuration Tables
-
-#### analytics_configs
-Stores analytics platform tracking IDs and configurations.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| platform | ENUM | NOT NULL | Platform type (GTM, GA4, FACEBOOK_PIXEL, etc.) |
-| name | VARCHAR(255) | NOT NULL | User-friendly name |
-| trackingId | VARCHAR(255) | NOT NULL | Tracking ID (GTM-XXXXXX, G-XXXXXXXXXX, etc.) |
-| isActive | BOOLEAN | DEFAULT true | Enable/disable flag |
-| environment | ENUM | DEFAULT 'all' | Environment (production, staging, development, all) |
-| additionalConfig | JSONB | NULL | Platform-specific settings |
-| priority | INT | DEFAULT 0 | Loading order |
-| createdByUserId | UUID | FK → users(id) | Creator reference |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
-
-**Indexes**:
-- INDEX on `platform`, `isActive`
-- INDEX on `environment`
-
-#### site_verification
-Stores platform verification codes.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| platform | ENUM | NOT NULL, UNIQUE | Platform (GOOGLE, BING, YANDEX, etc.) |
-| verificationCode | VARCHAR(255) | NOT NULL | Verification code |
-| metaTag | TEXT | NULL | Full meta tag HTML |
-| isVerified | BOOLEAN | DEFAULT false | Verification status |
-| verifiedAt | TIMESTAMP | NULL | Verification timestamp |
-| lastChecked | TIMESTAMP | NULL | Last check timestamp |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-#### custom_scripts
-Stores custom HTML/JS snippets.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| name | VARCHAR(255) | NOT NULL | Script name |
-| scriptContent | TEXT | NOT NULL | Raw HTML/JS code |
-| position | ENUM | DEFAULT 'head-end' | Injection position |
-| targetPages | JSONB | NULL | Page targeting rules |
-| contentTypes | JSONB | NULL | Content type filters |
-| priority | INT | DEFAULT 0 | Loading order |
-| isActive | BOOLEAN | DEFAULT true | Enable/disable flag |
-| environment | ENUM | DEFAULT 'all' | Environment filter |
-| createdByUserId | UUID | FK → users(id) | Creator reference |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-#### feature_flags
-Stores feature toggle configurations.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| flagName | VARCHAR(100) | NOT NULL, UNIQUE | Flag identifier |
-| description | TEXT | NULL | Flag description |
-| isEnabled | BOOLEAN | DEFAULT false | Enable/disable state |
-| environment | ENUM | DEFAULT 'all' | Environment filter |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-### 11.2 Content Management Tables
-
-#### contents
-Stores all content types (blog, page, docs, changelog).
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| title | VARCHAR(255) | NOT NULL | Content title |
-| slug | VARCHAR(255) | NOT NULL, UNIQUE | URL-friendly slug |
-| content | TEXT | NOT NULL | Content body (Markdown/HTML) |
-| type | ENUM | NOT NULL | Content type (blog, page, docs, changelog) |
-| status | ENUM | DEFAULT 'draft' | Status (draft, review, published, archived) |
-| publishedAt | TIMESTAMP | NULL | Publication timestamp |
-| excerpt | VARCHAR(500) | NULL | Short description |
-| featuredImage | VARCHAR(500) | NULL | Featured image URL |
-| readingTime | INT | DEFAULT 0 | Reading time in minutes |
-| authorId | UUID | NOT NULL, FK → users(id) | Author reference |
-| categoryId | UUID | NULL, FK → categories(id) | Category reference |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
-
-**Indexes**:
-- INDEX on `type`, `status`
-- INDEX on `authorId`
-- INDEX on `categoryId`
-- INDEX on `publishedAt DESC`
-- COMPOSITE INDEX on `(status, publishedAt DESC)`
-
-#### categories
-Hierarchical category system.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| name | VARCHAR(255) | NOT NULL | Category name |
-| slug | VARCHAR(255) | NOT NULL, UNIQUE | URL-friendly slug |
-| description | TEXT | NULL | Category description |
-| parentId | UUID | NULL, FK → categories(id) | Parent category |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
-
-#### tags
-Content tagging system.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| name | VARCHAR(100) | NOT NULL, UNIQUE | Tag name |
-| slug | VARCHAR(100) | NOT NULL, UNIQUE | URL-friendly slug |
-| description | TEXT | NULL | Tag description |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
-
-#### content_tags
-Junction table for content-tag many-to-many relationship.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| contentId | UUID | FK → contents(id) | Content reference |
-| tagId | UUID | FK → tags(id) | Tag reference |
-
-**Primary Key**: (contentId, tagId)
-
-#### content_versions
-Content version history.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| contentId | UUID | NOT NULL, FK → contents(id) | Content reference |
-| title | VARCHAR(255) | NOT NULL | Version title |
-| contentData | TEXT | NOT NULL | Version content |
-| excerpt | VARCHAR(500) | NULL | Version excerpt |
-| metadata | JSONB | NULL | Version metadata |
-| versionNumber | VARCHAR(100) | NULL | Version identifier |
-| changeNote | TEXT | NULL | Change description |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-
-### 11.3 SEO Tables
-
-#### seo_metadata
-SEO metadata per content piece.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| contentId | UUID | NULL, FK → contents(id), UNIQUE | Content reference |
-| metaTitle | VARCHAR(255) | NULL | Meta title |
-| metaDescription | TEXT | NULL | Meta description |
-| metaKeywords | VARCHAR(500) | NULL | Meta keywords |
-| ogTitle | VARCHAR(255) | NULL | Open Graph title |
-| ogDescription | TEXT | NULL | Open Graph description |
-| ogImage | VARCHAR(500) | NULL | Open Graph image |
-| ogType | VARCHAR(50) | NULL | Open Graph type |
-| ogUrl | VARCHAR(255) | NULL | Open Graph URL |
-| ogSiteName | VARCHAR(100) | NULL | Open Graph site name |
-| twitterCard | VARCHAR(50) | NULL | Twitter card type |
-| twitterSite | VARCHAR(100) | NULL | Twitter site handle |
-| twitterCreator | VARCHAR(100) | NULL | Twitter creator handle |
-| twitterImage | VARCHAR(500) | NULL | Twitter image |
-| canonicalUrl | VARCHAR(500) | NULL | Canonical URL |
-| hreflang | JSONB | NULL | Hreflang mappings |
-| customMeta | JSONB | NULL | Custom meta tags |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-#### json_ld_schemas
-JSON-LD structured data schemas.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| schemaType | ENUM | NOT NULL | Schema type (Organization, Article, etc.) |
-| schemaData | JSONB | NOT NULL | Schema JSON data |
-| contentId | UUID | NULL, FK → contents(id) | Content reference |
-| isGlobal | BOOLEAN | DEFAULT false | Global vs content-specific |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-#### structured_data_templates
-Schema templates for auto-generation.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| schemaType | ENUM | NOT NULL | Schema type |
-| templateJSON | JSONB | NOT NULL | Template with placeholders |
-| contentTypeMapping | VARCHAR(100) | NULL | Content type mapping |
-| autoGenerate | BOOLEAN | DEFAULT false | Auto-apply flag |
-| isActive | BOOLEAN | DEFAULT true | Active flag |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-#### content_redirects
-URL redirect management.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| fromPath | VARCHAR(500) | NOT NULL, UNIQUE | Source path |
-| toPath | VARCHAR(500) | NOT NULL | Destination path |
-| type | ENUM | DEFAULT 301 | Redirect type (301, 302) |
-| isActive | BOOLEAN | DEFAULT true | Active flag |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-### 11.4 Media & Navigation Tables
-
-#### media
-Media library management.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| filename | VARCHAR(255) | NOT NULL | Original filename |
-| url | VARCHAR(500) | NOT NULL | Media URL (S3) |
-| mimeType | VARCHAR(100) | NULL | MIME type |
-| fileSize | BIGINT | NULL | File size in bytes |
-| width | INT | NULL | Image width |
-| height | INT | NULL | Image height |
-| altText | VARCHAR(500) | NULL | Alt text |
-| caption | TEXT | NULL | Caption |
-| title | VARCHAR(500) | NULL | Media title |
-| metadata | JSONB | NULL | Additional metadata |
-| uploadedByUserId | UUID | NOT NULL, FK → users(id) | Uploader reference |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
-
-#### navigation_menus
-Dynamic navigation menu management.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| name | VARCHAR(100) | NOT NULL | Menu name |
-| location | ENUM | NOT NULL | Menu location (header, footer, sidebar, mobile) |
-| items | JSONB | NOT NULL | Menu items structure |
-| locale | VARCHAR(10) | NULL | Locale filter |
-| isActive | BOOLEAN | DEFAULT true | Active flag |
-| order | INT | DEFAULT 0 | Display order |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-| deletedAt | TIMESTAMP | NULL | Soft delete timestamp |
-
-### 11.5 Geo-Targeting Tables
-
-#### geo_settings
-Geo-targeting configuration.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | Unique identifier |
-| countryCode | VARCHAR(10) | NOT NULL, UNIQUE | ISO country code |
-| languageCode | VARCHAR(10) | NOT NULL | ISO language code |
-| region | VARCHAR(50) | NULL | Region name |
-| timezone | VARCHAR(50) | NULL | Timezone |
-| currency | VARCHAR(10) | NULL | Currency code |
-| hreflangConfig | JSONB | NULL | Hreflang configuration |
-| regionalSchemaOverrides | JSONB | NULL | Schema overrides |
-| regionalAnalyticsOverrides | JSONB | NULL | Analytics overrides |
-| createdAt | TIMESTAMP | DEFAULT NOW | Creation timestamp |
-| updatedAt | TIMESTAMP | DEFAULT NOW | Update timestamp |
-
-**Indexes**:
-- UNIQUE INDEX on `countryCode`
-- INDEX on `languageCode`
-
-## ✅ Completion Checklist
-
-Before moving to the next document:
-
-- [x] ER diagram is complete and accurate
-- [x] All tables are defined with proper data types
-- [x] All relationships are documented (1:1, 1:N, N:M)
-- [x] Foreign keys are defined with ON DELETE behavior
-- [x] Indexes are planned for common queries
-- [x] Database is normalized to at least 3NF
-- [x] Constraints are defined (CHECK, UNIQUE, NOT NULL)
-- [x] Sample data is provided for reference
-- [x] Complete schema SQL is ready
+#### `esign_audit_events` (append-only)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| envelope_id | UUID FK | |
+| event_type | VARCHAR(50) | sent, viewed, signed, sealed, voided |
+| actor_id | UUID | |
+| ip_address | INET | |
+| user_agent | TEXT | |
+| metadata | JSONB | |
+| created_at | TIMESTAMPTZ | **No UPDATE/DELETE grants** |
 
 ---
 
-**Next Steps**:
+### 3.5 Payroll & finance
 
-1. **If you have an API**: Fill out `api-specification.md`
-2. **Continue to**: `system-architecture.md`
-3. **Generate schema**: Use AI to convert this to actual SQL migrations
+#### `currency_codes` (global reference)
+| Column | Type | Notes |
+|---|---|---|
+| code | CHAR(3) PK | ISO 4217 — PKR, AED, SGD, USD, EUR, GBP |
+| name | VARCHAR(100) | |
+| decimal_places | INT | |
+| symbol | VARCHAR(10) | |
 
+Read-only seed data. Not tenant-scoped.
+
+#### `tenant_currencies`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| currency_code | CHAR(3) FK | → currency_codes |
+| is_active | BOOLEAN | Inactive = no new records |
+| is_reporting_currency | BOOLEAN | Org-level reporting currency (one per tenant) |
+
+**Unique:** `(tenant_id, currency_code)`
+
+#### `exchange_rates`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| from_currency | CHAR(3) FK | |
+| to_currency | CHAR(3) FK | |
+| rate | DECIMAL(18,8) | |
+| rate_type | ENUM | spot, monthly_avg, budget |
+| effective_from | DATE | |
+| source | ENUM | frankfurter, manual_override, computed_avg |
+| status | ENUM | pending, active, superseded |
+| api_fetch_batch_id | UUID FK | nullable |
+| approved_by | UUID FK | nullable |
+
+**Unique:** `(tenant_id, from_currency, to_currency, rate_type, effective_from)`
+
+#### `exchange_rate_fetch_batches`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| fetched_at | TIMESTAMPTZ | |
+| source | VARCHAR(50) | frankfurter |
+| status | ENUM | success, partial, failed |
+| error_message | TEXT | nullable |
+
+#### `country_currency_configs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| country_code | CHAR(2) | |
+| default_currency | CHAR(3) FK | |
+| allowed_currencies | CHAR(3)[] | Array of enabled codes |
+
+**Unique:** `(tenant_id, country_code)`
+
+#### `pay_components`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| code | VARCHAR(50) | UK per tenant |
+| name | VARCHAR(100) | |
+| component_type | ENUM | earning, deduction, employer_contribution |
+| is_statutory | BOOLEAN | |
+
+#### `compensation_records`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| pay_component_id | UUID FK | |
+| amount | DECIMAL(15,2) | |
+| currency_code | CHAR(3) FK | |
+| pay_frequency | ENUM | monthly, hourly, daily |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+
+#### `benefit_types`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| code | VARCHAR(50) | UK per tenant |
+| name | VARCHAR(100) | |
+| category | VARCHAR(50) | |
+| country_code | CHAR(2) | nullable |
+| delivery_mode | ENUM | cash, non_cash, insurance |
+| affects_payroll | BOOLEAN | |
+| affects_tax | BOOLEAN | |
+
+#### `benefit_type_fields`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| benefit_type_id | UUID FK | |
+| field_code | VARCHAR(50) | |
+| field_type | ENUM | text, number, date, select |
+| validation_rules | JSONB | |
+
+#### `employee_benefits`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| benefit_type_id | UUID FK | |
+| field_values | JSONB | Dynamic field values |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+| status | ENUM | active, suspended, terminated |
+
+#### `statutory_rate_schedules`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| country_code | CHAR(2) | |
+| name | VARCHAR(100) | e.g. "PK EOBI 2026" |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+| status | ENUM | draft, active, superseded |
+
+#### `statutory_rate_entries`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| schedule_id | UUID FK | |
+| rate_key | VARCHAR(50) | e.g. eobi_employee, cpf_employer |
+| rate_value | DECIMAL(10,6) | |
+| rate_unit | ENUM | percentage, fixed_amount |
+
+#### `pay_runs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | Employer of record for this run |
+| country_code | CHAR(2) | |
+| period_start | DATE | |
+| period_end | DATE | |
+| status | ENUM | draft, review, approved, exported, locked |
+| functional_currency | CHAR(3) FK | From legal entity at run creation |
+| finance_export_profile_id | UUID FK | nullable |
+| approved_by | UUID FK | |
+| approved_at | TIMESTAMPTZ | |
+
+#### `pay_run_line_items`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | Denormalised from pay_run |
+| pay_run_id | UUID FK | |
+| worker_id | UUID FK | |
+| gross_pay | DECIMAL(15,2) | |
+| total_deductions | DECIMAL(15,2) | |
+| net_pay | DECIMAL(15,2) | |
+| currency_code | CHAR(3) FK | |
+| calculation_snapshot | JSONB | Immutable breakdown at calc time |
+| anomaly_flags | JSONB | zero_net, variance, etc. |
+| payment_reference | VARCHAR(100) | nullable — cross-border wire ref |
+| payment_value_date | DATE | nullable |
+| swift_uetr | VARCHAR(50) | nullable |
+| remittance_pack_id | UUID FK | nullable — link to `remittance_packs` |
+
+#### `payslips`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| pay_run_line_item_id | UUID FK | |
+| worker_id | UUID FK | |
+| period_start | DATE | |
+| period_end | DATE | |
+| net_pay | DECIMAL(15,2) | |
+| currency_code | CHAR(3) FK | |
+| pdf_blob_url | VARCHAR(500) | |
+| released_at | TIMESTAMPTZ | nullable — null until Finance releases |
+| status | ENUM | draft, released |
+
+#### `contractor_invoices`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | Paying entity |
+| worker_id | UUID FK | contractor |
+| invoice_number | VARCHAR(50) | UK per tenant |
+| invoice_date | DATE | |
+| due_date | DATE | |
+| currency_code | CHAR(3) FK | |
+| gross_amount | DECIMAL(15,2) | |
+| status | ENUM | draft, submitted, approved, paid, rejected |
+| pdf_blob_url | VARCHAR(500) | |
+
+**Unique:** `(tenant_id, invoice_number)`
+
+#### `contractor_invoice_line_items`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| invoice_id | UUID FK | |
+| description | TEXT | |
+| quantity | DECIMAL(10,2) | |
+| unit_price | DECIMAL(15,2) | |
+| amount | DECIMAL(15,2) | |
+
+#### `contractor_payment_batches`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| period_start | DATE | |
+| period_end | DATE | |
+| status | ENUM | draft, review, approved, exported, locked |
+| total_amount | DECIMAL(15,2) | |
+| currency_code | CHAR(3) FK | |
+| approved_by | UUID FK | |
+| approved_at | TIMESTAMPTZ | |
+
+#### `contractor_payment_lines`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| batch_id | UUID FK | |
+| invoice_id | UUID FK | |
+| worker_id | UUID FK | |
+| amount | DECIMAL(15,2) | |
+| withholding_tax | DECIMAL(15,2) | nullable |
+| payment_reference | VARCHAR(100) | nullable — bank transfer ref |
+| payment_value_date | DATE | nullable |
+| swift_uetr | VARCHAR(50) | nullable |
+| paid_at | TIMESTAMPTZ | nullable |
+
+#### `remittance_corridor_configs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| payer_country_code | CHAR(2) | Legal entity country |
+| beneficiary_bank_country_code | CHAR(2) | Worker bank country |
+| legal_entity_id | UUID FK | nullable — entity-specific override |
+| applies_to | ENUM | all, employee_payroll, contractor_invoice |
+| required_doc_types | JSONB | Per corridor checklist |
+| is_active | BOOLEAN | |
+| effective_from | DATE | |
+
+#### `remittance_packs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| payment_source_type | ENUM | pay_run_line, contractor_payment_line |
+| payment_source_id | UUID FK NOT NULL | |
+| invoice_id | UUID FK | nullable — contractors only |
+| pay_run_id | UUID FK | nullable — employees only |
+| corridor_config_id | UUID FK | |
+| status | ENUM | assembling, partial, complete, incomplete |
+| payment_reference | VARCHAR(100) | |
+| completed_at | TIMESTAMPTZ | nullable |
+
+#### `remittance_pack_documents`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| pack_id | UUID FK NOT NULL | |
+| document_type | ENUM | payslip_pdf, invoice_pdf, signed_employment_contract, signed_sow, signed_contract, salary_confirmation_letter, payment_advice, withholding_certificate, swift_copy, bank_payment_proof, wire_confirmation, tax_remit_form, other_supporting |
+| source | ENUM | auto, finance_upload, contractor_upload, generated |
+| blob_id | UUID FK | |
+| status | ENUM | available, pending, rejected |
+| uploaded_by | UUID FK | nullable |
+| uploaded_at | TIMESTAMPTZ | |
+
+#### `pay_run_export_batches`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK NOT NULL | |
+| pay_run_id | UUID FK | nullable |
+| contractor_payment_batch_id | UUID FK | nullable |
+| export_profile_id | UUID FK | |
+| file_format | ENUM | xlsx, csv, pdf |
+| blob_url | VARCHAR(500) | |
+| exported_by | UUID FK | |
+| exported_at | TIMESTAMPTZ | |
+
+---
+
+### 3.6 Operations & talent
+
+All tables: **`tenant_id UUID FK NOT NULL`** on every row. Financial records also carry **`legal_entity_id`** where noted.
+
+#### `expense_claims`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK | nullable until approved for payroll/export |
+| worker_id | UUID FK | |
+| category | ENUM | travel, food, medical, general |
+| amount | DECIMAL(15,2) | |
+| currency_code | CHAR(3) FK | |
+| status | ENUM | draft, submitted, approved, rejected, paid |
+| submitted_at | TIMESTAMPTZ | |
+
+#### `expense_claim_lines` — `tenant_id` + `expense_claim_id`
+#### `expense_policies` — `tenant_id` + country-scoped limits
+
+#### `travel_requests` — `tenant_id` + `worker_id` + approval workflow
+#### `travel_itineraries` — `tenant_id` + `travel_request_id`
+
+#### `help_desk_tickets`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| requester_id | UUID FK | worker |
+| queue | ENUM | hr, it, admin, finance |
+| subject | VARCHAR(255) | |
+| status | ENUM | open, in_progress, resolved, closed |
+| sla_due_at | TIMESTAMPTZ | |
+
+#### `ticket_comments` — `tenant_id` + `ticket_id`
+
+#### `onboarding_templates` — `tenant_id` + employment_type + country scope
+#### `onboarding_instances` — `tenant_id` + `worker_id`
+#### `onboarding_tasks` — `tenant_id` + `onboarding_instance_id`
+
+#### `separations` — `tenant_id` + `worker_id` + clearance status
+#### `clearance_tasks` — `tenant_id` + `separation_id` + department owner
+
+#### `job_requisitions` — `tenant_id` + division scope
+#### `candidates` — `tenant_id` + `requisition_id`
+
+#### `pre_boarding_packets`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | Profile in `pre_boarding` status |
+| candidate_id | UUID FK | nullable — when from recruitment |
+| personal_email | VARCHAR(255) | Distinct from future work email |
+| status | ENUM | draft, invited, in_progress, submitted, under_review, approved, complete, cancelled |
+| consent_at | TIMESTAMPTZ | Pre-employment data processing consent |
+| consent_ip | INET | |
+| template_version_id | UUID FK | Country × employment type field manifest |
+| submitted_at | TIMESTAMPTZ | |
+| merged_at | TIMESTAMPTZ | When auto-merged to worker profile |
+| correlation_id | UUID | End-to-end trace |
+
+#### `pre_boarding_field_values`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| packet_id | UUID FK NOT NULL | |
+| field_key | VARCHAR(100) | e.g. `bank_iban`, `tax_id`, `passport_number`, `previous_visa_status`, `previous_pass_type` |
+| value_encrypted | BYTEA | AES-256 for bank/tax; plaintext for non-sensitive where configured |
+| attachment_blob_id | UUID FK | nullable — ID document uploads |
+
+#### `entra_provisioning_jobs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| scheduled_for | TIMESTAMPTZ | `start_date − N days` |
+| status | ENUM | scheduled, running, succeeded, failed, cancelled |
+| work_email | VARCHAR(255) | Generated UPN |
+| entra_object_id | VARCHAR(255) | Set on success |
+| graph_correlation_id | UUID | Per Graph API call chain |
+| attempt_count | INT | Max 3 retries |
+| last_error | TEXT | No secrets |
+| completed_at | TIMESTAMPTZ | |
+
+#### `interview_scorecards` — `tenant_id` + `candidate_id`
+
+#### `performance_cycles` — `tenant_id`
+#### `performance_goals` — `tenant_id` + `worker_id` + `cycle_id`
+#### `performance_reviews` — `tenant_id` + `worker_id` + `cycle_id`
+
+#### `training_courses` — `tenant_id`
+#### `training_assignments` — `tenant_id` + `worker_id` + `course_id`
+#### `training_completions` — `tenant_id` + `assignment_id`
+
+#### `manpower_plans` — `tenant_id` + division scope
+#### `manpower_positions` — `tenant_id` + `plan_id`
+
+#### `alert_rules` — `tenant_id` + condition JSON
+#### `scheduled_report_subscriptions` — `tenant_id` + report type + cadence
+#### `compliance_alerts` — `tenant_id` + `worker_id` + alert type
+
+#### `office_locations`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| name | VARCHAR(100) | e.g. "Karachi Hub", "Dubai Office" |
+| country_code | CHAR(2) | |
+| address | TEXT | |
+| latitude | DECIMAL(10,7) | Geofence centre |
+| longitude | DECIMAL(10,7) | |
+| geofence_radius_m | INT | |
+| ip_allowlist | INET[] | Optional IP ranges for in-office match |
+
+#### `country_configs`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| country_code | CHAR(2) | PK, AE, SG |
+| config_json | JSONB | Leave law defaults, statutory refs, date formats |
+| is_active | BOOLEAN | |
+
+**Unique:** `(tenant_id, country_code)`
+
+---
+
+### 3.7 Auth & RBAC
+
+#### `users` (Better Auth managed + extensions)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | User belongs to one tenant (v1) |
+| email | VARCHAR(255) | UK per tenant |
+| auth_provider | ENUM | entra, email_password, magic_link |
+| worker_id | UUID FK | nullable — linked worker profile |
+| created_at | TIMESTAMPTZ | |
+
+Supports dual auth paths. Multi-tenant users (same email, different tenants) deferred — email UK is per tenant.
+
+#### `roles`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| code | VARCHAR(50) | UK per tenant — employee, manager, finance, etc. |
+| name | VARCHAR(100) | |
+| is_system | BOOLEAN | Seeded roles vs custom |
+
+**Unique:** `(tenant_id, code)`
+
+#### `user_role_assignments`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| user_id | UUID FK | |
+| role_id | UUID FK | |
+| scope_type | ENUM | own, team, division, all |
+| scope_id | UUID | nullable — division_id when scope_type = division |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+| assigned_by | UUID FK | audit |
+| created_at | TIMESTAMPTZ | |
+
+---
+
+## 4. Indexes strategy
+
+**Rule:** All composite indexes **lead with `tenant_id`** for partition-friendly queries and RLS performance.
+
+| Table | Index | Purpose |
+|---|---|---|
+| All tenant tables | `(tenant_id, id)` | Primary lookup within tenant |
+| workers | `(tenant_id, email)` UNIQUE | Login lookup |
+| workers | `(tenant_id, employee_number)` UNIQUE | HR reference |
+| workers | `(tenant_id, status, country_code)` | Directory filters |
+| workers | `(tenant_id, legal_entity_id)` | Entity-scoped reports |
+| leave_requests | `(tenant_id, worker_id, status)` | Hub inbox |
+| leave_requests | `(tenant_id, approver_id, status)` | Manager approvals |
+| attendance_punches | `(tenant_id, worker_id, punched_at)` | Daily summary |
+| generated_documents | `(tenant_id, worker_id, status)` | Document list |
+| pay_runs | `(tenant_id, legal_entity_id, period_start)` | Finance dashboard |
+| pay_run_line_items | `(tenant_id, pay_run_id)` | Run drill-down |
+| contractor_invoices | `(tenant_id, worker_id, status)` | Contractor portal |
+| audit_log | `(tenant_id, entity_type, entity_id)` | Profile history |
+| audit_log | `(tenant_id, created_at)` | Compliance export |
+| exchange_rates | `(tenant_id, from_currency, to_currency, effective_from)` | Rate lookup |
+| esign_audit_events | `(tenant_id, envelope_id, created_at)` | Certificate of completion |
+| user_role_assignments | `(tenant_id, user_id, effective_from)` | Access review export |
+| policy_acknowledgements | `(tenant_id, policy_version_id)` | Compliance dashboard |
+
+---
+
+## 5. Data classification & retention
+
+Per [iso-soc-framework.md](../compliance/iso-soc-framework.md) §5:
+
+| Class | Tables | Retention |
+|---|---|---|
+| Internal | leave_balances, attendance_punches | 5 years post-departure |
+| Confidential | compensation_records, worker_statutory_ids (bank) | 5 years post-departure |
+| Restricted legal | esign_audit_events, exit interview data | 5 years (extend on legal hold) |
+| Authentication | Better Auth tables | Per auth TTL policy |
+
+**Archival:** `workers.status = archived` + `deleted_at` set; no hard delete of compliance records.
+
+---
+
+## 6. Migration strategy
+
+1. TypeORM migrations in `backend/src/database/migrations/`
+2. **First migration:** `tenants` table + seed Digitaro tenant
+3. **Every subsequent migration:** include `tenant_id NOT NULL` on all new tables; FK → `tenants(id)` with `ON DELETE RESTRICT`
+4. **RLS policies:** enable PostgreSQL row-level security on all tenant-scoped tables; set `app.current_tenant_id` per request in NestJS middleware
+5. Seed scripts scoped by tenant: employment types, PK/UAE/SG holidays, currencies, benefit packs, document templates, roles, legal entities
+6. Setup wizard populates tenant config on first run (UX spec §7)
+7. ERD auto-generated via `pnpm erd:generate` (starter kit script)
+
+### TypeORM entity base class
+
+All tenant-scoped entities extend a shared base:
+
+```typescript
+abstract class TenantScopedEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'uuid' })
+  @Index()
+  tenantId: string;
+
+  @ManyToOne(() => Tenant, { onDelete: 'RESTRICT' })
+  tenant: Tenant;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+}
+```
+
+Financial entities additionally carry `legalEntityId` via `LegalEntityScopedEntity extends TenantScopedEntity`.
+
+---
+
+## 7. Normalization notes
+
+- **3NF** on core relational data
+- **`tenant_id` denormalised** on all child tables — intentional for RLS performance and query safety; validated on insert that parent.tenant_id matches
+- **`legal_entity_id` denormalised** on pay_run_line_items, payslips, contractor_payment_lines — snapshot from parent at creation
+- **JSONB** for dynamic benefit fields, employment-type config extensions, merge field snapshots — validated at app layer
+- **Denormalized snapshots:** `generated_documents.merge_data`, `pay_run_line_items.calculation_snapshot` — immutable at point of generation/approval
+- **Global reference only:** `currency_codes` (ISO 4217) — all usage via `tenant_currencies`
+
+---
+
+## 8. Related documents
+
+- [prd.md](./prd.md) §10 — original entity list (canonical names)
+- [api-specification.md](./api-specification.md) — API contracts per entity
+- [../compliance/iso-soc-framework.md](../compliance/iso-soc-framework.md) §5–6 — retention and evidence catalogue

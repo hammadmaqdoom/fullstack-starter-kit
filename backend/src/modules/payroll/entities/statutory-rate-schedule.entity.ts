@@ -12,7 +12,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { StatutoryScheduleStatus } from '../enums/payroll.enum';
-import { StatutoryRateEntryEntity } from './statutory-rate-entry.entity';
+import type { StatutoryRateEntryEntity } from './statutory-rate-entry.entity';
 
 @Entity('statutory_rate_schedules')
 @Index('IDX_statutory_rate_schedules_scope', [
@@ -59,7 +59,8 @@ export class StatutoryRateScheduleEntity {
   })
   status: StatutoryScheduleStatus;
 
-  @OneToMany(() => StatutoryRateEntryEntity, (entry) => entry.schedule)
+  /** Inverse side — string relation name avoids circular import with rate-entry entity. */
+  @OneToMany('StatutoryRateEntryEntity', 'schedule')
   entries?: StatutoryRateEntryEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })

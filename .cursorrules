@@ -1,147 +1,58 @@
 ---
-description: Fullstack Starter Kit - AI Agent Rules
+description: Polaris HRMS - AI Agent Rules
 globs:
 alwaysApply: true
 ---
 
-# Cursor Rules - Fullstack Starter Kit
+# Cursor Rules — Polaris (Digitaro HRMS)
 
-> **👋 New to this project?** Read `ai-config/START-HERE-AI-AGENTS.md` first (5 min) to get up to speed quickly!
+> New agent? Read `ai-config/START-HERE-AI-AGENTS.md` (5 min), then `AGENTS.md`.
 
-## 🎯 Project Type
+## What this is
 
-This is a **fullstack starter kit** for building any type of software project:
-- **Frontend**: Next.js 16 (App Router) + TypeScript + Tailwind CSS 4
-- **Backend**: NestJS 10 + TypeORM + PostgreSQL + Better Auth
-- **Documentation**: Specification-driven development system
+**Polaris** — Digitaro's internal HR platform (~100–200 workers, PK/UAE/SG). Repo: `hrms`. Not a generic starter kit.
 
-## 🚀 Quick Start Path
+- **Frontend:** Next.js 16, PrimeReact, Tailwind 4, Lucide icons, Better Auth + Entra OIDC
+- **Backend:** NestJS 10 modular monolith, TypeORM, PostgreSQL, Redis, BullMQ
+- **Specs:** `docs/` is canonical — implement from there, not `local-docs/`
 
-**For AI Agents new to this project:**
-1. Read `ai-config/START-HERE-AI-AGENTS.md` (5 min) - Get context quickly
-2. Read `AGENTS.md` (10 min) - Comprehensive guidelines
-3. Read folder-specific `AGENTS.md` (15 min) - Detailed patterns
-4. Check `docs/project-requirements/` - Feature requirements
+## Before any feature
 
-## 📋 Primary Rule: Requirements-First Development
+1. `docs/generated/tasks.md` — current phase (Phase 0 now)
+2. `docs/project-requirements/prd.md` §6.x — functional detail
+3. `docs/compliance/feature-flows.md` — FLW-* controls (mandatory)
+4. Folder `AGENTS.md` — backend / frontend / docs patterns
+5. Build plan: `docs/superpowers/plans/2026-07-03-polaris-build-plan.md`
 
-**ALWAYS** check `docs/project-requirements/` before implementing features.
-**NEVER** implement features without documented requirements.
+**Never implement undocumented features.** Never hard-code country logic (`if country === 'PK'`).
 
-If requirements are missing, ask the user to define them first.
+## Critical rules
 
-## 📁 Context-Aware Rules
+| Rule | Detail |
+|---|---|
+| Auth | Better Auth + **Entra OIDC** (employees) + email (contractors). NOT NextAuth |
+| API | `/api/v1/`, envelope `{ data, meta, errors }`, every mutation → `audit_log` |
+| RBAC | Row scope (own/team/division/all) + field redaction server-side |
+| Country | Config tables only — `employment_type_country_configs` |
+| UX | Status tracker on workflows; Hub as inbox; one-tap check-in; 5 UI states |
+| Icons | Lucide React only — no emoji, Heroicons, react-icons |
+| Phase | No Phase 2 (payroll) during Phase 0/1 unless asked |
+| Language | **English only** — all UI strings in `locales/en.json`; do not edit `ar.json`/`fr.json`; no RTL |
 
-When working in a specific folder, **READ** the local `AGENTS.md`:
+## Explicit exclusions
 
-- **Root level**: Read `AGENTS.md` (general project rules)
-- **Backend**: Read `backend/AGENTS.md` (NestJS-specific rules)
-- **Frontend**: Read `frontend/AGENTS.md` (Next.js-specific rules)
-- **Documentation**: Read `docs/AGENTS.md` (documentation standards)
+Xero API, Capacitor/native wrapper, non-English UI locales, QES e-sign, statutory remittance portals, WhatsApp Business API.
 
-## 🚨 Critical Rules
+## Workflow
 
-### 1. Tech Stack Awareness
-- **Frontend**: Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Better Auth client
-- **Backend**: NestJS 10, TypeORM, PostgreSQL, Redis, Better Auth server
-- **NEVER** suggest alternative frameworks unless explicitly requested
-- **ALWAYS** use existing patterns and conventions
+Requirements → compliance flow → backend (entity, migration, service, controller, test) → frontend (ui-spec + wireframe) → verify user stories → check off `tasks.md`.
 
-### 2. Better Auth (NOT NextAuth)
-- This project uses **Better Auth** for authentication
-- Backend: Better Auth server integration
-- Frontend: Better Auth client
-- **NEVER** reference or suggest NextAuth
+## Commits
 
-### 3. Code Quality
-- **TypeScript**: Strict mode, no `any` types
-- **Linting**: Fix ESLint errors before committing
-- **Testing**: Write tests for new features
-- **Documentation**: Update docs when needed
+Conventional Commits: `feat(core-hr): add worker CRUD with audit log`
 
-### 4. File Naming
-- **Backend**: `*.controller.ts`, `*.service.ts`, `*.entity.ts`, `*.dto.ts`
-- **Frontend**: `page.tsx`, `layout.tsx`, `PascalCase.tsx` for components
-- **Documentation**: `kebab-case.md`
+## Key paths
 
-### 5. Never Do
-- ❌ Implement undocumented features
-- ❌ Change tech stack without approval
-- ❌ Break authentication flow
-- ❌ Ignore TypeScript errors
-- ❌ Skip writing tests
-- ❌ Commit without linting
-
-## 🔍 Before Making Changes
-
-1. **Check Requirements**: Is this in `docs/project-requirements/`?
-2. **Check Design Specs**: (Frontend) Is UI in `docs/design-specs/`?
-3. **Check Patterns**: Are there similar implementations?
-4. **Check Local Rules**: Read folder-specific `AGENTS.md`
-5. **Check Tests**: Do existing tests need updates?
-
-## 📚 Key Documentation
-
-- `AGENTS.md` - Comprehensive AI agent guidelines (READ THIS)
-- `ai-config/START-HERE-AI-AGENTS.md` - Quick start for AI agents
-- `ai-config/AI-QUICK-REFERENCE.md` - Quick reference card
-- `docs/GETTING-STARTED.md` - Project walkthrough
-- `docs/PROMPTS.md` - AI prompts for development
-- `INTEGRATION-GUIDE.md` - Frontend-backend integration
-- `BACKEND-SETUP.md` - Backend setup guide
-- `FRONTEND-SETUP.md` - Frontend setup guide
-
-## 🎨 Style Guide Governance
-
-If a design system exists in `docs/design-specs/design-system.md`:
-- It is the authoritative design system
-- When implementing, follow the design system
-- If implementation diverges:
-  1. If new approach is better, keep it
-  2. Update design system to match
-  3. Document what changed and why
-
-Never silently diverge from documented design specifications.
-
-## 🔐 Security
-
-- **NEVER** commit `.env` files
-- **ALWAYS** validate user input
-- **NEVER** expose sensitive data
-- **ALWAYS** use Better Auth for authentication
-
-## 🧪 Testing
-
-- **Backend**: Jest (unit + e2e tests)
-- **Frontend**: Vitest (unit) + Playwright (e2e)
-- **ALWAYS** write tests for new features
-
-## 📝 Git Commits
-
-Follow Conventional Commits:
-```
-feat: add user profile page
-fix: resolve authentication redirect loop
-docs: update API documentation
-refactor: simplify user service
-test: add tests for user controller
-```
-
-## 🚀 Workflow
-
-1. **Requirements** → Check `docs/project-requirements/`
-2. **Design** → Check `docs/design-specs/` (if frontend)
-3. **Implement** → Follow patterns in `backend/` or `frontend/`
-4. **Test** → Write and run tests
-5. **Document** → Update docs if needed
-
-## 📞 Getting Help
-
-1. Read `AGENTS.md` in current folder
-2. Check `docs/GETTING-STARTED.md`
-3. Review `INTEGRATION-GUIDE.md` for integration issues
-4. Ask user for clarification
-
----
-
-**For detailed guidelines, read `AGENTS.md` in the root folder and folder-specific `AGENTS.md` files.**
+- `backend/src/modules/` — HR bounded contexts (to be created)
+- `frontend/src/app/[locale]/(auth)/` — authenticated app
+- `docs/design-specs/ui-specifications/` — per-role screens

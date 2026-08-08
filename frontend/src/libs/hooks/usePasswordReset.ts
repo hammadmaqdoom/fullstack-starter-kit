@@ -87,15 +87,28 @@ export function usePasswordReset() {
     setError(null);
 
     try {
-      // Better Auth uses requestPasswordReset for requesting password reset
-      // Try requestPasswordReset first, fallback to forgetPassword if it exists
-      const result = await (authClient as any).requestPasswordReset?.({
-        email: data.email,
-        redirectTo: data.redirectTo,
-      }) || await (authClient as any).forgetPassword?.({
-        email: data.email,
-        redirectTo: data.redirectTo,
-      });
+      // better-auth@1.2.x exposes /forget-password (Nest backend). Prefer that
+      // over requestPasswordReset (/request-password-reset) which is 1.4+.
+      const client = authClient as {
+        forgetPassword?: (args: ForgetPasswordData) => Promise<{
+          data: unknown;
+          error: { message?: string } | null;
+        }>;
+        requestPasswordReset?: (args: ForgetPasswordData) => Promise<{
+          data: unknown;
+          error: { message?: string } | null;
+        }>;
+      };
+
+      const result =
+        (await client.forgetPassword?.({
+          email: data.email,
+          redirectTo: data.redirectTo,
+        })) ??
+        (await client.requestPasswordReset?.({
+          email: data.email,
+          redirectTo: data.redirectTo,
+        }));
 
       if (!result) {
         throw new Error('Password reset method not available on auth client');

@@ -81,7 +81,9 @@
   "exclude": [
     "node_modules",
     "**/*.spec.ts",
-    "**/*.e2e.ts"
+    "**/*.e2e.ts",
+    "vitest.config.mts",
+    ".storybook/**"
   ],
   "include": [
     "next-env.d.ts",

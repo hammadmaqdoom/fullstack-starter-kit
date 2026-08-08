@@ -19,9 +19,13 @@ export class CmsSeed1748200000000 implements Seeder {
       const contentRepository = transactionManager.getRepository(ContentEntity);
 
       // Get admin user (created by initial seed)
-      const adminUser = await userRepository.findOne({
-        where: { email: 'admin@admin.com' },
-      });
+      const adminUser =
+        (await userRepository.findOne({
+          where: { email: 'admin@digitaro.co' },
+        })) ??
+        (await userRepository.findOne({
+          where: { email: 'admin@admin.com' },
+        }));
 
       if (!adminUser) {
         console.warn('Admin user not found. Run initial seed first.');

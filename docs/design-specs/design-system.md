@@ -1,394 +1,212 @@
-# Design System
+# Polaris — Design System (PrimeReact)
 
-> **INSTRUCTIONS**: This is your single source of truth for all design decisions. Define colors, typography, spacing, and component patterns. Be as specific as possible with hex codes, pixel values, and exact specifications.
+**Product:** Polaris
+**Canonical spec:** [ux-design-specs.md](./ux-design-specs.md)
+**Setup & theming:** [primereact-setup.md](./primereact-setup.md)
+**Screen specs:** [ui-specifications/](./ui-specifications/)
+**Last updated:** 30 June 2026
 
----
-
-## 1. Color Palette
-
-### Primary Colors
-
-**Primary** (Main brand color):
-- 50: `#[hex]` - Lightest
-- 100: `#[hex]`
-- 200: `#[hex]`
-- 300: `#[hex]`
-- 400: `#[hex]`
-- 500: `#[hex]` - Base color
-- 600: `#[hex]`
-- 700: `#[hex]`
-- 800: `#[hex]`
-- 900: `#[hex]` - Darkest
-
-**Example (Blue)**:
-- 50: `#EFF6FF`
-- 100: `#DBEAFE`
-- 200: `#BFDBFE`
-- 300: `#93C5FD`
-- 400: `#60A5FA`
-- 500: `#3B82F6` ← Base
-- 600: `#2563EB`
-- 700: `#1D4ED8`
-- 800: `#1E40AF`
-- 900: `#1E3A8A`
-
-### Secondary Colors
-
-**Secondary**:
-- 500: `#[hex]` - Base color
-- (Add shades if needed)
-
-### Accent Colors
-
-**Accent** (Call-to-action color):
-- 500: `#[hex]`
-
-### Neutral Colors
-
-**Gray** (Text, borders, backgrounds):
-- 50: `#[hex]` - Lightest background
-- 100: `#[hex]` - Light background
-- 200: `#[hex]` - Border light
-- 300: `#[hex]` - Border
-- 400: `#[hex]` - Border dark
-- 500: `#[hex]` - Disabled text
-- 600: `#[hex]` - Secondary text
-- 700: `#[hex]` - Body text
-- 800: `#[hex]` - Heading text
-- 900: `#[hex]` - Darkest text
-
-### Semantic Colors
-
-**Success** (Green):
-- Base: `#10B981`
-- Light: `#D1FAE5`
-- Dark: `#065F46`
-
-**Warning** (Yellow):
-- Base: `#F59E0B`
-- Light: `#FEF3C7`
-- Dark: `#92400E`
-
-**Error** (Red):
-- Base: `#EF4444`
-- Light: `#FEE2E2`
-- Dark: `#991B1B`
-
-**Info** (Blue):
-- Base: `#3B82F6`
-- Light: `#DBEAFE`
-- Dark: `#1E40AF`
-
-### Background Colors
-
-- **Page Background**: `#[hex]` (e.g., `#FFFFFF` or `#F9FAFB`)
-- **Card Background**: `#[hex]` (e.g., `#FFFFFF`)
-- **Hover Background**: `#[hex]` (e.g., `#F3F4F6`)
+> This file defines design tokens and the **component library** for Polaris. The UI is built on **PrimeReact (Styled mode)** themed with a custom Digitaro preset; **Tailwind CSS 4** handles layout; **Lucide React** is the app icon set. Full screen specs are in [ui-specifications/](./ui-specifications/).
 
 ---
 
-## 2. Typography
+## Design philosophy
 
-### Font Families
+Polaris optimises for the **95% of human-hours** spent by ordinary employees — not the admin who configures the system. Three governing principles:
 
-**Headings**:
-- Font: [Font Name] (e.g., "Inter", "Poppins", "Satoshi")
-- Weights: 600 (Semibold), 700 (Bold)
-- Google Fonts: `https://fonts.google.com/specimen/[FontName]`
+1. **The common path is one action** — daily tasks cost one click/tap.
+2. **Depth is earned, not displayed** — power lives one layer down.
+3. **It should feel human** — warmth and delight are features.
 
-**Body**:
-- Font: [Font Name] (e.g., "Inter", "System UI")
-- Weights: 400 (Regular), 500 (Medium), 600 (Semibold)
-
-**Monospace** (Code):
-- Font: [Font Name] (e.g., "Fira Code", "JetBrains Mono")
-- Weight: 400 (Regular)
-
-### Font Sizes
-
-| Element | Size | Line Height | Weight |
-|---------|------|-------------|--------|
-| **H1** | 48px (3rem) | 1.2 | 700 |
-| **H2** | 36px (2.25rem) | 1.3 | 700 |
-| **H3** | 30px (1.875rem) | 1.3 | 600 |
-| **H4** | 24px (1.5rem) | 1.4 | 600 |
-| **H5** | 20px (1.25rem) | 1.4 | 600 |
-| **H6** | 18px (1.125rem) | 1.4 | 600 |
-| **Body Large** | 18px (1.125rem) | 1.6 | 400 |
-| **Body** | 16px (1rem) | 1.6 | 400 |
-| **Body Small** | 14px (0.875rem) | 1.5 | 400 |
-| **Caption** | 12px (0.75rem) | 1.4 | 400 |
-
-### Text Colors
-
-- **Heading**: Gray-900 `#[hex]`
-- **Body**: Gray-700 `#[hex]`
-- **Secondary**: Gray-600 `#[hex]`
-- **Disabled**: Gray-400 `#[hex]`
-- **Link**: Primary-600 `#[hex]`
-- **Link Hover**: Primary-700 `#[hex]`
+How this shapes component choices: prefer the *simplest* PrimeReact component that does the job; lean on smart defaults and `value`/`onChange` controlled inputs; reserve heavy components (`DataTable`, `Stepper`, `Chart`) for admin/finance depth, never the employee daily path.
 
 ---
 
-## 3. Spacing System
+## Brand tokens
 
-**Base Unit**: 4px
+Source: **Digitaro brand refresh** (updated typeface + palette; logo mark retained). Implemented as a PrimeReact theme preset — see [primereact-setup.md §4](./primereact-setup.md).
 
-**Spacing Scale**:
-- `xs`: 4px (0.25rem)
-- `sm`: 8px (0.5rem)
-- `md`: 12px (0.75rem)
-- `lg`: 16px (1rem)
-- `xl`: 24px (1.5rem)
-- `2xl`: 32px (2rem)
-- `3xl`: 48px (3rem)
-- `4xl`: 64px (4rem)
-- `5xl`: 96px (6rem)
+| Token group | Rule | PrimeReact theme token |
+|---|---|---|
+| **Typeface** | Digitaro refresh primary; display weight for headers, readable text weight, tabular figures for numbers | `--p-font-family`; tabular nums via Tailwind `tabular-nums` |
+| **Colour — brand** | Primary, secondary, accent from refreshed palette | `semantic.primary.*`, custom `secondary`/`accent` |
+| **Colour — semantic** | Success, Warning, Danger, Info, Neutral surfaces | `--color-success/warning/danger/info`, `--p-surface-*` |
+| **Colour — status** | In = green, Out = neutral, On leave = amber, Missing punch = red, Pending = blue | `--status-in/out/on-leave/missing/pending` |
+| **Spacing** | 4px base scale: 4 / 8 / 12 / 16 / 24 / 32 | Tailwind scale (`gap-1`…`gap-8`) |
+| **Radius** | Soft, consistent — friendly not corporate-sharp | `borderRadius.sm/md/lg` = 6/10/16px |
+| **Elevation** | Minimal purposeful shadows; depth via layering | theme shadow tokens; avoid heavy drop-shadows |
 
-**Usage**:
-- **Component Padding**: 16px (lg) or 24px (xl)
-- **Section Padding**: 48px (3xl) or 64px (4xl)
-- **Element Spacing**: 8px (sm) or 12px (md)
-- **Section Spacing**: 96px (5xl) between major sections
+**Themes:** Light at launch (default). Dark mode deferred — `colorScheme.dark` reserved in the preset, toggled via `.app-dark` selector for the future fast-follow.
+
+> Token definitions, the `definePreset` theme, and the CSS-variable bridge to Tailwind live in [primereact-setup.md §4–5](./primereact-setup.md). This avoids drift between two files — the theme file is the implementation; this table is the contract.
 
 ---
 
-## 4. Border Radius
+## Component library — Polaris core → PrimeReact
 
-- **None**: 0px
-- **Small**: 4px (buttons, inputs)
-- **Medium**: 8px (cards, modals)
-- **Large**: 12px (large cards)
-- **XL**: 16px (feature cards)
-- **Full**: 9999px (pills, avatars)
+The UX spec (§3.2) names a small set of **core components built once, used everywhere**. Each maps to a PrimeReact component (used directly or composed). Bespoke ones are built headless — see [ui-specifications/shared-components.md](./ui-specifications/shared-components.md).
+
+| Polaris core component (UX §3.2) | Built with | Bucket |
+|---|---|---|
+| **Card** (request / person / day card) | `Card` + `Tag` + `Button` → composed `RequestCard`, `PersonCard`, `DayCard` | Composed |
+| **Status chip** | `Tag` (severity mapped to status colour) → `StatusChip` | Composed |
+| **Status tracker** (horizontal stepper) | **Bespoke** (`@primereact/hooks`) or `Stepper` (read-only) → `StatusTracker` | Bespoke |
+| **Bottom sheet** (mobile) | `Drawer` (`position="bottom"`) → `ActionSheet` | Composed |
+| **Right panel / dialog** (desktop) | `Drawer` (`position="right"`) / `Dialog` | Direct |
+| **Swipe-action row** | **Bespoke** (`@primereact/hooks` + touch) → `SwipeRow` | Bespoke |
+| **Avatar + presence dot** | `Avatar` + `Badge`/overlay dot → `PresenceAvatar` | Composed |
+| **Segmented control** (Me/Team, Mine/For me) | `SelectButton` → `Segmented` | Composed |
+| **Empty state** | **Bespoke** (Lucide icon + copy + `Button`) → `EmptyState` | Bespoke |
+| **Skeleton loader** | `Skeleton` | Direct |
+| **Toast + undo** | `Toast` (with action template) → `useToastUndo` | Composed |
+| **Hub item card** | composed `RequestCard` variant | Composed |
+| **Pull-to-refresh** | **Bespoke** (`@primereact/hooks`) → `PullToRefresh` | Bespoke |
+
+### Full PrimeReact component catalogue (by use in Polaris)
+
+> New-generation naming (with legacy alias where helpful): `Select` (Dropdown), `DatePicker` (Calendar), `Drawer` (Sidebar), `Popover` (OverlayPanel), `ToggleSwitch` (InputSwitch), `Tabs` (TabView).
+
+**Forms & inputs**
+`InputText` · `InputNumber` (currency/amounts, tabular) · `InputMask` (IDs, phone) · `Textarea` · `Password` · `AutoComplete` (people/search) · `Select` · `MultiSelect` · `SelectButton` (segmented) · `Checkbox` · `RadioButton` · `ToggleSwitch` · `DatePicker` (leave dates, ranges) · `Slider` · `Rating` · `FloatLabel` / `IftaLabel` / `IconField` (labelled fields) · `FileUpload` (documents, receipts) · `Editor` (rich-text templates).
+
+**Buttons & actions**
+`Button` · `SplitButton` · `SpeedDial` (mobile "+" quick actions).
+
+**Data**
+`DataTable` (worker lists, pay-run grids, invoices) · `DataView` (card/list of requests) · `TreeTable` (org/division hierarchy) · `Tree` · `Timeline` (status history, audit) · `OrganizationChart` (reporting lines) · `Paginator` · `VirtualScroller` (long lists).
+
+**Panels & layout**
+`Card` · `Panel` · `Fieldset` · `Accordion` (progressive disclosure / "More") · `Divider` · `Splitter` (master-detail) · `ScrollPanel` · `Stepper` (setup wizard, onboarding) · `Tabs` · `Toolbar`.
+
+**Overlays**
+`Dialog` · `Drawer` (bottom sheet / right panel) · `Popover` · `Tooltip` · `ConfirmDialog` / `ConfirmPopup` (destructive only).
+
+**Menu & navigation**
+`Menubar` · `TabMenu` (mobile bottom tab bar base) · `PanelMenu` (admin sidebar groups) · `Breadcrumb` · `ContextMenu` (desktop right-click) · `Dock` · `TieredMenu` / `Menu` (overflow, row actions).
+
+**Messages & feedback**
+`Toast` · `Message` (inline) · `ProgressBar` · `ProgressSpinner` (avoid as first-load; use `Skeleton`) · `Badge` (counts) · `Chip` · `Tag` (status) · `MeterGroup` (leave balances, headcount mix) · `BlockUI` (optimistic lock).
+
+**Media & misc**
+`Avatar` / `AvatarGroup` · `Image` · `Chart` (HR/finance dashboards, Chart.js) · `Skeleton` · `Inplace` (inline edit).
 
 ---
 
-## 5. Shadows
+## Status & severity mapping
 
-**Elevation Levels**:
+One mapping, used everywhere a status appears (`Tag`, `Toast`, `Message`, presence dot).
 
-```css
-/* Small - Buttons, inputs */
-box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+| Polaris status | Colour token | PrimeReact severity | Icon (Lucide) |
+|---|---|---|---|
+| In / Approved / Checked-in | `--status-in` (green) | `success` | `Check`, `LogIn` |
+| Pending / With manager | `--status-pending` (blue) | `info` | `Clock` |
+| On leave / Expiring | `--status-on-leave` (amber) | `warn` | `Plane`, `AlertTriangle` |
+| Rejected / Overdue / Missing punch | `--status-missing` (red) | `danger` | `X`, `AlertCircle` |
+| Out / Inactive | `--status-out` (neutral) | `secondary` | `LogOut` |
 
-/* Medium - Cards */
-box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
-            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+Rule (UX §3.5): status is **always label + icon**, never colour alone.
 
-/* Large - Modals, dropdowns */
-box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
-            0 4px 6px -2px rgba(0, 0, 0, 0.05);
+---
 
-/* XL - Popovers */
-box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
-            0 10px 10px -5px rgba(0, 0, 0, 0.04);
+## Interaction standards
+
+| Viewport | Pattern | PrimeReact realisation |
+|---|---|---|
+| **Mobile** (< 768px) | Bottom tab bar, bottom sheets, swipe, pull-to-refresh, 44px targets | `TabMenu`-based bottom bar; `Drawer position="bottom"`; bespoke `SwipeRow`/`PullToRefresh`; `Button` min-h 44px |
+| **Tablet** (768–1279px) | Sidebar for admin, tabs for employee | `PanelMenu` / `TabMenu` |
+| **Desktop** (≥ 1280px) | Persistent sidebar, ⌘K command bar, keyboard shortcuts, hover hints | `PanelMenu` sidebar; `AutoComplete`/`Dialog` command bar; `Tooltip`; `ContextMenu` |
+
+**Universal rules:**
+- No hover-only interactions; no touch-only gestures without a visible button equivalent.
+- Optimistic UI with rollback `Toast` on failure (no pre-action confirm except destructive).
+- `ConfirmDialog`/`ConfirmPopup` **only** for destructive/irreversible actions.
+- Respect `prefers-reduced-motion` (disable ripple/animations).
+- Five states on every screen: loading (`Skeleton`), empty (`EmptyState`), error (`Message` + retry), offline (cached + banner), success/populated.
+
+---
+
+## Navigation structure
+
+### Employee (5 destinations)
+Home · Calendar · **Check-in** (centre/primary) · Hub · Me
+→ Mobile: bespoke bottom tab bar (on `TabMenu`) with raised centre Check-in. Desktop: `PanelMenu` sidebar + top bar with persistent Check-in button + ⌘K.
+
+### Contractor (4 destinations)
+Home · Invoices · Documents · Me
+
+### Admin (sidebar modules)
+Worker management · Onboarding · Separation · Templates · Leave/calendar admin · Pay runs · Reports · Settings
+→ `PanelMenu` with expandable groups (desktop-first); off-canvas `Drawer` on mobile.
+
+See [ui-specifications/shared-components.md](./ui-specifications/shared-components.md) for the app-shell build.
+
+---
+
+## Icons
+
+**App icon set:** [Lucide React](https://lucide.dev) (`lucide-react`) — unchanged. **PrimeIcons** is present only for PrimeReact's internal glyphs; override visible/branded affordances with Lucide via component `icon` props or PassThrough.
+
+| Rule | Detail |
+|---|---|
+| **Import** | Named imports from `lucide-react` — `import { Check, ChevronDown } from 'lucide-react'` |
+| **No alternatives** | No emoji-as-icon, inline SVGs, Font Awesome, Heroicons, react-icons |
+| **Sizing** | Tailwind `size-*`: inline 16px (`size-4`), default UI 20px (`size-5`), card 24px (`size-6`), nav/hero 32px (`size-8`) |
+| **Colour** | Inherit via `currentColor` / semantic classes (`text-primary`, `text-[var(--status-in)]`) |
+| **Accessibility** | Decorative: `aria-hidden`. Meaningful: `aria-label` on the control, not the SVG |
+
+```tsx
+import { Button } from 'primereact/button';
+import { LogOut } from 'lucide-react';
+
+<Button text aria-label="Sign out">
+  <LogOut className="size-5" aria-hidden />
+</Button>
 ```
 
 ---
 
-## 6. Components
+## Sidebar (authenticated app shell)
 
-### 6.1 Buttons
+Minimal, condensed left sidebar — desktop (≥ 1024px). Mobile uses the same panel as an off-canvas `Drawer`. Built on `PanelMenu` with custom item templates (Lucide icons).
 
-**Primary Button**:
-- Background: Primary-600 `#[hex]`
-- Text: White `#FFFFFF`
-- Padding: 12px 24px
-- Border Radius: 8px
-- Font Size: 16px
-- Font Weight: 600
-- Hover: Primary-700 `#[hex]`
-- Active: Primary-800 `#[hex]`
-- Disabled: Gray-300 `#[hex]`, text Gray-500
+| Token | Value |
+|---|---|
+| **Width** | 240px fixed |
+| **Background** | `--p-surface-0` (white) |
+| **Border** | Right edge `--p-surface-200` |
+| **Nav item** | 13px medium, `py-1.5 px-2`, 18px Lucide icon |
+| **Active state** | Semibold + 2px left indicator bar (`--p-primary-500`) |
+| **Search** | 32px, rounded, ⌘K hint (`AutoComplete` or `Dialog` command bar) |
+| **Sections** | `Divider` between groups |
+| **Footer** | Onboarding card, changelog link, user profile row (`Avatar`) |
 
-**Secondary Button**:
-- Background: Transparent
-- Text: Primary-600 `#[hex]`
-- Border: 2px solid Primary-600
-- Padding: 10px 22px (account for border)
-- Hover: Background Primary-50
-
-**Ghost Button**:
-- Background: Transparent
-- Text: Gray-700 `#[hex]`
-- Padding: 12px 24px
-- Hover: Background Gray-100
-
-**Button Sizes**:
-- Small: 8px 16px, 14px font
-- Medium: 12px 24px, 16px font (default)
-- Large: 16px 32px, 18px font
-
-### 6.2 Forms
-
-**Input Fields**:
-- Background: White `#FFFFFF`
-- Border: 1px solid Gray-300 `#[hex]`
-- Border Radius: 8px
-- Padding: 12px 16px
-- Font Size: 16px
-- Placeholder: Gray-400 `#[hex]`
-- Focus: Border Primary-500, ring 3px Primary-100
-
-**Labels**:
-- Font Size: 14px
-- Font Weight: 500
-- Color: Gray-700 `#[hex]`
-- Margin Bottom: 8px
-
-**Error State**:
-- Border: Error-500 `#[hex]`
-- Error Text: Error-600, 14px, below input
-
-### 6.3 Cards
-
-**Standard Card**:
-- Background: White `#FFFFFF`
-- Border: 1px solid Gray-200 `#[hex]`
-- Border Radius: 12px
-- Padding: 24px
-- Shadow: Medium elevation
-- Hover: Shadow Large elevation
-
-### 6.4 Navigation
-
-**Navbar**:
-- Height: 64px
-- Background: White `#FFFFFF`
-- Border Bottom: 1px solid Gray-200
-- Padding: 0 24px
-- Logo Height: 32px
-- Link Color: Gray-700
-- Link Hover: Primary-600
-- Active Link: Primary-600, font-weight 600
-
-### 6.5 Modals
-
-**Modal Overlay**:
-- Background: rgba(0, 0, 0, 0.5)
-- Backdrop Blur: 4px
-
-**Modal Content**:
-- Background: White `#FFFFFF`
-- Border Radius: 16px
-- Padding: 32px
-- Max Width: 500px
-- Shadow: XL elevation
-
-### 6.6 Alerts
-
-**Success Alert**:
-- Background: Success-Light `#[hex]`
-- Border: Success-Base `#[hex]`
-- Text: Success-Dark `#[hex]`
-- Icon: Success-Base
-
-**Error Alert**:
-- Background: Error-Light `#[hex]`
-- Border: Error-Base `#[hex]`
-- Text: Error-Dark `#[hex]`
-- Icon: Error-Base
+Implementation: `frontend/src/components/layout/AppSidebar.tsx`
 
 ---
 
-## 7. Animations & Transitions
+## Accessibility
 
-**Transition Duration**:
-- Fast: 150ms (hover effects)
-- Normal: 300ms (default)
-- Slow: 500ms (page transitions)
-
-**Easing**:
-- Default: `cubic-bezier(0.4, 0, 0.2, 1)`
-- In: `cubic-bezier(0.4, 0, 1, 1)`
-- Out: `cubic-bezier(0, 0, 0.2, 1)`
-
-**Common Transitions**:
-```css
-/* Button hover */
-transition: background-color 150ms ease;
-
-/* Modal open */
-transition: opacity 300ms ease, transform 300ms ease;
-
-/* Page transition */
-transition: opacity 500ms ease;
-```
+- WCAG 2.1 AA on core flows (PrimeReact ships ARIA + keyboard nav; do not break it with PassThrough).
+- 4.5:1 text contrast minimum.
+- Status: label + icon, never colour alone.
+- Full screen-reader labels; label every input (`FloatLabel`/`IftaLabel` or `htmlFor`).
+- Dynamic type / OS font scaling support; 44px touch targets on mobile.
 
 ---
 
-## 8. Breakpoints
+## Motion
 
-| Breakpoint | Min Width | Max Width | Usage |
-|------------|-----------|-----------|-------|
-| **xs** | 0px | 639px | Mobile phones |
-| **sm** | 640px | 767px | Large phones |
-| **md** | 768px | 1023px | Tablets |
-| **lg** | 1024px | 1279px | Small laptops |
-| **xl** | 1280px | 1535px | Desktops |
-| **2xl** | 1536px | - | Large screens |
-
-**Mobile-First Approach**: Design for mobile first, then add styles for larger screens.
+- Standard transitions 150–250ms (PrimeReact defaults are close; keep subtle).
+- Expressive motion reserved for human moments (approval checkmark, anniversary card) — bespoke, not component default.
+- Respect `prefers-reduced-motion` (disable ripple + animations).
 
 ---
 
-## 9. Accessibility
+## Related documents
 
-### Color Contrast
-
-All text must meet WCAG AA standards:
-- Normal text (< 18px): 4.5:1 contrast ratio
-- Large text (≥ 18px): 3:1 contrast ratio
-
-**Check your colors**: [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/)
-
-### Focus States
-
-All interactive elements must have visible focus states:
-```css
-focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2
-```
-
-### Touch Targets
-
-Minimum touch target size: 44x44 pixels (mobile)
-
----
-
-## 10. Dark Mode (Optional)
-
-If supporting dark mode:
-
-**Dark Background Colors**:
-- Page: Gray-900 `#111827`
-- Card: Gray-800 `#1F2937`
-- Hover: Gray-700 `#374151`
-
-**Dark Text Colors**:
-- Heading: Gray-50 `#F9FAFB`
-- Body: Gray-300 `#D1D5DB`
-- Secondary: Gray-400 `#9CA3AF`
-
----
-
-## ✅ Completion Checklist
-
-- [ ] All colors defined with hex codes
-- [ ] Color contrast checked (WCAG AA)
-- [ ] Typography system complete (fonts, sizes, weights)
-- [ ] Spacing scale defined
-- [ ] All component styles specified
-- [ ] Button states defined (default, hover, active, disabled)
-- [ ] Form styles complete
-- [ ] Animations and transitions specified
-- [ ] Breakpoints defined
-- [ ] Accessibility considerations included
-
----
-
-**Next Steps**:
-1. Create wireframes in `wireframes/` folder
-2. Write UI specifications in `ui-specifications/` folder
-3. Use AI to generate CSS/Tailwind config from this design system
-
+- [primereact-setup.md](./primereact-setup.md) — install, provider, theme, Tailwind interop
+- [component-mapping.md](./component-mapping.md) — every screen/feature → exact PrimeReact components
+- [ui-specifications/](./ui-specifications/) — per-screen specs
+- [ux-design-specs.md](./ux-design-specs.md) — full UX specification (screens, flows, IA)
+- [../project-requirements/prd.md](../project-requirements/prd.md) — functional requirements
+- [../compliance/feature-flows.md](../compliance/feature-flows.md) — auditable operational flows

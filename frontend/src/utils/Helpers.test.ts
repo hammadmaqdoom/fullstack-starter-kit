@@ -11,11 +11,11 @@ describe('Helpers', () => {
       expect(getI18nPath(url, locale)).toBe(url);
     });
 
-    it('should prepend the locale to the path for non-default language', () => {
+    it('should return the path for the only supported locale (en)', () => {
       const url = '/random-url';
-      const locale = 'fr';
+      const locale = 'en';
 
-      expect(getI18nPath(url, locale)).toMatch(/^\/fr/);
+      expect(getI18nPath(url, locale)).toBe(url);
     });
   });
 });

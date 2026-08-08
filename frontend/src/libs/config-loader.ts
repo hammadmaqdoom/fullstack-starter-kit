@@ -1,4 +1,4 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 export interface AnalyticsConfig {
   id: string;
@@ -42,6 +42,21 @@ export interface RuntimeConfig {
   customScripts: CustomScript[];
 }
 
+function unwrapList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) {
+    return payload as T[];
+  }
+  if (
+    payload
+    && typeof payload === 'object'
+    && 'data' in payload
+    && Array.isArray((payload as { data: unknown }).data)
+  ) {
+    return (payload as { data: T[] }).data;
+  }
+  return [];
+}
+
 export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   try {
     const [analytics, verification, features, customScripts] = await Promise.all([
@@ -52,10 +67,10 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
     ]);
 
     return {
-      analytics: analytics || [],
-      verification: verification || [],
-      features: features || [],
-      customScripts: customScripts || [],
+      analytics: unwrapList<AnalyticsConfig>(analytics),
+      verification: unwrapList<SiteVerification>(verification),
+      features: unwrapList<FeatureFlag>(features),
+      customScripts: unwrapList<CustomScript>(customScripts),
     };
   } catch (error) {
     console.error('Failed to load runtime config:', error);

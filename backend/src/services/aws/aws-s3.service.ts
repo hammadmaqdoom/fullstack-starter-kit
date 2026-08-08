@@ -1,5 +1,6 @@
 import { GlobalConfig } from '@/config/config.type';
 import {
+  GetObjectCommand,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
@@ -90,6 +91,39 @@ export class AwsS3Service {
       filename,
       originalname: config.filename,
     };
+  }
+
+  /**
+   * Downloads an object from S3 as a Buffer.
+   * @param {string} key - S3 object key (bucket-relative path, no scheme)
+   */
+  async downloadBuffer(key: string): Promise<Buffer> {
+    this.ensureEnabled();
+    const res = await this.s3Client!.send(
+      new GetObjectCommand({
+        Bucket: this.configService.getOrThrow('aws.bucket', { infer: true }),
+        Key: key,
+      }),
+    );
+    const body = res.Body;
+    if (!body) {
+      throw new Error(`S3 object ${key} has no body`);
+    }
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  }
+
+  /**
+   * Builds the public HTTPS URL for an object at the given key.
+   * @param {string} key - S3 object key returned by uploadBuffer/uploadFile
+   */
+  getPublicUrl(key: string): string {
+    const bucket = this.configService.getOrThrow('aws.bucket', { infer: true });
+    const region = this.configService.getOrThrow('aws.region', { infer: true });
+    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
   }
 
   /**

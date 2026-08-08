@@ -12,7 +12,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { ContractorPaymentBatchStatus } from '../enums/payroll.enum';
-import { ContractorPaymentLineEntity } from './contractor-payment-line.entity';
+import type { ContractorPaymentLineEntity } from './contractor-payment-line.entity';
 
 /**
  * FLW-PAY-002 — one batch per aggregation run of Finance-approved contractor
@@ -70,7 +70,8 @@ export class ContractorPaymentBatchEntity {
   @Column({ type: 'timestamptz', nullable: true })
   approvedAt: Date | null;
 
-  @OneToMany(() => ContractorPaymentLineEntity, (line) => line.batch)
+  /** Inverse side — string relation name avoids circular import with payment-line entity. */
+  @OneToMany('ContractorPaymentLineEntity', 'batch')
   lines?: ContractorPaymentLineEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })

@@ -63,7 +63,8 @@ export function WorkerList() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [page, setPage] = useState(1);
   const [limit] = useState(25);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [status, setStatus] = useState<WorkerStatus | null>(null);
   const [divisionId, setDivisionId] = useState<string | null>(null);
@@ -83,6 +84,7 @@ export function WorkerList() {
       const { data, meta } = await listWorkers({
         page,
         limit,
+        q: searchQuery || undefined,
         countryCode: countryCode ?? undefined,
         status: status ?? undefined,
         divisionId: divisionId ?? undefined,
@@ -99,24 +101,20 @@ export function WorkerList() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, countryCode, status, divisionId, t]);
+  }, [page, limit, searchQuery, countryCode, status, divisionId, t]);
 
   useEffect(() => {
     void loadWorkers();
   }, [loadWorkers]);
 
-  const filteredWorkers = useMemo(() => {
-    if (!globalFilter.trim()) {
-      return workers;
-    }
-    const q = globalFilter.toLowerCase();
-    return workers.filter(
-      w =>
-        `${w.firstName} ${w.lastName}`.toLowerCase().includes(q)
-        || w.email.toLowerCase().includes(q)
-        || (w.employeeNumber?.toLowerCase().includes(q) ?? false),
-    );
-  }, [workers, globalFilter]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+      setPage(1);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const onPage = (event: DataTableStateEvent) => {
     setPage((event.page ?? 0) + 1);
@@ -172,8 +170,8 @@ export function WorkerList() {
             aria-hidden
           />
           <InputText
-            value={globalFilter}
-            onChange={e => setGlobalFilter(e.target.value)}
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
             placeholder={t('search_placeholder')}
             className="w-full pl-9"
             aria-label={t('search_placeholder')}
@@ -225,7 +223,7 @@ export function WorkerList() {
               ))}
             </div>
           )
-        : filteredWorkers.length === 0
+        : workers.length === 0
           ? (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-6 py-12 text-center">
                 <p className="text-sm text-gray-600">{t('empty')}</p>
@@ -233,7 +231,7 @@ export function WorkerList() {
             )
           : (
               <DataTable
-                value={filteredWorkers}
+                value={workers}
                 lazy
                 paginator
                 rows={limit}

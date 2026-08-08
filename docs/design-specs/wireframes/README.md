@@ -1,129 +1,51 @@
 # Wireframes
 
-Store your wireframes and mockups in this folder.
+Low-fidelity wireframes for every Polaris screen, expressed as **annotated ASCII layouts** (text-based, version-controlled, diff-able). Each screen is drawn at **mobile (375px)** and **desktop (1280px)**; tablet (768px) follows the nearest pattern noted per screen.
 
-## 📁 What Goes Here
+These pair with the per-screen component specs in [../ui-specifications/](../ui-specifications/) and the canonical UX spec [../ux-design-specs.md](../ux-design-specs.md) §6. Component names are PrimeReact (Styled mode) — see [../primereact-setup.md](../primereact-setup.md).
 
-- Low-fidelity wireframes (sketches)
-- High-fidelity mockups (detailed designs)
-- User flow diagrams
-- Page layouts
-- Component arrangements
-- Reference screenshots from other websites
-
-## 🎨 Tools to Use
-
-### Free Tools
-- **Figma**: [figma.com](https://figma.com) - Professional design tool (recommended)
-- **Excalidraw**: [excalidraw.com](https://excalidraw.com) - Simple sketching
-- **Whimsical**: [whimsical.com](https://whimsical.com) - Wireframes and flows
-- **Pen & Paper**: Sometimes the fastest way to sketch ideas!
-
-### Paid Tools
-- **Sketch**: macOS only, industry standard
-- **Adobe XD**: Part of Adobe Creative Cloud
-- **Balsamiq**: Specialized wireframing tool
-
-## 📝 Naming Convention
-
-Use clear, descriptive names:
-
-```
-✅ Good:
-- homepage-desktop.png
-- homepage-mobile.png
-- dashboard-user-flow.png
-- checkout-process.png
-- product-page-wireframe.png
-
-❌ Bad:
-- screen1.png
-- design.png
-- untitled.png
-```
-
-## 📋 What to Include
-
-### For Each Page:
-
-1. **Desktop Version** (1920x1080 or 1440x900)
-   - Full page layout
-   - Navigation
-   - Content sections
-   - Footer
-
-2. **Mobile Version** (375x812 or 390x844)
-   - Mobile-optimized layout
-   - Mobile navigation (hamburger menu?)
-   - Touch-friendly elements
-
-3. **Tablet Version** (768x1024) - Optional
-   - If layout significantly differs from desktop/mobile
-
-### For User Flows:
-
-1. **Flow Diagram**
-   - Start point
-   - Decision points
-   - Actions
-   - End point
-
-Example: User Registration Flow
-```
-Landing Page → Sign Up Form → Email Verification → Welcome Dashboard
-```
-
-## 🎯 Wireframe Checklist
-
-### Low-Fidelity (Quick Sketches)
-- [ ] Basic layout structure
-- [ ] Component placement
-- [ ] Navigation structure
-- [ ] Content hierarchy
-
-### High-Fidelity (Detailed Mockups)
-- [ ] Actual content (not Lorem Ipsum)
-- [ ] Real images or placeholders
-- [ ] Correct colors from design system
-- [ ] Correct typography
-- [ ] Proper spacing
-- [ ] Interactive states (hover, active)
-
-## 💡 Tips
-
-1. **Start Simple**: Begin with low-fidelity wireframes to validate layout
-2. **Use Real Content**: Replace Lorem Ipsum with actual copy
-3. **Show States**: Include hover, active, disabled states
-4. **Mobile First**: Design mobile version first, then scale up
-5. **Annotate**: Add notes explaining interactions and behavior
-6. **Version Control**: Save iterations (v1, v2, v3)
-
-## 📚 Examples
-
-### Example File Structure:
-```
-wireframes/
-├── README.md (this file)
-├── homepage-desktop-v1.png
-├── homepage-mobile-v1.png
-├── dashboard-desktop.png
-├── dashboard-mobile.png
-├── user-flow-registration.png
-├── user-flow-checkout.png
-└── reference-inspiration/
-    ├── stripe-homepage.png
-    ├── linear-dashboard.png
-    └── vercel-navigation.png
-```
-
-## 🔗 Next Steps
-
-After creating wireframes:
-1. Review with stakeholders
-2. Create detailed UI specifications in `../ui-specifications/`
-3. Use wireframes as reference during implementation
+> High-fidelity rendered mockups/screenshots (PNG) can be dropped alongside these files later using the naming convention below; the ASCII wireframes remain the source of truth for layout + components.
 
 ---
 
-**Ready to start?** Create your first wireframe and save it here!
+## Files
 
+| File | Screens |
+|---|---|
+| [employee-screens.md](./employee-screens.md) | Login, Home (Today), Check-in, Calendar, Leave, Payslips, Documents & signing, Me/Profile, Ask/Help, The Hub |
+| [manager-screens.md](./manager-screens.md) | Manager cockpit, Approvals queue, Team calendar & people |
+| [people-ops-screens.md](./people-ops-screens.md) | HR dashboard, Worker management, Onboarding board, Separation board, Templates & letters, Leave/calendar admin |
+| [finance-screens.md](./finance-screens.md) | Benefit types, Pay runs, Contractor invoices & batches, FX rates, Statutory rates, Payroll reports |
+| [contractor-screens.md](./contractor-screens.md) | Contractor portal: Home, Invoices, Documents, Me |
+| [admin-setup-screens.md](./admin-setup-screens.md) | Guided setup wizard, Config surfaces, Roles & access |
+
+---
+
+## ASCII legend
+
+```
+┌─┐ └─┘  container / card / panel        [ Button ]      button
+│   │    region border                    ( Segmented )  segmented control / toggle
+├───┤    divider                          [▼ Select  ]   dropdown / select
+●━━○      status tracker (done/todo)       [▢] [▣]        checkbox (off/on)
+🟢🟡🔴⚪    status colours (in/leave/missing/out)  «swipe»  swipe-action row
+[# icon] Lucide icon slot                 …              overflow / more
+{Comp}   PrimeReact component annotation   ▭▭▭            Skeleton block
+```
+
+Each screen block lists, beneath the wireframe: **Components** (PrimeReact), **Responsive** notes, and **States** (loading / empty / error / offline / populated) where they differ from the default in [../ui-specifications/shared-components.md](../ui-specifications/shared-components.md).
+
+---
+
+## Naming convention (for future PNG mockups)
+
+```
+{role}-{screen}-{viewport}.png
+
+employee-home-mobile.png
+employee-home-desktop.png
+admin-pay-run-review-desktop.png
+contractor-invoices-mobile.png
+```
+
+Viewports: mobile 375px · tablet 768px · desktop 1280px. Every employee-facing screen reviewed at all three before sign-off (UX §2.9).

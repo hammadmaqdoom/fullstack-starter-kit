@@ -13,7 +13,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { RemittanceCorridorConfigEntity } from './remittance-corridor-config.entity';
-import { RemittancePackDocumentEntity } from './remittance-pack-document.entity';
+import type { RemittancePackDocumentEntity } from './remittance-pack-document.entity';
 import { PayRunEntity } from './pay-run.entity';
 import {
   RemittancePackStatus,
@@ -95,7 +95,8 @@ export class RemittancePackEntity {
   @Column({ type: 'timestamptz', nullable: true })
   completedAt: Date | null;
 
-  @OneToMany(() => RemittancePackDocumentEntity, (document) => document.pack)
+  /** Inverse side — string relation name avoids circular import with pack-document entity. */
+  @OneToMany('RemittancePackDocumentEntity', 'pack')
   documents?: RemittancePackDocumentEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })

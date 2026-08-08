@@ -1,6 +1,5 @@
 import { createAuthClient } from 'better-auth/react';
 import { inferAdditionalFields, magicLinkClient } from 'better-auth/client/plugins';
-import { Env } from './Env';
 
 /**
  * Better Auth Client Configuration

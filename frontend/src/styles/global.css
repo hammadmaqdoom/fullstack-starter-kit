@@ -4,8 +4,11 @@
 @import 'primereact/resources/themes/lara-light-indigo/theme.css';
 @import 'primereact/resources/primereact.min.css';
 @import 'primeicons/primeicons.css';
+@import 'quill/dist/quill.snow.css';
 
 :root {
+  --color-primary: #3a5fe0;
+  --color-primary-hover: #2c49bd;
   --color-success: #16a34a;
   --color-warning: #d97706;
   --color-danger: #dc2626;
@@ -15,4 +18,35 @@
   --status-on-leave: var(--color-warning);
   --status-missing: var(--color-danger);
   --status-pending: var(--color-info);
+
+  /* Neutral surfaces (design-system.md §Brand tokens) */
+  --color-surface-0: #ffffff;
+  --color-surface-50: #f9fafb;
+  --color-surface-100: #f3f4f6;
+  --color-surface-200: #e5e7eb;
+  --color-surface-border: #d1d5db;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+
+  /* Radius scale — soft, consistent (design-system.md §Radius) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Digitaro brand bridge — remaps Lara Light Indigo static tokens */
+  --primary-color: var(--color-primary);
+  --primary-color-text: #ffffff;
+  --primary-50: #eef2fd;
+  --primary-100: #d5def9;
+  --primary-200: #abbcf3;
+  --primary-300: #8199ed;
+  --primary-400: #5777e6;
+  --primary-500: var(--color-primary);
+  --primary-600: var(--color-primary-hover);
+  --primary-700: #243c9c;
+  --primary-800: #1b2e7a;
+  --primary-900: #132159;
+  --focus-ring: 0 0 0 0.2rem color-mix(in srgb, var(--color-primary) 35%, white);
+  --highlight-bg: #eef2fd;
+  --highlight-text-color: var(--color-primary-hover);
 }

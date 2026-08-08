@@ -1,6 +1,9 @@
-# Software Requirements Specification (SRS)
+# Polaris — Software Requirements Specification (SRS)
 
-> **INSTRUCTIONS**: This document defines the detailed functional and non-functional requirements for your project. Be as specific as possible. This serves as the contract between what you want and what gets built.
+**Product:** Polaris  
+**Status:** Approved for implementation  
+**Last updated:** 26 June 2026  
+**Canonical detail:** [prd.md](./prd.md) (full functional requirements)
 
 ---
 
@@ -8,525 +11,342 @@
 
 ### 1.1 Purpose
 
-<!-- What is the purpose of this SRS document? Who will use it? -->
+This SRS specifies software requirements for **Polaris**, Digitaro's internal HR platform. It is intended for:
 
-This document specifies the software requirements for [Project Name]. It is intended for:
-- Developers implementing the system
-- Designers creating the user interface
-- Testers validating the system
-- Stakeholders reviewing the scope
+- Developers implementing NestJS backend and Next.js frontend
+- Designers implementing [ux-design-specs.md](../design-specs/ux-design-specs.md)
+- QA validating against acceptance criteria in [user-stories.md](./user-stories.md)
+- Auditors tracing controls via [compliance/feature-flows.md](../compliance/feature-flows.md)
 
 ### 1.2 Scope
 
-<!-- What is included and what is NOT included in this project? -->
+**In scope:** All modules in PRD §4 — Core HR, Talent, Time & Leave, Documents & E-sign, Operations, Pay & Benefits, Automation, Currency, Reporting.
 
-**In Scope**:
-- [Feature/Component]
-- [Feature/Component]
-- [Feature/Component]
+**Out of scope (v1):** Xero API, statutory remittance portals, multi-tenant SaaS, QES e-signatures, GDS travel booking, external LMS authoring, Urdu/Arabic UI.
 
-**Out of Scope** (for this version):
-- [Feature/Component that won't be included]
-- [Feature/Component for future versions]
-
-### 1.3 Definitions, Acronyms, and Abbreviations
+### 1.3 Definitions
 
 | Term | Definition |
-|------|------------|
-| API | Application Programming Interface |
-| SaaS | Software as a Service |
-| [Term] | [Definition] |
+|---|---|
+| **Worker** | Any person in Polaris — employee or contractor |
+| **FTE** | Full-time equivalent headcount measure |
+| **Envelope** | E-signature container with signatories and fields |
+| **Pay run** | Country-scoped payroll calculation batch |
+| **Country config** | Jurisdiction-specific rules (PK, UAE, SG) |
+| **Hub** | Unified inbox for requests and approvals (UX §5.1) |
+| **Entra** | Microsoft Entra ID (Azure AD) |
 
 ### 1.4 References
 
-<!-- Link to related documents -->
-
-- Product Brief: `product-brief.md`
-- Database Design: `database-design.md`
-- API Specification: `api-specification.md`
-- [Other documents]
-
----
-
-## 2. Overall Description
-
-### 2.1 Product Perspective
-
-<!-- How does this product fit into the larger ecosystem? Is it standalone or part of a larger system? -->
-
-[Your description here]
-
-Example:
-"This is a standalone web application that integrates with third-party payment processors (Stripe, PayPal) and email services (SendGrid). It will be deployed on AWS and accessed via web browsers."
-
-### 2.2 Product Functions
-
-<!-- High-level summary of major functions -->
-
-The system shall provide the following major functions:
-
-1. **[Function Category]**
-   - [Specific function]
-   - [Specific function]
-
-2. **[Function Category]**
-   - [Specific function]
-   - [Specific function]
-
-**Example**:
-1. **User Management**
-   - User registration and authentication
-   - Profile management
-   - Password reset
-
-2. **Content Management**
-   - Create, read, update, delete content
-   - Content versioning
-   - Content search and filtering
-
-### 2.3 User Characteristics
-
-<!-- Describe the intended users and their technical expertise -->
-
-| User Type | Technical Expertise | Primary Tasks |
-|-----------|-------------------|---------------|
-| [Role] | [Beginner/Intermediate/Expert] | [What they do] |
-| [Role] | [Level] | [What they do] |
-
-**Example**:
-| User Type | Technical Expertise | Primary Tasks |
-|-----------|-------------------|---------------|
-| End User | Beginner | Browse content, make purchases |
-| Admin | Intermediate | Manage users, configure settings |
-| Developer | Expert | Integrate API, customize features |
-
-### 2.4 Constraints
-
-<!-- Technical, regulatory, or business constraints -->
-
-- **Technical**: [e.g., "Must use PostgreSQL for database"]
-- **Regulatory**: [e.g., "Must comply with GDPR"]
-- **Business**: [e.g., "Must launch before Q2 2026"]
-- **Resource**: [e.g., "Limited to $500/month infrastructure budget"]
-
-### 2.5 Assumptions and Dependencies
-
-**Assumptions**:
-- [e.g., "Users have modern web browsers"]
-- [e.g., "Users have stable internet connection"]
-- [e.g., "Third-party APIs will maintain 99.9% uptime"]
-
-**Dependencies**:
-- [e.g., "Stripe API for payment processing"]
-- [e.g., "AWS S3 for file storage"]
-- [e.g., "SendGrid for email delivery"]
+- [product-brief.md](./product-brief.md)
+- [prd.md](./prd.md) — canonical functional spec
+- [system-architecture.md](./system-architecture.md)
+- [database-design.md](./database-design.md)
+- [api-specification.md](./api-specification.md)
+- [../compliance/iso-soc-framework.md](../compliance/iso-soc-framework.md)
+- [../compliance/feature-flows.md](../compliance/feature-flows.md)
+- [../design-specs/ux-design-specs.md](../design-specs/ux-design-specs.md)
 
 ---
 
-## 3. Functional Requirements
+## 2. Overall description
 
-<!-- Detailed description of what the system must do. Use the format: FR-XXX for each requirement -->
+### 2.1 Product perspective
 
-### 3.1 User Management
+Polaris is a standalone internal web application integrating with Microsoft Entra ID (employee SSO), M365/Teams (notifications), Frankfurter FX API (exchange rates), and Azure platform services. Finance uses export packs — not live accounting integration.
 
-#### FR-001: User Registration
+### 2.2 Product functions (summary)
 
-**Description**: The system shall allow new users to create an account.
+| # | Function area | PRD | Phase |
+|---|---|---|---|
+| 1 | Core HR & worker records | §6.1, §6.1.1, §6.2 | 0–1 |
+| 2 | Onboarding & separation | §6.3, §6.4 | 1 |
+| 3 | Leave & absence | §6.5 | 1 |
+| 4 | Work calendar, holidays, attendance | §6.6 | 1–2 |
+| 5 | Document & policy management | §6.7 | 1 |
+| 6 | HR letters & contract generation | §6.8 | 1 |
+| 7 | Native e-signature platform | §6.13 | 1 |
+| 8 | Expense management | §6.9 | 2 |
+| 9 | Alerts & scheduled notifications | §6.10 | 1–2 |
+| 10 | Reporting & scheduled reports | §6.11 | 1–2 |
+| 11 | Payroll, benefits, finance export | §6.12 | 2 |
+| 12 | Performance management | §6.14 | 2 |
+| 13 | Recruitment | §6.15 | 2 |
+| 14 | Training | §6.16 | 2 |
+| 15 | Travel management | §6.17 | 2 |
+| 16 | Help desk | §6.18 | 2 |
+| 17 | Manpower planning | §6.19 | 2 |
+| 18 | Contractor portal & invoicing | §6.20 | 2 |
+| 19 | Currency & FX management | §6.21 | 0–2 |
 
-**Inputs**:
-- Email address (valid email format)
-- Password (minimum 8 characters, must include uppercase, lowercase, number)
-- Full name (2-100 characters)
+Full requirement detail for each area is in [prd.md](./prd.md) §6.
 
-**Processing**:
-1. Validate email format
-2. Check if email already exists
-3. Hash password using bcrypt
-4. Create user record in database
-5. Send verification email
+### 2.3 User classes
 
-**Outputs**:
-- Success: User account created, verification email sent
-- Failure: Error message (e.g., "Email already exists")
+See PRD §5 and UX spec §8.1 capability matrix. Roles are additive; access = role × row-level scope (own/team/division/all).
 
-**Acceptance Criteria**:
-- [ ] User can register with valid email and password
-- [ ] System rejects duplicate emails
-- [ ] Password is hashed before storage
-- [ ] Verification email is sent within 30 seconds
-- [ ] User cannot log in until email is verified
+### 2.4 Operating environment
 
----
+- **Client:** Modern browsers (Chrome, Safari, Edge, Firefox); PWA installable on iOS/Android
+- **Server:** Azure (Container Apps / App Service), PostgreSQL, Redis, Blob Storage
+- **Network:** HTTPS; single Azure region
 
-#### FR-002: User Login
+### 2.5 Design constraints
 
-**Description**: The system shall allow registered users to log in.
-
-**Inputs**:
-- Email address
-- Password
-
-**Processing**:
-1. Validate email format
-2. Retrieve user from database
-3. Compare hashed password
-4. Check if email is verified
-5. Create session token
-6. Set HTTP-only cookie
-
-**Outputs**:
-- Success: User logged in, redirected to dashboard
-- Failure: Error message (e.g., "Invalid credentials")
-
-**Acceptance Criteria**:
-- [ ] User can log in with correct credentials
-- [ ] System rejects incorrect passwords
-- [ ] Unverified users cannot log in
-- [ ] Session expires after 7 days of inactivity
-- [ ] User can log out
+- English-only UI at launch
+- Responsive PWA — no native wrapper (Capacitor)
+- ISO/SOC controls embedded per [feature-flows.md](../compliance/feature-flows.md)
+- 5-year default retention post-departure
+- No Xero API
 
 ---
 
-#### FR-003: Password Reset
+## 3. Functional requirements
 
-**Description**: The system shall allow users to reset forgotten passwords.
+> **Note:** Full acceptance criteria and field-level detail are in [prd.md](./prd.md) §6. This section provides the structured SRS index.
 
-**Inputs**:
-- Email address
+### 3.1 Core HR (FR-HR)
 
-**Processing**:
-1. Validate email exists in system
-2. Generate unique reset token (expires in 1 hour)
-3. Send reset link via email
-4. User clicks link, enters new password
-5. Validate new password
-6. Update password in database
-7. Invalidate reset token
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-HR-001 | System shall maintain a single worker profile for employees and contractors with employment-type-driven behaviour | Must |
+| FR-HR-002 | System shall surface country-conditional statutory ID fields (PK/UAE/SG) and **passport + visa/work-pass records for AE/SG** (§6.1.2) | Must |
+| FR-HR-003 | System shall support profile change requests with approval workflow | Must |
+| FR-HR-004 | System shall maintain skills, career history, and document attachments per worker | Should |
+| FR-HR-005 | System shall track Entra ID status (`not_required`, `pending`, `provisioned`, `disabled`) | Must |
+| FR-HR-006 | System shall auto-generate org chart from manager relationships | Must |
+| FR-HR-007 | System shall enforce employment-type × country entitlement matrix | Must |
+| FR-HR-008 | System shall write immutable audit log on every field change | Must |
 
-**Outputs**:
-- Success: Password updated, user can log in
-- Failure: Error message (e.g., "Reset link expired")
+**Flow:** [FLW-HR-001](../compliance/feature-flows.md) through FLW-HR-003
 
-**Acceptance Criteria**:
-- [ ] Reset email sent within 30 seconds
-- [ ] Reset link expires after 1 hour
-- [ ] Old password no longer works after reset
-- [ ] Reset token can only be used once
+### 3.2 Talent (FR-TAL)
 
----
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-TAL-001 | Two-phase onboarding: pre-boarding (§6.3.1) + day-1 activation (§6.3.2); templates per employment type, division, country | Must |
+| FR-TAL-002 | Auto-generate onboarding documents from templates with e-sign tracking | Must |
+| FR-TAL-003 | Multi-department separation clearance workflow | Must |
+| FR-TAL-008 | Pre-boarding packet at personal email: consent, PII/payroll fields, **passport + previous visa/pass (AE/SG)**, auto-merge on start date (FLW-TAL-006) | Must |
+| FR-TAL-009 | Entra / M365 auto-provisioning via Microsoft Graph API (FLW-SEC-006) | Must |
+| FR-TAL-004 | Recruitment pipeline: requisition → candidate → offer → hire | Should |
+| FR-TAL-005 | Performance review cycles with goals and appraisals | Should |
+| FR-TAL-006 | Training catalog with assignments and completion tracking | Should |
+| FR-TAL-007 | Manpower plans with FTE vs contractor capacity | Should |
 
-### 3.2 [Next Feature Category]
+### 3.3 Time & leave (FR-TIME)
 
-#### FR-004: [Feature Name]
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-TIME-001 | Country-aware leave types, accrual rules, carry-forward caps | Must |
+| FR-TIME-002 | Leave request → manager approval with delegation | Must |
+| FR-TIME-003 | Automated staff calendar from work-week, holidays, leave, attendance | Must |
+| FR-TIME-004 | One-tap daily check-in/check-out with geolocation (non-blocking) | Must |
+| FR-TIME-005 | Team calendar with live check-in status | Must |
+| FR-TIME-006 | Shift rosters and assignments | Must |
+| FR-TIME-007 | Comp-off credits and tenure-based entitlement tiers | Should |
+| FR-TIME-008 | Punch correction requests with approval | Must |
 
-**Description**: [What the system must do]
+### 3.4 Documents & e-sign (FR-DOC)
 
-**Inputs**:
-- [Input 1]
-- [Input 2]
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-DOC-001 | Versioned policy distribution with acknowledgement tracking | Must |
+| FR-DOC-002 | Rich-text document templates with merge fields and letterhead | Must |
+| FR-DOC-003 | Document generation workflow with preview and e-sign routing | Must |
+| FR-DOC-004 | Native e-signature: envelope lifecycle, field placement, consent | Must |
+| FR-DOC-005 | PAdES sealing with RFC 3161 timestamps | Must |
+| FR-DOC-006 | Append-only e-sign audit events | Must |
+| FR-DOC-007 | Manual sign path: export PDF / print / upload signed copy | Must |
 
-**Processing**:
-1. [Step 1]
-2. [Step 2]
+### 3.5 Operations (FR-OPS)
 
-**Outputs**:
-- Success: [What happens]
-- Failure: [Error handling]
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-OPS-001 | Expense claims with policy limits and approval chain | Should |
+| FR-OPS-002 | Contractor portal: email auth, invoice submission, payment tracker, remittance packs (§6.12.9) | Should |
+| FR-PAY-006 | Employee payslip remittance documentation for cross-border salary (§6.12.9) | Should |
+| FR-OPS-003 | Travel requests with approval and expense reconciliation | Should |
+| FR-OPS-004 | Help desk tickets (HR/IT/Admin/Finance queues) with SLA | Should |
 
-**Acceptance Criteria**:
-- [ ] [Testable criterion]
-- [ ] [Testable criterion]
+### 3.6 Pay & benefits (FR-PAY)
 
----
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-PAY-001 | Configurable benefit types with dynamic fields per country | Should |
+| FR-PAY-002 | Pay run calculation with statutory deductions per country | Should |
+| FR-PAY-003 | Payslip self-service (released on Finance approval) | Should |
+| FR-PAY-004 | Contractor payment batch from approved invoices | Should |
+| FR-PAY-005 | Cross-border remittance packs for **employee payroll and contractor** payments; corridor config; SWIFT/proof upload (§6.12.9) | Should |
+| FR-PAY-005 | PDF/Excel export packs for manual Xero entry | Should |
+| FR-PAY-006 | Versioned statutory rate schedules with effective dating | Should |
+| FR-PAY-007 | Multi-currency catalog with daily Frankfurter FX fetch | Must |
 
-<!-- Continue with all functional requirements... -->
+### 3.7 Automation (FR-AUTO)
 
-### 3.3 [Another Feature Category]
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-AUTO-001 | Compliance alerts: visa expiry, probation end, statutory registration | Must |
+| FR-AUTO-002 | People alerts: birthdays, work anniversaries | Must |
+| FR-AUTO-003 | Custom alert rules with configurable conditions | Should |
+| FR-AUTO-004 | Scheduled report delivery (email/in-app) | Should |
 
-[Continue the pattern above for ALL features in your system]
+### 3.8 Cross-cutting UX requirements (FR-UX)
 
----
+From [ux-design-specs.md](../design-specs/ux-design-specs.md):
 
-## 4. Non-Functional Requirements
-
-### 4.1 Performance Requirements
-
-#### NFR-001: Response Time
-
-- **API Endpoints**: 95% of requests must complete in < 200ms
-- **Page Load**: Initial page load must complete in < 2 seconds
-- **Database Queries**: Complex queries must complete in < 500ms
-
-#### NFR-002: Throughput
-
-- **Concurrent Users**: System must support 10,000 concurrent users
-- **Requests per Second**: System must handle 1,000 requests/second
-- **Data Processing**: Background jobs must process 100,000 records/hour
-
-#### NFR-003: Scalability
-
-- **Horizontal Scaling**: System must scale horizontally by adding more servers
-- **Database**: Database must handle 10M records without performance degradation
-- **Storage**: System must support 1TB of file storage
-
----
-
-### 4.2 Security Requirements
-
-#### NFR-004: Authentication
-
-- All passwords must be hashed using bcrypt (cost factor 12)
-- Session tokens must be cryptographically secure random strings
-- Sessions must expire after 7 days of inactivity
-- Failed login attempts must be rate-limited (5 attempts per 15 minutes)
-
-#### NFR-005: Authorization
-
-- All API endpoints must verify user permissions
-- Users can only access their own data (unless admin)
-- Admin actions must require additional authentication
-
-#### NFR-006: Data Protection
-
-- All data in transit must use TLS 1.3
-- All sensitive data at rest must be encrypted (AES-256)
-- Personal data must be anonymized in logs
-- Database backups must be encrypted
-
-#### NFR-007: API Security
-
-- All API requests must include authentication token
-- API must implement rate limiting (100 requests/minute per user)
-- API must validate and sanitize all inputs
-- API must protect against SQL injection, XSS, CSRF
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-UX-001 | Unified Hub inbox for all request types | Must |
+| FR-UX-002 | Universal status tracker on every workflow | Must |
+| FR-UX-003 | Notification discipline: digests, quiet hours, per-type channels | Must |
+| FR-UX-004 | Timezone-aware timestamps and reminders | Must |
+| FR-UX-005 | Guided setup wizard with PK/UAE/SG seeded defaults | Must |
+| FR-UX-006 | Responsive parity: desktop, tablet, mobile for employee flows | Must |
+| FR-UX-007 | Offline-tolerant check-in and draft requests (PWA) | Must |
 
 ---
 
-### 4.3 Reliability Requirements
+## 4. Non-functional requirements
 
-#### NFR-008: Availability
+### 4.1 Security (NFR-SEC)
 
-- System must maintain 99.9% uptime (< 43 minutes downtime/month)
-- Planned maintenance windows must be announced 48 hours in advance
-- System must gracefully handle third-party API failures
+| ID | Requirement | Target |
+|---|---|---|
+| NFR-SEC-001 | Employee auth via Entra OIDC + MFA | Required |
+| NFR-SEC-002 | Contractor auth via email/password or magic link, rate-limited | Required |
+| NFR-SEC-003 | RBAC + row-level scope on all data access | Required |
+| NFR-SEC-004 | Encryption at rest and in transit | Required |
+| NFR-SEC-005 | Secrets in Azure Key Vault | Required |
+| NFR-SEC-006 | Append-only audit log (no UPDATE/DELETE) | Required |
+| NFR-SEC-007 | Field-level redaction for compensation, bank, exit data | Required |
+| NFR-SEC-008 | Microsoft Graph provisioning via least-privilege app registration; all calls audit-logged | Required |
 
-#### NFR-009: Error Handling
+### 4.2 Privacy (NFR-PRIV)
 
-- All errors must be logged with timestamp, user ID, and stack trace
-- User-facing errors must be friendly and actionable
-- System must not expose sensitive information in error messages
-- Critical errors must trigger alerts to operations team
+| ID | Requirement | Target |
+|---|---|---|
+| NFR-PRIV-001 | GDPR, UAE PDPL, Singapore PDPA alignment | Required |
+| NFR-PRIV-002 | 5-year retention default post-departure | Required |
+| NFR-PRIV-003 | DSAR export capability (runbook deferred) | Phase 1 basic / Phase 2 full |
+| NFR-PRIV-004 | Punch location classified restricted — manager/HR only | Required |
+| NFR-PRIV-005 | Privacy by design: minimum necessary in reports | Required |
 
-#### NFR-010: Data Integrity
+### 4.3 Performance (NFR-PERF)
 
-- Database must use transactions for multi-step operations
-- System must validate data before saving to database
-- System must maintain referential integrity (foreign keys)
-- Backups must be performed daily and tested weekly
+| ID | Requirement | Target |
+|---|---|---|
+| NFR-PERF-001 | Common page load time | < 1.5s |
+| NFR-PERF-002 | API p95 response (CRUD) | < 200ms |
+| NFR-PERF-003 | First meaningful paint (PWA) | < 2s on 4G |
+| NFR-PERF-004 | Interaction-to-response (optimistic UI) | < 100ms perceived |
+| NFR-PERF-005 | Large reports | Async generation |
 
----
+### 4.4 Availability & reliability (NFR-AVAIL)
 
-### 4.4 Usability Requirements
+| ID | Requirement | Target |
+|---|---|---|
+| NFR-AVAIL-001 | Uptime | 99.5% |
+| NFR-AVAIL-002 | Daily automated backups with PITR | Required |
+| NFR-AVAIL-003 | Documented RTO/RPO | 4h / 1h target |
+| NFR-AVAIL-004 | Semi-annual backup restore test | Required |
 
-#### NFR-011: User Interface
+### 4.5 Accessibility (NFR-A11Y)
 
-- Interface must be intuitive for target users (minimal training required)
-- All actions must provide immediate feedback (loading indicators, success messages)
-- Error messages must clearly explain what went wrong and how to fix it
-- Interface must be consistent across all pages
+| ID | Requirement | Target |
+|---|---|---|
+| NFR-A11Y-001 | WCAG 2.1 AA on core flows | Required |
+| NFR-A11Y-002 | Minimum 44px touch targets on mobile | Required |
+| NFR-A11Y-003 | 4.5:1 text contrast | Required |
+| NFR-A11Y-004 | Status conveyed by label + icon, not colour alone | Required |
+| NFR-A11Y-005 | Respect `prefers-reduced-motion` | Required |
 
-#### NFR-012: Accessibility
+### 4.6 Localization (NFR-L10N)
 
-- Interface must meet WCAG 2.1 AA standards
-- All images must have alt text
-- All interactive elements must be keyboard accessible
-- Color contrast must meet minimum ratios (4.5:1 for text)
+| ID | Requirement | Target |
+|---|---|---|
+| NFR-L10N-001 | English-only UI at launch | Required |
+| NFR-L10N-002 | Currency symbols and decimal places per currency catalog | Required |
+| NFR-L10N-003 | Date formats per country config | Required |
 
-#### NFR-013: Responsiveness
+### 4.7 Compliance (NFR-COMP)
 
-- Interface must work on mobile (320px+), tablet (768px+), and desktop (1024px+)
-- Touch targets must be at least 44x44 pixels on mobile
-- Text must be readable without zooming
-
----
-
-### 4.5 Maintainability Requirements
-
-#### NFR-014: Code Quality
-
-- Code must follow style guide (ESLint/Prettier for JavaScript)
-- Code must have 80%+ test coverage
-- All functions must have documentation comments
-- Code must pass linting with zero warnings
-
-#### NFR-015: Documentation
-
-- All API endpoints must be documented (OpenAPI/Swagger)
-- All environment variables must be documented
-- Deployment process must be documented
-- Architecture decisions must be documented (ADRs)
-
-#### NFR-016: Monitoring
-
-- System must log all errors and warnings
-- System must track key metrics (response time, error rate, user activity)
-- System must send alerts for critical issues
-- Logs must be retained for 90 days
-
----
-
-### 4.6 Portability Requirements
-
-#### NFR-017: Platform Independence
-
-- Backend must run on Linux, macOS, and Windows
-- Frontend must work on Chrome, Firefox, Safari, Edge (latest 2 versions)
-- System must use containerization (Docker) for consistent deployment
+| ID | Requirement | Reference |
+|---|---|---|
+| NFR-COMP-001 | ISO 9001 process approach on all workflows | [feature-flows.md](../compliance/feature-flows.md) |
+| NFR-COMP-002 | ISO 30400-series HR evidence | [iso-soc-framework.md](../compliance/iso-soc-framework.md) §3.2 |
+| NFR-COMP-003 | ISO 27001/27701 security & privacy controls | Framework §3.3–3.4 |
+| NFR-COMP-004 | SOC 2 TSC evidence production | Framework §3.5; deferred Type II audit |
+| NFR-COMP-005 | Segregation of duties on financial workflows | Framework §3.5 SoD matrix |
 
 ---
 
-### 4.7 Compliance Requirements
+## 5. External interface requirements
 
-#### NFR-018: Legal Compliance
+### 5.1 User interfaces
 
-- System must comply with GDPR (EU users)
-- System must comply with CCPA (California users)
-- System must provide data export functionality
-- System must provide data deletion functionality
-- System must display privacy policy and terms of service
+Specified in [ux-design-specs.md](../design-specs/ux-design-specs.md) — employee 5-tab nav, manager cockpit, admin sidebar, contractor 4-tab portal.
 
----
+### 5.2 Software interfaces
 
-## 5. System Requirements
+| Interface | Protocol | Purpose |
+|---|---|---|
+| Entra ID | OIDC | Employee SSO |
+| M365/Teams | REST/webhook | Notifications, adaptive cards |
+| Frankfurter API | HTTPS REST | Daily FX rates |
+| RFC 3161 TSA | HTTPS | PDF timestamping |
+| Azure Key Vault | Azure SDK | Signing certificate, secrets |
+| Azure Blob | Azure SDK | Document storage |
 
-### 5.1 Software Requirements
+### 5.3 Communications interfaces
 
-**Development**:
-- Node.js 20+
-- PostgreSQL 14+
-- Redis 7+
-- [Other tools]
-
-**Production**:
-- Linux server (Ubuntu 22.04 LTS)
-- PostgreSQL 14+ (managed service recommended)
-- Redis 7+ (managed service recommended)
-- [Other requirements]
-
-### 5.2 Hardware Requirements
-
-**Minimum (Development)**:
-- 4 CPU cores
-- 8 GB RAM
-- 50 GB storage
-
-**Recommended (Production)**:
-- 8 CPU cores
-- 16 GB RAM
-- 100 GB SSD storage
-- Load balancer
-- CDN for static assets
+- Email via M365 SMTP (digests, alerts, e-sign notifications)
+- In-app notifications + PWA push
+- Teams adaptive cards for approvals and check-in nudges
+- WhatsApp via `wa.me` deep links (user-initiated, not Business API)
 
 ---
 
-## 6. External Interface Requirements
+## 6. Data requirements
 
-### 6.1 User Interfaces
+See [database-design.md](./database-design.md). Key constraints:
 
-<!-- Describe the UI requirements or reference wireframes -->
-
-- Reference: `../design-specs/wireframes/`
-- Design system: `../design-specs/design-system.md`
-
-### 6.2 Hardware Interfaces
-
-<!-- If applicable, describe hardware interfaces -->
-
-- [e.g., "Barcode scanner for inventory management"]
-- [e.g., "Thermal printer for receipt printing"]
-
-### 6.3 Software Interfaces
-
-<!-- Describe integrations with external systems -->
-
-| System | Purpose | Protocol | Authentication |
-|--------|---------|----------|----------------|
-| Stripe API | Payment processing | REST/HTTPS | API Key |
-| SendGrid | Email delivery | REST/HTTPS | API Key |
-| [System] | [Purpose] | [Protocol] | [Auth method] |
-
-### 6.4 Communication Interfaces
-
-<!-- Describe network protocols, data formats, etc. -->
-
-- **HTTP/HTTPS**: All client-server communication
-- **WebSocket**: Real-time notifications (if applicable)
-- **JSON**: Data interchange format
-- **REST**: API architecture style
+- UUID primary keys
+- `tenant_id` on core entities (single tenant v1)
+- `country_code` dimension on worker and config tables
+- Effective-dated records for rates, calendars, roles
+- Append-only audit and e-sign event tables
+- Soft-delete with retention policy on worker records
 
 ---
 
-## 7. Validation Criteria
+## 7. Cross-border requirements
 
-### 7.1 Acceptance Testing
-
-The system will be considered complete when:
-
-- [ ] All functional requirements (FR-XXX) are implemented
-- [ ] All non-functional requirements (NFR-XXX) are met
-- [ ] All acceptance criteria are satisfied
-- [ ] Test coverage is > 80%
-- [ ] Performance benchmarks are met
-- [ ] Security audit is passed
-- [ ] User acceptance testing is completed
-
-### 7.2 Test Cases
-
-<!-- Reference test plan or list key test scenarios -->
-
-See: `../generated/tasks.md` for detailed test plan
-
-Key test scenarios:
-1. User can complete full registration flow
-2. User can log in and access protected resources
-3. System handles 10,000 concurrent users
-4. System recovers from database failure
-5. [Your critical test scenarios]
+Country is a core dimension. See PRD §7. Pakistan, UAE, and Singapore each have distinct statutory bodies, leave law, currencies, and work authorization fields. All resolved via country-configuration layer — not code branches.
 
 ---
 
-## 8. Appendices
+## 8. Phased delivery
 
-### Appendix A: Glossary
+| Phase | Modules | Go-live criteria |
+|---|---|---|
+| **0** | Country config, currency, worker records, org, auth, RBAC, audit | Entra SSO works; worker CRUD; audit log |
+| **1** | Leave, calendar, attendance, policies, templates, e-sign, onboarding, separation, alerts, reports | Employee daily flows; e-sign complete; policy ack 100% |
+| **2** | Payroll, benefits, expenses, contractor portal, travel, help desk, talent modules | Finance export packs; contractor invoices end-to-end |
+| **3** | Advanced analytics, job boards, multi-tenant evaluation | TBD |
 
-| Term | Definition |
-|------|------------|
-| [Term] | [Definition] |
-
-### Appendix B: Change Log
-
-| Date | Version | Changes | Author |
-|------|---------|---------|--------|
-| 2026-01-05 | 1.0 | Initial SRS | [Your name] |
+Build checklist: [../generated/tasks.md](../generated/tasks.md)
 
 ---
 
-## ✅ Completion Checklist
+## 9. Risks
 
-Before moving to the next document:
-
-- [ ] All functional requirements are documented with acceptance criteria
-- [ ] All non-functional requirements are specific and measurable
-- [ ] Performance targets are realistic and testable
-- [ ] Security requirements cover authentication, authorization, and data protection
-- [ ] External interfaces are documented
-- [ ] Acceptance criteria are defined
+See PRD §14. Top risks: e-sign legal defensibility, cross-border statutory complexity, payroll calculation errors, Phase 2 scope breadth. Mitigations documented in PRD and compliance framework.
 
 ---
 
-**Next Steps**:
+## 10. Document control
 
-1. **If you have a database**: Fill out `database-design.md`
-2. **If you have an API**: Fill out `api-specification.md`
-3. **Continue to**: `system-architecture.md`
-
+| Version | Date | Changes |
+|---|---|---|
+| 1.0 | 26 Jun 2026 | Initial SRS from PRD v0.14, adapted to NestJS/Next.js stack |

@@ -19,8 +19,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
     ? requested
     : routing.defaultLocale;
 
+  // English-only product: always load en.json (never ar/fr starter-kit leftovers)
   return {
     locale,
-    messages: (await import(`../locales/${locale}.json`)).default,
+    messages: (await import('../locales/en.json')).default,
   };
 });

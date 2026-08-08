@@ -1,6 +1,6 @@
 import { AUTH_INSTANCE_KEY } from '@/constants/auth.constant';
 import { Inject, Injectable } from '@nestjs/common';
-import type { Auth } from 'better-auth/auth';
+import type { Auth } from 'better-auth';
 
 /**
  * NOTE: This service is solely for handling better auth related tasks.

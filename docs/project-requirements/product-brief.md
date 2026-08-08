@@ -1,345 +1,176 @@
-# Product Brief
+# Polaris — Product Brief
 
-> **INSTRUCTIONS**: Fill out this template completely before building anything. This is your foundation document that explains WHAT you're building and WHY. Works for any project type: websites, APIs, SaaS apps, mobile backends, etc.
+**Product name:** Polaris (Digitaro internal HR platform)  
+**Document owner:** Hammad (Founder & CEO)  
+**Status:** Approved for implementation  
+**Last updated:** 26 June 2026  
+**Audience:** Digitaro Labs engineering, People Ops, Finance, IT, founders
 
 ---
 
 ## Project Overview
 
-### What are you building?
+### What are we building?
 
-<!-- In 2-3 paragraphs, describe your product/project. What problem does it solve? What makes it unique? -->
+**Polaris** is Digitaro's internal HR platform — a responsive web application that becomes the single system of record for the workforce across two divisions (Labs and Studio) and three jurisdictions (Pakistan, UAE, Singapore).
 
-[Your description here]
+Today, HR runs through Microsoft 365, Xero, manually maintained policy documents, and ad-hoc spreadsheets. Leave is tracked manually, onboarding is inconsistent, employee records live in multiple places, and there is no verifiable record of who has accepted which policy version.
 
-**Example (SaaS Application)**:
-"Guardian AI is a security platform that helps development teams find vulnerabilities in their code before deployment. Unlike traditional security tools that only scan for known issues, Guardian uses AI to predict potential security risks based on code patterns and suggest fixes in real-time."
+Polaris operationalizes the existing ISO-aligned HR policy suite, automates People Ops workflows (onboarding, leave, attendance, document acknowledgement, offer/contract/NDA generation with native e-signatures), calculates payroll inputs with country-aware rules, and integrates with Microsoft Entra ID for employee identity. Finance exports pay runs and contractor batches as PDF/Excel for manual entry into Xero — no live Xero API.
 
-**Example (API Service)**:
-"PaymentHub API is a unified payment processing service that aggregates multiple payment providers (Stripe, PayPal, Square) behind a single API. Developers integrate once and can switch providers or use multiple providers without changing code."
+### Why now?
 
-**Example (Website)**:
-"TechConf 2026 is an annual developer conference website showcasing speakers, schedule, and ticket sales. The site needs to handle high traffic during ticket launches and provide a seamless registration experience."
+Headcount is growing across divisions and jurisdictions. Cross-border statutory complexity (EOBI, CPF, visa obligations, multi-currency payroll) cannot be modelled in spreadsheets. People Ops admin time must drop while compliance evidence must improve for ISO 9001, ISO 30400-series, ISO 27001/27701, and future SOC 2 readiness.
+
+### Secondary opportunity
+
+A well-architected Polaris — including a native e-signature module — is a candidate for productization later. Multi-tenant HR with built-in signing tuned for cross-border SMEs (Pakistan/GCC/Singapore) is underserved. This build is scoped internal-first; architectural decisions must not preclude multi-tenancy.
 
 ---
 
 ## Target Audience
 
-### Who is this for?
+### Primary users
 
-<!-- Be VERY specific about your target audience. Demographics, job titles, pain points, technical level, etc. -->
+| Audience | Role in Polaris | Pain today |
+|---|---|---|
+| **Employees** | Self-service portal (check-in, leave, payslips, signing) | Fragmented tools, no status visibility |
+| **Contractors** | Contractor portal (invoices, documents, signing) | Email-based invoicing, no payment tracker |
+| **Managers** | Approvals, team calendar, live attendance | Manual leave/expense routing |
+| **People Ops / HR** | Worker CRUD, onboarding, policies, templates, e-sign | Spreadsheet HR, unverifiable policy compliance |
+| **Finance** | Pay runs, FX, statutory rates, export packs | Manual payroll collation before Xero |
+| **IT Admin** | Entra provisioning, help desk, access | No single worker record |
+| **Division Heads** | Division analytics, hiring approval, manpower | No headcount/attrition visibility |
+| **Super Admin** | System config, roles, audit, signing cert | — |
 
-**Primary Audience**:
-- [Role/Title]:
-- [Company Size/Type]:
-- [Technical Level]:
-- [Key Pain Points]:
+### Technical audience
 
-**Secondary Audience** (if applicable):
-- [Role/Title]:
-- [Pain Points]:
-
-**Example**:
-- Primary: Engineering teams at Series A-C startups (10-100 developers)
-- Secondary: DevOps engineers and security teams
-- Technical level: Comfortable with CLI tools and CI/CD pipelines
-- Pain points: Spending too much time on security audits, fear of shipping vulnerable code
+Digitaro Labs engineers building and maintaining the platform using the **fullstack-starter-kit** architecture (NestJS 10 + Next.js 16 + PostgreSQL + Better Auth).
 
 ---
 
 ## Goals & Success Metrics
 
-### What's the primary goal?
-
-<!-- What is the PRIMARY action you want users to take? Be specific. -->
-
-**Primary Goal**: [Your main objective]
-
-Examples:
-- "Users sign up for 14-day free trial"
-- "Developers integrate the API within 30 minutes"
-- "Visitors purchase conference tickets"
-- "Companies schedule a demo call"
-
-**Secondary Goals**:
-- [Optional: Additional actions]
-- [e.g., "Download whitepaper", "Join waitlist", "Subscribe to newsletter"]
-
-### How will you measure success?
-
-- [ ] **Conversion Rate**: [e.g., "5% of visitors sign up"]
-- [ ] **User Engagement**: [e.g., "Average 3+ minutes on site"]
-- [ ] **API Adoption**: [e.g., "100 API keys issued in first month"]
-- [ ] **Revenue**: [e.g., "$10k MRR in 3 months"]
-- [ ] [Your other metrics]
+| Goal | Metric | Target (6 months post-launch) |
+|---|---|---|
+| Single source of truth | % employees with complete profiles | 100% |
+| Automate leave | % leave requests processed in-system | 100% |
+| Faster onboarding | Median onboarding cycle time | < 2 business days |
+| Policy compliance | % staff with current-version policy acknowledgements | 100% |
+| Reduce People Ops admin | Hours/week on manual HR admin | −60% |
+| Visa/permit risk | Visa/work-permit expiries missed | 0 |
+| Self-service adoption | % routine queries resolved via self-service | > 70% |
+| Daily check-in adoption | % working days with check-in recorded | > 95% |
+| Document turnaround | Median hire decision → signed offer | < 1 business day |
+| E-sign completion rate | % envelopes without manual PDF fallback | > 90% |
+| Payroll accuracy | Pay runs requiring manual correction | < 5% |
+| Payroll cycle time | Hours from period close → approved export | < 4 hours |
 
 ---
 
 ## Project Type & Scope
 
-### What type of project is this?
+### Project type
 
-Select one:
-- [ ] **Static Website** (no backend, content-focused)
-- [ ] **Dynamic Website** (with backend, user accounts, database)
-- [ ] **Web Application** (SaaS, dashboard, complex interactions)
-- [ ] **API Service** (backend only, for mobile apps or integrations)
-- [ ] **Fullstack Application** (frontend + backend + database)
-- [ ] **Other**: [Describe]
+**Fullstack SaaS (internal)** — NestJS API + Next.js PWA frontend + PostgreSQL + Azure hosting.
 
-### What components do you need?
+### In scope
 
-- [ ] **Frontend** (user interface)
-  - [ ] Public website
-  - [ ] Admin dashboard
-  - [ ] User dashboard
-  
-- [ ] **Backend** (server-side logic)
-  - [ ] REST API
-  - [ ] GraphQL API
-  - [ ] WebSocket/Real-time
-  - [ ] Background jobs/workers
-  
-- [ ] **Database**
-  - [ ] Relational (PostgreSQL, MySQL)
-  - [ ] NoSQL (MongoDB, DynamoDB)
-  - [ ] Cache (Redis)
-  
-- [ ] **Authentication**
-  - [ ] Email/Password
-  - [ ] OAuth (Google, GitHub, etc.)
-  - [ ] Magic links
-  - [ ] Two-factor authentication
-  
-- [ ] **Third-Party Integrations**
-  - [ ] Payment processing (Stripe, PayPal)
-  - [ ] Email service (SendGrid, Mailgun)
-  - [ ] Analytics (Google Analytics, PostHog)
-  - [ ] Other: [List]
+- Core HR — employee/contractor records, org structure, employment types, skills, career history
+- Self-service employee portal + contractor portal
+- Talent — recruitment, onboarding, separation, performance, training, manpower planning
+- Leave & absence (country-aware, comp-off, tenure tiers)
+- Work calendar, holidays, attendance (check-in/out, shifts, rosters)
+- Document & policy management with acknowledgements
+- HR letters & contracts — template library, merge fields, native e-sign + manual upload path
+- Operations — expenses, contractor invoices, travel, help desk
+- Pay & benefits — payroll calculation, payslips, benefits, PDF/Excel export (no Xero API)
+- Compliance tracking — visa, probation, statutory IDs
+- Automation — alerts, birthdays, scheduled reports
+- Currency management — multi-currency catalog, Frankfurter FX auto-fetch, overrides
+- Identity — Entra SSO (employees), Polaris email auth (contractors)
+
+### Out of scope (v1)
+
+- Xero API / live accounting integration
+- Statutory filing/remittance portals (EOBI, CPF, WPS)
+- Multi-tenant productization (deferred; keep tenant-shaped seams)
+- Third-party e-sign SaaS (DocuSign, Adobe Sign)
+- QES / hardware token signing
+- External LMS authoring, GDS travel booking
+- Urdu/Arabic UI (English only at launch)
+- Dark mode (deferred post–Phase 1)
 
 ---
 
-## Key Features
+## Key Features (by phase)
 
-### Core Features (Must-Have)
+### Phase 0 — Foundations
+Country config, currency catalog + FX job, worker records, org structure, Entra SSO, RBAC, directory, audit log.
 
-List the essential features that define your product:
+### Phase 1 — MVP (daily-value core)
+Self-service portal, profiles, leave, work calendar + check-in/out, shift rosters, policies, HR letters + e-sign, onboarding + separation, compliance alerts, reports, native e-signature.
 
-1. **[Feature Name]**
-   - Description: [What it does]
-   - User Value: [Why it matters]
-   
-2. **[Feature Name]**
-   - Description:
-   - User Value:
+### Phase 2 — Full operations & talent
+FX management, expenses, contractor portal, travel, help desk, payroll + payslips + benefits + contractor batches + export packs, performance, recruitment, training, manpower planning.
 
-3. [Continue...]
-
-**Example**:
-1. **Real-time Code Scanning**
-   - Description: Scans code as developers type, highlighting vulnerabilities instantly
-   - User Value: Catch security issues before committing code
-
-2. **AI-Powered Fix Suggestions**
-   - Description: Provides context-aware code fixes for detected vulnerabilities
-   - User Value: Reduces time spent researching and fixing security issues
-
-### Secondary Features (Should-Have)
-
-Features that enhance the product but aren't critical for launch:
-
-1. [Feature]
-2. [Feature]
-3. [Continue...]
-
-### Future Features (Nice-to-Have)
-
-Features to consider for future versions:
-
-1. [Feature]
-2. [Feature]
+### Phase 3 — Strategic
+Advanced People analytics, job board APIs, multi-tenant productization evaluation.
 
 ---
 
-## Technical Requirements
+## Compliance & governance
 
-### Performance
+Polaris embeds Digitaro's ISO-aligned management system:
 
-- [ ] Page load time: [e.g., "< 2 seconds"]
-- [ ] API response time: [e.g., "< 200ms for 95% of requests"]
-- [ ] Concurrent users: [e.g., "Support 10,000 concurrent users"]
-- [ ] Uptime: [e.g., "99.9% uptime SLA"]
+| Document | Location |
+|---|---|
+| ISO/SOC compliance framework | [../compliance/iso-soc-framework.md](../compliance/iso-soc-framework.md) |
+| Feature flows (step-by-step, auditable) | [../compliance/feature-flows.md](../compliance/feature-flows.md) |
+| Deferred compliance work (SOC 2, DSAR, access review) | [../compliance/deferred-compliance-work.md](../compliance/deferred-compliance-work.md) |
 
-### Security
-
-- [ ] Data encryption (at rest and in transit)
-- [ ] HTTPS/SSL required
-- [ ] Authentication & authorization
-- [ ] Rate limiting
-- [ ] GDPR/Privacy compliance
-- [ ] [Other security requirements]
-
-### Scalability
-
-- [ ] Expected user growth: [e.g., "1,000 users in month 1, 10,000 by month 6"]
-- [ ] Data volume: [e.g., "1M records in first year"]
-- [ ] Traffic patterns: [e.g., "Spike during ticket launches"]
-
-### Accessibility & Compliance
-
-- [ ] WCAG 2.1 AA compliance
-- [ ] Mobile responsive (all screen sizes)
-- [ ] SEO optimized
-- [ ] Multi-language support (i18n)
-- [ ] [Other requirements]
+Every module maps to ISO clauses and SOC 2 TSC controls. Evidence is produced in-system (audit logs, acknowledgements, sealed PDFs, pay run approval chains).
 
 ---
 
-## User Roles & Permissions
+## Technology direction
 
-### Who will use this system?
+Implementation uses the **fullstack-starter-kit** stack (not the original .NET/Angular sketch in early PRD drafts):
 
-List all user types and their permissions:
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16, React 19, Tailwind CSS 4, PWA |
+| Backend | NestJS 10, TypeScript, Fastify |
+| Database | PostgreSQL + TypeORM |
+| Auth | Better Auth + Microsoft Entra OIDC (employees); email/magic link (contractors) |
+| Cache/Queue | Redis + BullMQ |
+| Storage | Azure Blob (documents, signed PDFs) |
+| Secrets | Azure Key Vault (signing certificate, API keys) |
+| PDF | Open-source generation + signing (no commercial iText license) |
+| FX | Frankfurter API (daily scheduled job) |
+| Observability | Application Insights, Sentry, structured logging |
 
-1. **[Role Name]** (e.g., "Admin", "Customer", "Developer")
-   - Permissions: [What they can do]
-   - Access Level: [What they can see]
-
-**Example**:
-1. **Admin**
-   - Permissions: Full access, manage users, view analytics, configure settings
-   - Access Level: All data and features
-
-2. **Standard User**
-   - Permissions: View own data, create/edit own content, limited settings
-   - Access Level: Own data only
-
-3. **Guest/Visitor**
-   - Permissions: View public content, sign up
-   - Access Level: Public pages only
+See [system-architecture.md](./system-architecture.md) for full technical design.
 
 ---
 
-## Brand & Messaging
+## Related documents
 
-### Brand Information
-
-**Product/Company Name**: [Your name]
-
-**Tagline/Slogan**: [If applicable]
-
-**Brand Keywords**: [3-5 words that describe your brand]
-Example: "Secure, Fast, Intelligent, Developer-first"
-
-**Tone of Voice**: [How should the copy/messaging sound?]
-Example: "Professional but approachable, technical but not jargon-heavy"
-
-**Brand Colors** (if already defined):
-- Primary: [Hex code]
-- Secondary: [Hex code]
-- Accent: [Hex code]
+| Document | Purpose |
+|---|---|
+| [prd.md](./prd.md) | Canonical product requirements (full detail) |
+| [srs.md](./srs.md) | Structured software requirements specification |
+| [system-architecture.md](./system-architecture.md) | Technical architecture |
+| [database-design.md](./database-design.md) | Data model and ER diagrams |
+| [api-specification.md](./api-specification.md) | REST API contracts |
+| [user-stories.md](./user-stories.md) | User stories with acceptance criteria |
+| [../design-specs/ux-design-specs.md](../design-specs/ux-design-specs.md) | UX & design specification |
+| [../generated/tasks.md](../generated/tasks.md) | Phased build checklist |
 
 ---
 
-## Constraints & Assumptions
+## Document control
 
-### Constraints
-
-What limitations do you have?
-
-- **Budget**: [e.g., "Limited to open-source tools"]
-- **Timeline**: [e.g., "Must launch in 3 months"]
-- **Technical**: [e.g., "Must integrate with existing legacy system"]
-- **Resources**: [e.g., "Solo developer, no designer"]
-- [Other constraints]
-
-### Assumptions
-
-What are you assuming to be true?
-
-- [e.g., "Users have modern browsers (Chrome, Firefox, Safari)"]
-- [e.g., "Users have stable internet connection"]
-- [e.g., "Third-party APIs will remain available"]
-- [Your assumptions]
-
----
-
-## Competitive Analysis
-
-### Similar Products/Services
-
-List 2-3 competitors or similar products:
-
-1. **[Competitor Name]**
-   - What they do well:
-   - What they do poorly:
-   - How you're different:
-
-2. **[Competitor Name]**
-   - What they do well:
-   - What they do poorly:
-   - How you're different:
-
----
-
-## Project Phases
-
-### Phase 1: MVP (Minimum Viable Product)
-
-What's the absolute minimum needed to launch?
-
-- [ ] [Feature/Component]
-- [ ] [Feature/Component]
-- [ ] [Feature/Component]
-
-**Target Launch**: [Date or timeline]
-
-### Phase 2: Growth
-
-What comes after MVP?
-
-- [ ] [Feature/Component]
-- [ ] [Feature/Component]
-
-**Target**: [Date or timeline]
-
-### Phase 3: Scale
-
-Long-term vision:
-
-- [ ] [Feature/Component]
-- [ ] [Feature/Component]
-
----
-
-## Notes & Questions
-
-<!-- Any additional context, open questions, or things to figure out -->
-
-[Your notes here]
-
----
-
-## ✅ Completion Checklist
-
-Before moving to the next document, ensure:
-
-- [ ] Project overview is clear and specific (not vague)
-- [ ] Target audience is narrowly defined with specific pain points
-- [ ] Primary goal/CTA is crystal clear
-- [ ] Project type and components are identified
-- [ ] Core features are listed with user value
-- [ ] Technical requirements are specified
-- [ ] User roles and permissions are defined
-- [ ] Success metrics are measurable
-- [ ] Constraints and assumptions are documented
-
----
-
-**Next Steps**:
-
-1. **For ALL projects**: Continue to `srs.md` (Software Requirements Specification)
-2. **If you have a database**: Fill out `database-design.md`
-3. **If you have an API**: Fill out `api-specification.md`
-4. **If you have a frontend**: Go to `../design-specs/` folder
-
+| Version | Date | Changes |
+|---|---|---|
+| 1.0 | 26 Jun 2026 | Initial Polaris product brief from PRD v0.14 |
