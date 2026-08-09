@@ -21,6 +21,8 @@ export type FeedbackEntry = {
   message: string;
   isPrivate: boolean;
   createdAt: string;
+  authorName?: string | null;
+  recipientName?: string | null;
 };
 
 export type RecognitionEntry = {
@@ -30,6 +32,8 @@ export type RecognitionEntry = {
   message: string;
   valueTag: string | null;
   createdAt: string;
+  authorName?: string | null;
+  recipientName?: string | null;
 };
 
 export type OneOnOneMeeting = {
@@ -98,6 +102,7 @@ export type PerformanceDashboard = {
   recognition: RecognitionEntry[];
   objectives: OrganizationalObjective[];
   roleCodes: string[];
+  reviewsAwaitingMe: number;
 };
 
 export type PerformanceCycle = {
