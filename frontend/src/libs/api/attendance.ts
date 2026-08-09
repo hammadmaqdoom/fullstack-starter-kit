@@ -64,7 +64,10 @@ function normalizeTeamPunches(data: PunchesTodayResponse): TeamPunchToday[] {
 }
 
 export async function getTodayAttendance() {
-  return apiRequest<TodayAttendance>(`${BASE}/punches/today`);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return apiRequest<TodayAttendance>(`${BASE}/punches/today`, {
+    params: { timezone },
+  });
 }
 
 /** Team punch strip for manager cockpit. */

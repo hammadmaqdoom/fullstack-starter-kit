@@ -23,6 +23,7 @@ import {
   CheckOutDto,
   CreatePunchCorrectionDto,
   QueryPunchesDto,
+  QueryTodayAttendanceDto,
   RejectPunchCorrectionDto,
 } from './dto/attendance.dto';
 
@@ -93,8 +94,15 @@ export class AttendanceController {
   @Get('punches/today')
   @Roles(...ATTENDANCE_ROLES)
   @ApiOperation({ summary: "Today's attendance status" })
-  getToday(@CurrentUserSession() session: CurrentUserSession) {
-    return this.attendanceService.getToday(session.user.id);
+  getToday(
+    @Query() query: QueryTodayAttendanceDto,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.attendanceService.getToday(
+      session.user.id,
+      DIGITARO_TENANT_ID,
+      query.timezone,
+    );
   }
 
   @Get('punches')

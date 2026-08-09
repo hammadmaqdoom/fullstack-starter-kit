@@ -84,7 +84,17 @@ export default function EmployeeHomePage() {
       );
       notifyAttendanceUpdated();
     } catch (err) {
-      setPunchError(err instanceof ApiRequestError ? err.message : t('error_punch'));
+      const alreadyIn
+        = err instanceof ApiRequestError
+          && (err.errors.some(e => e.code === 'ALREADY_CHECKED_IN')
+            || /already exists for today/i.test(err.message));
+      if (alreadyIn) {
+        await load();
+        notifyAttendanceUpdated();
+        setPunchError(null);
+      } else {
+        setPunchError(err instanceof ApiRequestError ? err.message : t('error_punch'));
+      }
     } finally {
       setIsPunching(false);
     }

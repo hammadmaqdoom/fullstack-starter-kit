@@ -28,6 +28,14 @@ export class CheckInDto {
 
 export class CheckOutDto extends CheckInDto {}
 
+export class QueryTodayAttendanceDto {
+  @StringFieldOptional({ maxLength: 64 })
+  timezone?: string;
+
+  @StringFieldOptional()
+  scope?: 'self' | 'team';
+}
+
 export class QueryPunchesDto extends PageOptionsDto {
   @UUIDFieldOptional()
   workerId?: string;

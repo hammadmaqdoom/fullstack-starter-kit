@@ -149,4 +149,55 @@ describe('AttendanceService', () => {
       service.checkIn({ timezone: 'UTC' }, { userId }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it('getToday uses client timezone so early-morning local dates match check-in', async () => {
+    // 21:00 UTC Aug 9 == 02:00 Asia/Karachi Aug 10
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-08-09T21:00:00.000Z'));
+
+    daySummaryRepository.findOne.mockImplementation(async ({ where }) => {
+      if (where.workDate === '2026-08-10') {
+        return {
+          id: 'summary-karachi',
+          workerId,
+          workDate: '2026-08-10',
+          status: AttendanceDayStatus.IN,
+          firstIn: new Date('2026-08-09T20:00:00.000Z'),
+          lastOut: null,
+        };
+      }
+      return null;
+    });
+
+    punchRepository.createQueryBuilder.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([
+        {
+          id: 'punch-1',
+          punchType: PunchType.CHECK_IN,
+          punchedAt: new Date('2026-08-09T20:00:00.000Z'),
+        },
+      ]),
+    });
+
+    const result = await service.getToday(
+      userId,
+      DIGITARO_TENANT_ID,
+      'Asia/Karachi',
+    );
+
+    expect(result.workDate).toBe('2026-08-10');
+    expect(result.daySummary?.status).toBe(AttendanceDayStatus.IN);
+    expect(daySummaryRepository.findOne).toHaveBeenCalledWith({
+      where: {
+        tenantId: DIGITARO_TENANT_ID,
+        workerId,
+        workDate: '2026-08-10',
+      },
+    });
+
+    jest.useRealTimers();
+  });
 });

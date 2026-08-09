@@ -209,6 +209,7 @@ export class AttendanceService {
   async getToday(
     actorUserId: string,
     tenantId: string = DIGITARO_TENANT_ID,
+    clientTimezone?: string,
   ): Promise<{
     workerId: string;
     workDate: string;
@@ -216,7 +217,11 @@ export class AttendanceService {
     punches: AttendancePunchEntity[];
   }> {
     const worker = await this.requireActingWorker(actorUserId, tenantId);
-    const timezone = 'UTC';
+    // Match check-in: prefer client TZ (browser), then worker profile, then UTC.
+    // Hardcoding UTC here caused "already checked in" while Home showed not checked in
+    // for workers east of UTC (local date ahead of UTC date overnight / early morning).
+    const timezone
+      = clientTimezone?.trim() || worker.timezone?.trim() || 'UTC';
     const workDate = workDateInTimezone(new Date(), timezone);
     const daySummary = await this.daySummaryRepository.findOne({
       where: { tenantId, workerId: worker.id, workDate },
