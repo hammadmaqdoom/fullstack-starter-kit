@@ -45,7 +45,6 @@ export type Worker = {
   employeeNumber: string | null;
   startDate: string;
   endDate: string | null;
-  /** Not yet modeled on the worker entity — reserved for the human-moments birthday card when available. */
   dateOfBirth?: string | null;
   fteFraction: string;
   timezone: string | null;
@@ -83,6 +82,7 @@ export type CreateWorkerInput = {
   phone?: string;
   workMode?: WorkMode;
   startDate: string;
+  dateOfBirth?: string;
   employeeNumber?: string;
   managerId?: string;
   divisionId?: string;
