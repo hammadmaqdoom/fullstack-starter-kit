@@ -130,7 +130,8 @@ Application layer validates `worker.tenant_id = leave_request.tenant_id` on inse
 | employment_types | ✅ | — | |
 | employment_type_country_configs | ✅ | — | |
 | contractor_profiles | ✅ | — | |
-| worker_statutory_ids | ✅ | — | |
+| worker_statutory_ids | ✅ | — | Normalized country IDs + expiry (not JSONB on workers) |
+| worker_bank_accounts | ✅ | — | Encrypted payroll bank details; Finance-redacted |
 | profile_change_requests | ✅ | — | |
 | manager_relationships | ✅ | — | |
 | project_assignments | ✅ | — | |
@@ -196,10 +197,10 @@ Application layer validates `worker.tenant_id = leave_request.tenant_id` on inse
 | help_desk_tickets | ✅ | — | |
 | ticket_comments | ✅ | — | |
 | onboarding_templates | ✅ | — | |
-| onboarding_instances | ✅ | — | |
+| onboarding_cases | ✅ | — | was onboarding_instances |
 | onboarding_tasks | ✅ | — | |
-| separations | ✅ | — | |
-| clearance_tasks | ✅ | — | |
+| separation_cases | ✅ | — | was separations |
+| clearance_items | ✅ | — | was clearance_tasks |
 | job_requisitions | ✅ | — | |
 | candidates | ✅ | — | |
 | pre_boarding_packets | ✅ | — | |
@@ -357,7 +358,7 @@ Employer of record for payroll, document generation, and finance export. One ten
 | website | VARCHAR(255) | nullable |
 | footer_text | TEXT | Confidentiality notice, legal disclaimers |
 | page_numbering_enabled | BOOLEAN | default true |
-| payroll_export_profile | VARCHAR(50) | FK to export template config — column mappings for Xero manual entry |
+| payroll_export_profile_id | UUID FK | nullable → `finance_export_profiles` |
 | requires_wet_stamp | BOOLEAN | default false — manual-sign path shows stamp zone + checklist (PRD §6.8.1) |
 | stamp_instructions | TEXT | nullable — entity-specific stamp guidance |
 | default_render_profile | ENUM | `full_digital`, `print_on_letterhead` — default at export |
@@ -521,16 +522,18 @@ Column mapping templates for PDF/Excel export packs per legal entity (PRD §6.12
 |---|---|---|
 | id | UUID PK | |
 | tenant_id | UUID FK NOT NULL | |
-| legal_entity_id | UUID FK NOT NULL | |
+| legal_entity_id | UUID FK | nullable — entity-specific or tenant/country default |
 | export_type | ENUM | pay_run, contractor_batch, expense_summary |
 | name | VARCHAR(100) | e.g. "PK Pay Run — Xero journal" |
 | column_mappings | JSONB | Source field → export column header |
-| file_format | ENUM | xlsx, csv, pdf |
+| file_format / file_formats | ENUM or JSONB array | Spec: single `file_format`; impl may store `fileFormats` JSONB array |
+| country_code | CHAR(2) | nullable — country-wide default when legal_entity_id null |
 | is_default | BOOLEAN | |
-| version | INT | |
+| version | INT | default 1 |
 | created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
 
-**Unique:** `(tenant_id, legal_entity_id, export_type, version)`
+**Unique:** `(tenant_id, legal_entity_id, export_type, version)` when legal_entity_id set; otherwise scoped by country/tenant defaults in app.
 
 **column_mappings example:**
 
@@ -589,11 +592,26 @@ Worker (country_code + division_id)
 | end_date | DATE | nullable |
 | fte_fraction | DECIMAL(3,2) | default 1.00 |
 | timezone | VARCHAR(50) | IANA |
+| office_location_id | UUID FK | nullable → `office_locations` — hybrid/in-office geofence |
+| job_title | VARCHAR(150) | nullable |
+| emergency_contact_name | VARCHAR(150) | nullable |
+| emergency_contact_phone | VARCHAR(50) | nullable |
+| emergency_contact_relation | VARCHAR(80) | nullable |
+| address_line_1 | VARCHAR(255) | nullable |
+| address_line_2 | VARCHAR(255) | nullable |
+| city | VARCHAR(100) | nullable |
+| state_province | VARCHAR(100) | nullable |
+| postal_code | VARCHAR(20) | nullable |
+| address_country_code | CHAR(2) | nullable |
 | deleted_at | TIMESTAMPTZ | soft delete |
 | created_at | TIMESTAMPTZ | |
 | updated_at | TIMESTAMPTZ | |
 
-**Indexes:** `(tenant_id, email)` UNIQUE, `(tenant_id, employee_number)` UNIQUE, `(tenant_id, status, country_code)`, `(tenant_id, legal_entity_id)`, `(tenant_id, manager_id)`
+**Statutory IDs:** stored in `worker_statutory_ids` (not a JSONB column on `workers`). API may still expose a map via shim.
+
+**Bank details:** stored in `worker_bank_accounts` (encrypted). `bank_country_code` on worker remains the corridor driver / denormalised convenience.
+
+**Indexes:** `(tenant_id, email)` UNIQUE, `(tenant_id, employee_number)` UNIQUE, `(tenant_id, status, country_code)`, `(tenant_id, legal_entity_id)`, `(tenant_id, manager_id)`, `(tenant_id, office_location_id)`
 
 #### `employment_types`
 | Column | Type | Notes |
@@ -646,6 +664,59 @@ Worker (country_code + division_id)
 | expiry_date | DATE | nullable |
 
 **Unique:** `(tenant_id, worker_id, field_key)`
+
+#### `worker_bank_accounts`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| bank_name | VARCHAR(255) | |
+| account_holder_name | VARCHAR(255) | nullable |
+| account_number_encrypted | BYTEA | AES-256 at app layer (plaintext bytes allowed in local/dev only) |
+| iban_encrypted | BYTEA | nullable |
+| swift_bic | VARCHAR(20) | nullable |
+| bank_country_code | CHAR(2) | |
+| is_primary | BOOLEAN | One primary per worker (partial unique) |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
+
+**Indexes:** `(tenant_id, worker_id)`; UNIQUE `(tenant_id, worker_id) WHERE is_primary = true`
+
+#### `employee_skills`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| skill_name | VARCHAR(100) | |
+| proficiency | VARCHAR(50) | e.g. beginner, intermediate, advanced, expert |
+| visibility | ENUM | private, manager, directory |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
+
+**Unique:** `(tenant_id, worker_id, skill_name)`
+
+#### `employment_records`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| title | VARCHAR(150) | Role / job title at the time |
+| department_id | UUID FK | nullable |
+| division_id | UUID FK | nullable |
+| effective_from | DATE | |
+| effective_to | DATE | nullable |
+| change_type | ENUM | hire, promotion, transfer, title_change, compensation_revision, other |
+| notes | TEXT | nullable |
+| source_document_id | UUID FK | nullable → generated_documents |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
+
+**Index:** `(tenant_id, worker_id, effective_from)`
 
 #### `worker_passports`
 | Column | Type | Notes |
@@ -790,11 +861,14 @@ Worker (country_code + division_id)
 | leave_type_id | UUID FK | |
 | start_date | DATE | |
 | end_date | DATE | |
-| is_half_day | BOOLEAN | |
+| days | DECIMAL(5,2) | Requested length |
+| is_half_day | BOOLEAN | default false |
 | status | ENUM | draft, submitted, approved, rejected, cancelled |
 | approver_id | UUID FK | |
-| notes | TEXT | |
+| manager_id | UUID FK | nullable |
+| notes / reason | TEXT | Physical column often `reason` |
 | created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
 
 **Index:** `(tenant_id, worker_id, status)`, `(tenant_id, approver_id, status)`
 
@@ -875,13 +949,15 @@ Worker (country_code + division_id)
 | worker_id | UUID FK | |
 | punch_type | ENUM | check_in, check_out |
 | punched_at | TIMESTAMPTZ | UTC stored |
-| work_mode | ENUM | remote, in_office, hybrid |
+| work_mode | ENUM | remote, in_office, hybrid — nullable snapshot at punch |
 | latitude | DECIMAL(10,7) | restricted visibility |
 | longitude | DECIMAL(10,7) | restricted visibility |
-| accuracy_meters | DECIMAL | |
-| source | ENUM | geolocation, ip, manual |
-| office_match | BOOLEAN | geofence match |
-| device_info | VARCHAR(255) | |
+| accuracy_meters | DECIMAL | nullable GPS accuracy radius |
+| source | ENUM | web, geolocation, ip, manual (impl may use `punch_source_enum`) |
+| office_match | BOOLEAN | nullable — geofence advisory |
+| device_info | VARCHAR(255) | nullable |
+| timezone | VARCHAR(64) | IANA; default UTC |
+| created_at | TIMESTAMPTZ | |
 
 **Index:** `(tenant_id, worker_id, punched_at)`
 
@@ -891,12 +967,16 @@ Worker (country_code + division_id)
 | id | UUID PK | |
 | tenant_id | UUID FK NOT NULL | |
 | worker_id | UUID FK | |
-| summary_date | DATE | |
-| total_hours | DECIMAL(5,2) | |
-| status | ENUM | present, absent, on_leave, holiday |
-| lop_days | DECIMAL(3,2) | loss of pay — feeds payroll |
+| summary_date / work_date | DATE | Physical column camelCase `"workDate"` |
+| total_hours | DECIMAL(5,2) | nullable until computed |
+| status | ENUM | present, absent, on_leave, holiday, missing, … |
+| lop_days | DECIMAL(3,2) | loss of pay — feeds payroll; default 0 |
+| first_in | TIMESTAMPTZ | nullable |
+| last_out | TIMESTAMPTZ | nullable |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
 
-**Unique:** `(tenant_id, worker_id, summary_date)`
+**Unique:** `(tenant_id, worker_id, work_date)`
 
 #### `punch_correction_requests`
 | Column | Type | Notes |
@@ -955,11 +1035,15 @@ Worker (country_code + division_id)
 | tenant_id | UUID FK NOT NULL | |
 | policy_id | UUID FK | |
 | version | INT | |
-| content | TEXT | |
+| content / content_html | TEXT | Physical column often `contentHtml` |
+| blob_url | VARCHAR(500) | nullable PDF |
 | effective_from | DATE | |
-| requires_reacknowledgement | BOOLEAN | |
+| requires_reacknowledgement | BOOLEAN | default false |
+| status | ENUM | draft, published, … |
 | published_by | UUID FK | |
 | published_at | TIMESTAMPTZ | |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
 
 **Unique:** `(tenant_id, policy_id, version)`
 
@@ -1417,11 +1501,42 @@ All tables: **`tenant_id UUID FK NOT NULL`** on every row. Financial records als
 #### `ticket_comments` — `tenant_id` + `ticket_id`
 
 #### `onboarding_templates` — `tenant_id` + employment_type + country scope
-#### `onboarding_instances` — `tenant_id` + `worker_id`
-#### `onboarding_tasks` — `tenant_id` + `onboarding_instance_id`
+#### `onboarding_cases` (was `onboarding_instances`) — `tenant_id` + `worker_id` + `template_id` + status
+#### `onboarding_tasks` — `tenant_id` + `case_id` (+ optional `template_task_id`)
 
-#### `separations` — `tenant_id` + `worker_id` + clearance status
-#### `clearance_tasks` — `tenant_id` + `separation_id` + department owner
+#### `separation_cases` (was `separations`)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK NOT NULL | |
+| last_working_day | DATE | |
+| status | ENUM | initiated, clearance_in_progress, cleared, completed, cancelled |
+| reason | TEXT | nullable |
+| initiation_type | ENUM | resignation, termination, end_of_contract, other |
+| notice_date | DATE | nullable |
+| settlement_notes | TEXT | nullable |
+| exit_interview_id | UUID FK | nullable |
+| letter_document_id | UUID FK | nullable → generated_documents |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
+
+#### `clearance_items` (was `clearance_tasks`)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | Denormalised from separation case |
+| separation_case_id | UUID FK NOT NULL | |
+| category | ENUM | it, hr, finance, admin, facilities, other |
+| title | VARCHAR(255) | |
+| status | ENUM | pending, cleared, waived, blocked |
+| owner_worker_id | UUID FK | nullable — department owner |
+| due_at | TIMESTAMPTZ | nullable |
+| is_blocking | BOOLEAN | default false — blocks completion when true and not cleared |
+| cleared_by | UUID FK | nullable |
+| cleared_at | TIMESTAMPTZ | nullable |
+| created_at | TIMESTAMPTZ | |
+| updated_at | TIMESTAMPTZ | |
 
 #### `job_requisitions` — `tenant_id` + division scope
 #### `candidates` — `tenant_id` + `requisition_id`
@@ -1552,7 +1667,7 @@ All tables: **`tenant_id UUID FK NOT NULL`** on every row. Financial records als
 #### `development_plans` / `development_plan_actions` — IDPs (+ optional `review_id`)
 #### `pulse_surveys` / `pulse_survey_responses` — engagement pulse with `anonymity_threshold`
 
-**IPMS schema backlog (not in DB yet):** `kpi_library` / role KPI templates; review evidence attachments; calibration session/adjustment audit table; dispute reason/resolution columns; letter/document FK triggers on review outcomes; structured rating-scale definition beyond varchar; skills FK for competency ratings.
+**IPMS schema backlog (not in DB yet):** `kpi_library` / role KPI templates; review evidence attachments; calibration session/adjustment audit table; structured rating-scale definition beyond varchar; skills FK for competency ratings. Dispute + outcome letter columns are on `performance_reviews`.
 
 #### `training_courses` — `tenant_id`
 #### `training_assignments` — `tenant_id` + `worker_id` + `course_id`
