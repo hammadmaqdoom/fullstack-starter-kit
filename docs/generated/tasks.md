@@ -48,6 +48,7 @@
 
 - [x] `workers`, `departments`, `divisions`, `legal_entities` entities
 - [x] Worker CRUD with country-conditional statutory fields
+- [x] Schema gap closure wave (2026-08-10) — entities + migrations per `docs/superpowers/specs/2026-08-10-schema-gap-closure-design.md`; API/UI wiring deferred
 - [x] `contractor_profiles`
 - [x] `manager_relationships`, `project_assignments` (effective-dated) — APIs + tests
 - [x] `approval_delegations` entity
