@@ -13,6 +13,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceService } from './attendance.service';
 import { CalendarController } from './calendar.controller';
+import { CalendarService } from './calendar.service';
 import { CompOffController } from './comp-off.controller';
 import { CompOffService } from './comp-off.service';
 import { AttendanceDaySummaryEntity } from './entities/attendance-day-summary.entity';
@@ -65,6 +66,7 @@ import { ShiftRosterService } from './shift-roster.service';
     LeaveAccrualService,
     ShiftRosterService,
     CompOffService,
+    CalendarService,
   ],
   exports: [
     AttendanceService,
@@ -72,6 +74,7 @@ import { ShiftRosterService } from './shift-roster.service';
     LeaveAccrualService,
     ShiftRosterService,
     CompOffService,
+    CalendarService,
     TypeOrmModule,
   ],
 })
