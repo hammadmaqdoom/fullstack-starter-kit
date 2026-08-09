@@ -105,6 +105,21 @@ export type PerformanceDashboard = {
   reviewsAwaitingMe: number;
 };
 
+export type TeamPerformanceReport = {
+  workerId: string;
+  firstName: string;
+  lastName: string;
+  goals: PerformanceGoal[];
+  reviews: PerformanceReview[];
+};
+
+export type TeamPerformanceDashboard = {
+  actingWorkerId: string | null;
+  reports: TeamPerformanceReport[];
+  oneOnOnes: OneOnOneMeeting[];
+  reviewsAwaitingMe: number;
+};
+
 export type PerformanceCycle = {
   id: string;
   name: string;
@@ -153,6 +168,10 @@ const BASE = '/api/v1/talent';
 
 export async function getPerformanceDashboard() {
   return apiRequest<PerformanceDashboard>(`${BASE}/performance/dashboard`);
+}
+
+export async function getTeamPerformanceDashboard() {
+  return apiRequest<TeamPerformanceDashboard>(`${BASE}/performance/team-dashboard`);
 }
 
 export async function listGoals(workerId?: string) {
@@ -279,6 +298,37 @@ export async function submitSelfAssessment(
 ) {
   return apiRequest(`${BASE}/reviews/${reviewId}/self-assessment`, {
     method: 'POST',
+    body: input,
+  });
+}
+
+export async function submitManagerReview(
+  reviewId: string,
+  input: { managerAssessment: string; outcome: string },
+) {
+  return apiRequest(`${BASE}/reviews/${reviewId}/manager-review`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function createOneOnOne(input: {
+  employeeWorkerId: string;
+  scheduledAt: string;
+  agenda?: string;
+}) {
+  return apiRequest<OneOnOneMeeting>(`${BASE}/one-on-ones`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function updateOneOnOne(
+  id: string,
+  input: { status?: string; agenda?: string },
+) {
+  return apiRequest<OneOnOneMeeting>(`${BASE}/one-on-ones/${id}`, {
+    method: 'PATCH',
     body: input,
   });
 }
