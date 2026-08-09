@@ -16,7 +16,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   CreateDevelopmentActionDto,
   CreateDevelopmentPlanDto,
@@ -79,6 +79,10 @@ import {
   PulseSurveyStatus,
   ReviewStatus,
 } from './enums/performance.enum';
+import {
+  countReviewsAwaitingMe,
+  workerDisplayName,
+} from './performance-dashboard.util';
 import {
   assertWorkerPerformanceAccess,
   isPeopleOpsOrAdmin,
@@ -1755,16 +1759,51 @@ export class TalentService {
           take: 10,
         });
 
+    const nameIds = new Set<string>();
+    for (const entry of feedback) {
+      nameIds.add(entry.authorWorkerId);
+      nameIds.add(entry.recipientWorkerId);
+    }
+    for (const entry of recognition) {
+      nameIds.add(entry.authorWorkerId);
+      nameIds.add(entry.recipientWorkerId);
+    }
+
+    const nameByWorkerId = new Map<string, string>();
+    if (nameIds.size > 0) {
+      const workers = await this.workerRepository.find({
+        where: { id: In([...nameIds]), tenantId },
+      });
+      for (const worker of workers) {
+        nameByWorkerId.set(worker.id, workerDisplayName(worker));
+      }
+    }
+
+    const enrichedFeedback = feedback.map((entry) => ({
+      ...entry,
+      authorName: nameByWorkerId.get(entry.authorWorkerId) ?? null,
+      recipientName: nameByWorkerId.get(entry.recipientWorkerId) ?? null,
+    }));
+
+    const enrichedRecognition = recognition.map((entry) => ({
+      ...entry,
+      authorName: nameByWorkerId.get(entry.authorWorkerId) ?? null,
+      recipientName: nameByWorkerId.get(entry.recipientWorkerId) ?? null,
+    }));
+
+    const reviewsSlice = reviews.slice(0, 10);
+
     return {
       actingWorkerId,
       goals,
-      feedback,
+      feedback: enrichedFeedback,
       oneOnOnes,
-      reviews: reviews.slice(0, 10),
+      reviews: reviewsSlice,
       developmentPlans: plans,
-      recognition,
+      recognition: enrichedRecognition,
       objectives,
       roleCodes: auth.roleCodes,
+      reviewsAwaitingMe: countReviewsAwaitingMe(reviews, actingWorkerId),
     };
   }
 }
