@@ -186,10 +186,14 @@ export class SeparationService {
         ClearanceItemEntity,
         DEFAULT_CLEARANCE_ITEMS.map((item) =>
           manager.create(ClearanceItemEntity, {
+            tenantId,
             separationCaseId: separation.id,
             category: item.category,
             title: item.title,
             status: ClearanceItemStatus.PENDING,
+            ownerWorkerId: null,
+            dueAt: null,
+            isBlocking: false,
             clearedBy: null,
             clearedAt: null,
           }),

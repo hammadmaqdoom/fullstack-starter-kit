@@ -32,6 +32,13 @@ export enum SeparationCaseStatus {
   ARCHIVED = 'archived',
 }
 
+export enum SeparationInitiationType {
+  RESIGNATION = 'resignation',
+  TERMINATION = 'termination',
+  END_OF_CONTRACT = 'end_of_contract',
+  OTHER = 'other',
+}
+
 export enum ClearanceCategory {
   HR = 'hr',
   IT = 'it',
