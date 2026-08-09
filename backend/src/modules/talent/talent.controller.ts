@@ -81,6 +81,19 @@ export class TalentController {
     return this.talentService.getPerformanceDashboard(session.user.id);
   }
 
+  @Get('performance/team-dashboard')
+  @Roles(
+    PolarisRoleCode.MANAGER,
+    PolarisRoleCode.DIVISION_HEAD,
+    PolarisRoleCode.PEOPLE_OPS,
+    PolarisRoleCode.SUPER_ADMIN,
+    PolarisRoleCode.HRBP,
+  )
+  @ApiOperation({ summary: 'Manager / division team performance dashboard' })
+  getTeamDashboard(@CurrentUserSession() session: CurrentUserSession) {
+    return this.talentService.getTeamPerformanceDashboard(session.user.id);
+  }
+
   @Get('objectives')
   @Roles(...TALENT_ROLES)
   listObjectives(@CurrentUserSession() session: CurrentUserSession) {

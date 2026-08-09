@@ -4,6 +4,7 @@ import {
   SYSTEM_ACTOR_ID,
 } from '@/modules/compliance/constants/tenant.constants';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { ScopeType } from '@/modules/compliance/enums/scope-type.enum';
 import { RbacService } from '@/modules/compliance/rbac.service';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { WorkerStatus } from '@/modules/core-hr/enums/worker.enum';
@@ -1803,6 +1804,131 @@ export class TalentService {
       recognition: enrichedRecognition,
       objectives,
       roleCodes: auth.roleCodes,
+      reviewsAwaitingMe: countReviewsAwaitingMe(reviews, actingWorkerId),
+    };
+  }
+
+  async getTeamPerformanceDashboard(userId: string) {
+    const { auth, actingWorkerId, tenantId } = await this.getContext(userId);
+
+    const allowedRoles = new Set<string>([
+      PolarisRoleCode.MANAGER,
+      PolarisRoleCode.DIVISION_HEAD,
+      PolarisRoleCode.PEOPLE_OPS,
+      PolarisRoleCode.SUPER_ADMIN,
+      PolarisRoleCode.HRBP,
+    ]);
+    const allowed = auth.roleCodes.some((code) => allowedRoles.has(code));
+    if (!allowed) {
+      throw new ForbiddenException({
+        code: 'TEAM_DASHBOARD_DENIED',
+        message: 'You do not have access to the team performance dashboard',
+      });
+    }
+
+    let reports: WorkerEntity[] = [];
+
+    if (auth.broadestScope === ScopeType.ALL || isPeopleOpsOrAdmin(auth)) {
+      reports = await this.workerRepository.find({
+        where: {
+          tenantId,
+          status: WorkerStatus.ACTIVE,
+        },
+        order: { lastName: 'ASC', firstName: 'ASC' },
+      });
+      reports = reports.filter((w) => w.managerId != null);
+    } else if (
+      auth.broadestScope === ScopeType.DIVISION ||
+      auth.roleCodes.includes(PolarisRoleCode.DIVISION_HEAD)
+    ) {
+      const divisionIds = auth.assignments
+        .filter((a) => a.scopeType === ScopeType.DIVISION && a.scopeId)
+        .map((a) => a.scopeId as string);
+      if (divisionIds.length === 0) {
+        reports = [];
+      } else {
+        reports = await this.workerRepository.find({
+          where: {
+            tenantId,
+            status: WorkerStatus.ACTIVE,
+            divisionId: In(divisionIds),
+          },
+          order: { lastName: 'ASC', firstName: 'ASC' },
+        });
+      }
+    } else {
+      if (!actingWorkerId) {
+        return {
+          actingWorkerId: null,
+          reports: [],
+          oneOnOnes: [],
+          reviewsAwaitingMe: 0,
+        };
+      }
+      reports = await this.workerRepository.find({
+        where: {
+          tenantId,
+          managerId: actingWorkerId,
+          status: WorkerStatus.ACTIVE,
+        },
+        order: { lastName: 'ASC', firstName: 'ASC' },
+      });
+    }
+
+    const reportIds = reports.map((w) => w.id);
+    const [goals, reviews, oneOnOnes] = await Promise.all([
+      reportIds.length
+        ? this.goalRepository.find({
+            where: {
+              tenantId,
+              workerId: In(reportIds),
+              status: GoalStatus.ACTIVE,
+            },
+          })
+        : [],
+      reportIds.length
+        ? this.reviewRepository.find({
+            where: { tenantId, workerId: In(reportIds) },
+            order: { createdAt: 'DESC' },
+          })
+        : [],
+      actingWorkerId
+        ? this.oneOnOneRepository.find({
+            where: {
+              tenantId,
+              managerWorkerId: actingWorkerId,
+              status: OneOnOneStatus.SCHEDULED,
+            },
+            take: 20,
+            order: { scheduledAt: 'ASC' },
+          })
+        : [],
+    ]);
+
+    const goalsByWorker = new Map<string, typeof goals>();
+    for (const goal of goals) {
+      const list = goalsByWorker.get(goal.workerId) ?? [];
+      list.push(goal);
+      goalsByWorker.set(goal.workerId, list);
+    }
+
+    const reviewsByWorker = new Map<string, typeof reviews>();
+    for (const review of reviews) {
+      const list = reviewsByWorker.get(review.workerId) ?? [];
+      list.push(review);
+      reviewsByWorker.set(review.workerId, list);
+    }
+
+    return {
+      actingWorkerId,
+      reports: reports.map((worker) => ({
+        workerId: worker.id,
+        firstName: worker.firstName,
+        lastName: worker.lastName,
+        goals: goalsByWorker.get(worker.id) ?? [],
+        reviews: reviewsByWorker.get(worker.id) ?? [],
+      })),
+      oneOnOnes,
       reviewsAwaitingMe: countReviewsAwaitingMe(reviews, actingWorkerId),
     };
   }
