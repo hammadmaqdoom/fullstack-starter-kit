@@ -1,8 +1,15 @@
 'use client';
 
+import { AssessmentQuestionBuilder } from '@/components/performance/AssessmentQuestionBuilder';
 import { PerformanceDashboardView } from '@/components/performance/PerformanceDashboardView';
-import { activateCycle, createCycle, listCycles } from '@/libs/api/talent';
-import type { PerformanceCycle } from '@/libs/api/talent';
+import {
+  activateCycle,
+  createCycle,
+  listCycles,
+  updateCycle,
+  type AssessmentQuestion,
+  type PerformanceCycle,
+} from '@/libs/api/talent';
 import { ApiRequestError } from '@/libs/api/client';
 import { Link } from '@/libs/I18nNavigation';
 import { Calendar, Play, Target } from 'lucide-react';
@@ -23,6 +30,8 @@ export default function PeopleOpsPerformancePage() {
   const [cyclesLoading, setCyclesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingCycle, setEditingCycle] = useState<PerformanceCycle | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const year = new Date().getFullYear();
@@ -32,6 +41,8 @@ export default function PeopleOpsPerformancePage() {
   const [periodEnd, setPeriodEnd] = useState(`${year}-12-31`);
   const [peerFeedbackEnabled, setPeerFeedbackEnabled] = useState(false);
   const [calibrationEnabled, setCalibrationEnabled] = useState(true);
+  const [selfTemplate, setSelfTemplate] = useState<AssessmentQuestion[]>([]);
+  const [managerTemplate, setManagerTemplate] = useState<AssessmentQuestion[]>([]);
 
   const loadCycles = useCallback(async () => {
     setCyclesLoading(true);
@@ -70,8 +81,12 @@ export default function PeopleOpsPerformancePage() {
         periodEnd,
         peerFeedbackEnabled,
         calibrationEnabled,
+        selfAssessmentTemplate: selfTemplate,
+        managerAssessmentTemplate: managerTemplate,
       });
       setDialogOpen(false);
+      setSelfTemplate([]);
+      setManagerTemplate([]);
       await loadCycles();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('error_save'));
@@ -87,6 +102,32 @@ export default function PeopleOpsPerformancePage() {
       await loadCycles();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('error_save'));
+    }
+  };
+
+  const openEditTemplates = (cycle: PerformanceCycle) => {
+    setEditingCycle(cycle);
+    setSelfTemplate(cycle.selfAssessmentTemplate ?? []);
+    setManagerTemplate(cycle.managerAssessmentTemplate ?? []);
+    setEditOpen(true);
+  };
+
+  const handleSaveTemplates = async () => {
+    if (!editingCycle) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await updateCycle(editingCycle.id, {
+        selfAssessmentTemplate: selfTemplate,
+        managerAssessmentTemplate: managerTemplate,
+      });
+      setEditOpen(false);
+      setEditingCycle(null);
+      await loadCycles();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_save'));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -122,7 +163,15 @@ export default function PeopleOpsPerformancePage() {
             <h2 className="text-lg font-semibold text-gray-900">{t('cycles_title')}</h2>
             <p className="text-sm text-gray-500">{t('cycles_subtitle')}</p>
           </div>
-          <Button type="button" className="gap-2" onClick={() => setDialogOpen(true)}>
+          <Button
+            type="button"
+            className="gap-2"
+            onClick={() => {
+              setSelfTemplate([]);
+              setManagerTemplate([]);
+              setDialogOpen(true);
+            }}
+          >
             <Calendar className="size-4" aria-hidden />
             {t('create_cycle')}
           </Button>
@@ -146,19 +195,29 @@ export default function PeopleOpsPerformancePage() {
             <Column field="status" header={t('cycle_status')} />
             <Column
               header={t('actions')}
-              body={(row: PerformanceCycle) =>
-                row.status === 'draft' ? (
+              body={(row: PerformanceCycle) => (
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     size="small"
-                    className="gap-1"
-                    onClick={() => void handleActivate(row.id)}
+                    outlined
+                    onClick={() => openEditTemplates(row)}
                   >
-                    <Play className="size-3.5" aria-hidden />
-                    {t('activate_cycle')}
+                    {t('edit_templates')}
                   </Button>
-                ) : null
-              }
+                  {row.status === 'draft' ? (
+                    <Button
+                      type="button"
+                      size="small"
+                      className="gap-1"
+                      onClick={() => void handleActivate(row.id)}
+                    >
+                      <Play className="size-3.5" aria-hidden />
+                      {t('activate_cycle')}
+                    </Button>
+                  ) : null}
+                </div>
+              )}
             />
           </DataTable>
         </Card>
@@ -169,7 +228,7 @@ export default function PeopleOpsPerformancePage() {
         visible={dialogOpen}
         onHide={() => setDialogOpen(false)}
         modal
-        className="w-full max-w-md"
+        className="w-full max-w-2xl"
       >
         <div className="space-y-4">
           <div>
@@ -241,7 +300,44 @@ export default function PeopleOpsPerformancePage() {
               {t('calibration_enabled')}
             </label>
           </div>
+          <AssessmentQuestionBuilder
+            title={t('self_template_title')}
+            value={selfTemplate}
+            onChange={setSelfTemplate}
+          />
+          <AssessmentQuestionBuilder
+            title={t('manager_template_title')}
+            value={managerTemplate}
+            onChange={setManagerTemplate}
+          />
           <Button type="button" loading={submitting} onClick={() => void handleCreate()}>
+            {t('save')}
+          </Button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        header={t('edit_templates')}
+        visible={editOpen}
+        onHide={() => {
+          setEditOpen(false);
+          setEditingCycle(null);
+        }}
+        modal
+        className="w-full max-w-2xl"
+      >
+        <div className="space-y-4">
+          <AssessmentQuestionBuilder
+            title={t('self_template_title')}
+            value={selfTemplate}
+            onChange={setSelfTemplate}
+          />
+          <AssessmentQuestionBuilder
+            title={t('manager_template_title')}
+            value={managerTemplate}
+            onChange={setManagerTemplate}
+          />
+          <Button type="button" loading={submitting} onClick={() => void handleSaveTemplates()}>
             {t('save')}
           </Button>
         </div>

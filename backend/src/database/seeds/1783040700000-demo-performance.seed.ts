@@ -229,6 +229,47 @@ export class DemoPerformanceSeed1783040700000 implements Seeder {
       ratingScale: 'exceeds_meets_below',
       calibrationEnabled: true,
       createdByUserId: peopleops.userId,
+      selfAssessmentTemplate: [
+        {
+          id: 'self-wins',
+          type: 'long_text',
+          label: 'What were your key wins this cycle?',
+          required: true,
+        },
+        {
+          id: 'self-impact',
+          type: 'rating',
+          label: 'How would you rate your overall impact?',
+          required: true,
+          scaleMin: 1,
+          scaleMax: 5,
+        },
+        {
+          id: 'self-focus',
+          type: 'single_choice',
+          label: 'Primary focus area next cycle',
+          required: true,
+          options: [
+            { id: 'delivery', label: 'Delivery excellence' },
+            { id: 'craft', label: 'Craft / technical depth' },
+            { id: 'leadership', label: 'Leadership / mentoring' },
+          ],
+        },
+      ],
+      managerAssessmentTemplate: [
+        {
+          id: 'mgr-summary',
+          type: 'long_text',
+          label: 'Manager summary',
+          required: true,
+        },
+        {
+          id: 'mgr-recommend',
+          type: 'yes_no',
+          label: 'Ready for expanded scope?',
+          required: true,
+        },
+      ],
     });
 
     await upsertById(reviewRepo, IDS.reviewEmployeePendingSelf, {
@@ -256,8 +297,45 @@ export class DemoPerformanceSeed1783040700000 implements Seeder {
       workerId: employee2.workerId,
       managerWorkerId: manager.workerId,
       status: ReviewStatus.PENDING_MANAGER,
-      selfAssessment: 'I delivered documentation coverage for core Labs runbooks.',
+      selfAssessment:
+        'What were your key wins this cycle?: I delivered documentation coverage for core Labs runbooks.\nHow would you rate your overall impact?: 4\nPrimary focus area next cycle: Delivery excellence',
       managerAssessment: null,
+      selfAssessmentPayload: {
+        questionsSnapshot: [
+          {
+            id: 'self-wins',
+            type: 'long_text',
+            label: 'What were your key wins this cycle?',
+            required: true,
+          },
+          {
+            id: 'self-impact',
+            type: 'rating',
+            label: 'How would you rate your overall impact?',
+            required: true,
+            scaleMin: 1,
+            scaleMax: 5,
+          },
+          {
+            id: 'self-focus',
+            type: 'single_choice',
+            label: 'Primary focus area next cycle',
+            required: true,
+            options: [
+              { id: 'delivery', label: 'Delivery excellence' },
+              { id: 'craft', label: 'Craft / technical depth' },
+              { id: 'leadership', label: 'Leadership / mentoring' },
+            ],
+          },
+        ],
+        answers: {
+          'self-wins':
+            'I delivered documentation coverage for core Labs runbooks.',
+          'self-impact': 4,
+          'self-focus': 'delivery',
+        },
+      },
+      managerAssessmentPayload: null,
       outcome: null,
       probationOutcome: null,
       competencyRatings: {},

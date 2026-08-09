@@ -1,16 +1,25 @@
 'use client';
 
 import type {
+  AssessmentQuestion,
   PerformanceReview,
   TeamPerformanceDashboard,
 } from '@/libs/api/talent';
 import {
   createOneOnOne,
+  getReview,
   getTeamPerformanceDashboard,
   submitManagerReview,
   updateOneOnOne,
 } from '@/libs/api/talent';
 import { ApiRequestError } from '@/libs/api/client';
+import { AssessmentAnswersReadOnly } from '@/components/performance/AssessmentAnswersReadOnly';
+import { AssessmentQuestionnaireForm } from '@/components/performance/AssessmentQuestionnaireForm';
+import {
+  hasRequiredGaps,
+  isTemplateEmpty,
+  type AssessmentAnswers,
+} from '@/libs/performance/assessment-questionnaire';
 import { parsePerformanceSearchParams } from '@/libs/performance/performance-query';
 import { EmptyState } from '@/components/shared/EmptyState';
 import {
@@ -41,7 +50,9 @@ export function ManagerPerformanceBoard() {
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [activeReview, setActiveReview] = useState<PerformanceReview | null>(null);
-  const [managerAssessment, setManagerAssessment] = useState('');
+  const [managerAnswers, setManagerAnswers] = useState<AssessmentAnswers>({});
+  const [managerTemplate, setManagerTemplate] = useState<AssessmentQuestion[]>([]);
+  const [reviewDetailLoading, setReviewDetailLoading] = useState(false);
   const [outcome, setOutcome] = useState('meets');
 
   const [oneOnOneOpen, setOneOnOneOpen] = useState(false);
@@ -66,6 +77,24 @@ export function ManagerPerformanceBoard() {
     void load();
   }, [load]);
 
+  const openManagerReview = useCallback(async (review: PerformanceReview) => {
+    setActiveReview(review);
+    setManagerAnswers({});
+    setOutcome('meets');
+    setReviewDialogOpen(true);
+    setReviewDetailLoading(true);
+    try {
+      const { data: detail } = await getReview(review.id);
+      setActiveReview(detail);
+      setManagerTemplate(detail.cycle?.managerAssessmentTemplate ?? []);
+    } catch (err) {
+      setManagerTemplate([]);
+      setError(err instanceof ApiRequestError ? err.message : t('error_load'));
+    } finally {
+      setReviewDetailLoading(false);
+    }
+  }, [t]);
+
   useEffect(() => {
     if (!data) return;
     const { reviewId } = parsePerformanceSearchParams(window.location.search);
@@ -73,14 +102,11 @@ export function ManagerPerformanceBoard() {
     for (const report of data.reports) {
       const review = report.reviews.find((r) => r.id === reviewId);
       if (review?.status === 'pending_manager') {
-        setActiveReview(review);
-        setManagerAssessment('');
-        setOutcome('meets');
-        setReviewDialogOpen(true);
+        void openManagerReview(review);
         break;
       }
     }
-  }, [data]);
+  }, [data, openManagerReview]);
 
   const reportOptions = useMemo(
     () =>
@@ -98,15 +124,18 @@ export function ManagerPerformanceBoard() {
   ];
 
   const handleSubmitReview = async () => {
-    if (!activeReview || !managerAssessment.trim()) return;
+    if (!activeReview || isTemplateEmpty(managerTemplate)) return;
+    if (hasRequiredGaps(managerTemplate, managerAnswers)) return;
     setSubmitting(true);
     try {
       await submitManagerReview(activeReview.id, {
-        managerAssessment: managerAssessment.trim(),
+        answers: managerAnswers,
         outcome,
       });
       setReviewDialogOpen(false);
       setActiveReview(null);
+      setManagerAnswers({});
+      setManagerTemplate([]);
       await load();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('error_save'));
@@ -283,12 +312,7 @@ export function ManagerPerformanceBoard() {
                         <Button
                           type="button"
                           size="small"
-                          onClick={() => {
-                            setActiveReview(review);
-                            setManagerAssessment('');
-                            setOutcome('meets');
-                            setReviewDialogOpen(true);
-                          }}
+                          onClick={() => void openManagerReview(review)}
                         >
                           {t('submit_manager_review')}
                         </Button>
@@ -343,32 +367,43 @@ export function ManagerPerformanceBoard() {
         className="w-full max-w-lg"
       >
         <div className="space-y-4">
-          {activeReview?.selfAssessment && (
-            <div className="rounded-md bg-gray-50 p-3 text-sm text-gray-700">
-              <p className="font-medium text-gray-900">{t('self_assessment')}</p>
-              <p className="mt-1">{activeReview.selfAssessment}</p>
-            </div>
+          {reviewDetailLoading ? (
+            <Skeleton height="8rem" />
+          ) : (
+            <>
+              <AssessmentAnswersReadOnly
+                payload={activeReview?.selfAssessmentPayload}
+                fallbackText={activeReview?.selfAssessment}
+              />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="mgr-outcome">
+                  {t('outcome')}
+                </label>
+                <Dropdown
+                  inputId="mgr-outcome"
+                  value={outcome}
+                  options={outcomeOptions}
+                  onChange={(e) => setOutcome(e.value as string)}
+                  className="w-full"
+                />
+              </div>
+              <AssessmentQuestionnaireForm
+                questions={managerTemplate}
+                value={managerAnswers}
+                onChange={setManagerAnswers}
+              />
+            </>
           )}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="mgr-outcome">
-              {t('outcome')}
-            </label>
-            <Dropdown
-              inputId="mgr-outcome"
-              value={outcome}
-              options={outcomeOptions}
-              onChange={(e) => setOutcome(e.value as string)}
-              className="w-full"
-            />
-          </div>
-          <InputTextarea
-            value={managerAssessment}
-            onChange={(e) => setManagerAssessment(e.target.value)}
-            placeholder={t('manager_assessment_placeholder')}
-            rows={5}
-            className="w-full"
-          />
-          <Button type="button" loading={submitting} onClick={() => void handleSubmitReview()}>
+          <Button
+            type="button"
+            loading={submitting}
+            disabled={
+              reviewDetailLoading ||
+              isTemplateEmpty(managerTemplate) ||
+              hasRequiredGaps(managerTemplate, managerAnswers)
+            }
+            onClick={() => void handleSubmitReview()}
+          >
             {t('submit')}
           </Button>
         </div>

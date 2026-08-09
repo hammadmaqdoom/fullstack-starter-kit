@@ -1,17 +1,24 @@
 'use client';
 
 import type { DirectoryEntry } from '@/libs/api/org';
-import type { PerformanceDashboard, PerformanceReview } from '@/libs/api/talent';
+import type { AssessmentQuestion, PerformanceDashboard, PerformanceReview } from '@/libs/api/talent';
 import {
   addGoalCheckIn,
   createFeedback,
   createGoal,
   createRecognition,
   getPerformanceDashboard,
+  getReview,
   submitSelfAssessment,
 } from '@/libs/api/talent';
 import { ApiRequestError } from '@/libs/api/client';
+import { AssessmentQuestionnaireForm } from '@/components/performance/AssessmentQuestionnaireForm';
 import { DevelopmentPlanPanel } from '@/components/performance/DevelopmentPlanPanel';
+import {
+  hasRequiredGaps,
+  isTemplateEmpty,
+  type AssessmentAnswers,
+} from '@/libs/performance/assessment-questionnaire';
 import { parsePerformanceSearchParams } from '@/libs/performance/performance-query';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { StatusTracker, type TrackerStep } from '@/components/shared/StatusTracker';
@@ -109,7 +116,9 @@ export function PerformanceDashboardView({
   const [recognitionTag, setRecognitionTag] = useState('');
 
   const [selfAssessmentOpen, setSelfAssessmentOpen] = useState(false);
-  const [selfAssessmentText, setSelfAssessmentText] = useState('');
+  const [selfAssessmentAnswers, setSelfAssessmentAnswers] = useState<AssessmentAnswers>({});
+  const [selfTemplate, setSelfTemplate] = useState<AssessmentQuestion[]>([]);
+  const [selfTemplateLoading, setSelfTemplateLoading] = useState(false);
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
   const [developmentActionId, setDevelopmentActionId] = useState<string | null>(null);
 
@@ -131,6 +140,22 @@ export function PerformanceDashboardView({
     void load();
   }, [load]);
 
+  const openSelfAssessment = async (reviewId: string) => {
+    setActiveReviewId(reviewId);
+    setSelfAssessmentAnswers({});
+    setSelfAssessmentOpen(true);
+    setSelfTemplateLoading(true);
+    try {
+      const { data: review } = await getReview(reviewId);
+      setSelfTemplate(review.cycle?.selfAssessmentTemplate ?? []);
+    } catch (err) {
+      setSelfTemplate([]);
+      setError(err instanceof ApiRequestError ? err.message : t('error_load'));
+    } finally {
+      setSelfTemplateLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!data) return;
     const { reviewId, developmentActionId: actionId } =
@@ -141,8 +166,7 @@ export function PerformanceDashboardView({
     if (!reviewId) return;
     const review = data.reviews.find((r) => r.id === reviewId);
     if (review?.status === 'pending_self') {
-      setActiveReviewId(review.id);
-      setSelfAssessmentOpen(true);
+      void openSelfAssessment(review.id);
     }
   }, [data]);
 
@@ -247,14 +271,16 @@ export function PerformanceDashboardView({
   };
 
   const handleSelfAssessment = async () => {
-    if (!activeReviewId || !selfAssessmentText.trim()) return;
+    if (!activeReviewId || isTemplateEmpty(selfTemplate)) return;
+    if (hasRequiredGaps(selfTemplate, selfAssessmentAnswers)) return;
     setSubmitting(true);
     try {
       await submitSelfAssessment(activeReviewId, {
-        selfAssessment: selfAssessmentText.trim(),
+        answers: selfAssessmentAnswers,
       });
       setSelfAssessmentOpen(false);
-      setSelfAssessmentText('');
+      setSelfAssessmentAnswers({});
+      setSelfTemplate([]);
       setActiveReviewId(null);
       await load();
     } catch (err) {
@@ -467,10 +493,7 @@ export function PerformanceDashboardView({
                     type="button"
                     size="small"
                     className="mt-3"
-                    onClick={() => {
-                      setActiveReviewId(review.id);
-                      setSelfAssessmentOpen(true);
-                    }}
+                    onClick={() => void openSelfAssessment(review.id)}
                   >
                     {t('submit_self_assessment')}
                   </Button>
@@ -763,14 +786,25 @@ export function PerformanceDashboardView({
         className="w-full max-w-lg"
       >
         <div className="space-y-4">
-          <InputTextarea
-            value={selfAssessmentText}
-            onChange={(e) => setSelfAssessmentText(e.target.value)}
-            placeholder={t('self_assessment_placeholder')}
-            rows={6}
-            className="w-full"
-          />
-          <Button type="button" loading={submitting} onClick={() => void handleSelfAssessment()}>
+          {selfTemplateLoading ? (
+            <Skeleton height="8rem" />
+          ) : (
+            <AssessmentQuestionnaireForm
+              questions={selfTemplate}
+              value={selfAssessmentAnswers}
+              onChange={setSelfAssessmentAnswers}
+            />
+          )}
+          <Button
+            type="button"
+            loading={submitting}
+            disabled={
+              selfTemplateLoading ||
+              isTemplateEmpty(selfTemplate) ||
+              hasRequiredGaps(selfTemplate, selfAssessmentAnswers)
+            }
+            onClick={() => void handleSelfAssessment()}
+          >
             {t('submit')}
           </Button>
         </div>
