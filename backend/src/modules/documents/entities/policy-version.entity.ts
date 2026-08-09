@@ -67,6 +67,9 @@ export class PolicyVersionEntity {
   @Column({ type: 'uuid', nullable: true })
   publishedBy: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  requiresReacknowledgement: boolean;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

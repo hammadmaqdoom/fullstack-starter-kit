@@ -47,6 +47,12 @@ export class EsignAuditEventEntity {
   @Column({ type: 'jsonb', default: {} })
   metadata: Record<string, unknown>;
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  ipAddress: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  userAgent: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

@@ -69,6 +69,9 @@ export class DocumentTemplateEntity {
   })
   status: DocumentTemplateStatus;
 
+  @Column({ type: 'boolean', default: false })
+  requiresSignature: boolean;
+
   /** Inverse side — string relation name avoids circular import with version entity. */
   @OneToMany('DocumentTemplateVersionEntity', 'template')
   versions?: Array<{

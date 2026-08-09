@@ -41,6 +41,12 @@ export class EsignEnvelopeEntity {
   @Column({ type: 'varchar', length: 500, nullable: true })
   documentBlobUrl: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  legalEntityId: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  generatedDocumentId: string | null;
+
   @Column({ type: 'uuid' })
   createdBy: string;
 

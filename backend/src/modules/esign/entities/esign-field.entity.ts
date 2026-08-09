@@ -63,6 +63,9 @@ export class EsignFieldEntity {
   @Column({ type: 'float' })
   height: number;
 
+  @Column({ type: 'text', nullable: true })
+  value: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

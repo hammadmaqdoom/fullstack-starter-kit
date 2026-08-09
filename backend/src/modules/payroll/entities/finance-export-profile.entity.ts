@@ -57,6 +57,12 @@ export class FinanceExportProfileEntity {
   @Column({ type: 'varchar', length: 100 })
   name: string;
 
+  @Column({ type: 'varchar', length: 50, default: 'pay_run' })
+  exportType: string;
+
+  @Column({ type: 'int', default: 1 })
+  version: number;
+
   @Column({ type: 'jsonb', default: [] })
   columnMappings: ExportColumnMapping[];
 
