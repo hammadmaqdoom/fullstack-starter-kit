@@ -380,6 +380,7 @@
   "Workers": {
     "title": "Workers",
     "subtitle": "Manage worker records across Labs and Studio.",
+    "page_description": "Create and maintain worker profiles, employment details, and country-specific statutory fields for Labs and Studio.",
     "add_worker": "Add worker",
     "create_title": "New worker",
     "edit_title": "Edit worker",

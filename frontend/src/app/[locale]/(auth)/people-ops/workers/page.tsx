@@ -1,6 +1,7 @@
 'use client';
 
 import type { Worker } from '@/libs/api/workers';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -24,20 +25,20 @@ export default function PeopleOpsWorkersPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">{t('title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
-        </div>
-        <Button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="gap-2"
-        >
-          <Plus className="size-4" aria-hidden />
-          {t('add_worker')}
-        </Button>
-      </div>
+      <PageHeader
+        title={t('title')}
+        description={t('page_description')}
+        action={(
+          <Button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="gap-2"
+          >
+            <Plus className="size-4" aria-hidden />
+            {t('add_worker')}
+          </Button>
+        )}
+      />
 
       <WorkerList key={listKey} />
 
