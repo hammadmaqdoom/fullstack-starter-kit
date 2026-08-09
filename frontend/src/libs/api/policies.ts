@@ -66,6 +66,41 @@ export async function listPolicies() {
   return apiRequest<PolicyListItem[]>(BASE);
 }
 
+export async function createPolicy(input: {
+  code: string;
+  title: string;
+  category: PolicyCategory;
+  isActive?: boolean;
+  populationRules?: Array<{
+    countryCode?: string | null;
+    divisionId?: string | null;
+    employmentTypeId?: string | null;
+  }>;
+}) {
+  return apiRequest<PolicyListItem>(BASE, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function publishPolicy(
+  policyId: string,
+  input: {
+    versionId?: string;
+    contentHtml?: string;
+    blobUrl?: string;
+    effectiveFrom?: string;
+  } = {},
+) {
+  return apiRequest<{ id: string; version: number; status: string }>(
+    `${BASE}/${policyId}/publish`,
+    {
+      method: 'POST',
+      body: input,
+    },
+  );
+}
+
 export async function getComplianceDashboard() {
   return apiRequest<ComplianceDashboardRow[]>(`${BASE}/compliance-dashboard`);
 }
