@@ -1,7 +1,7 @@
 # Design: Home Week Attendance Strip (Role-Aware)
 
 **Date:** 2026-08-10  
-**Status:** Approved — plan ready (`docs/superpowers/plans/2026-08-10-home-week-attendance-strip.md`)  
+**Status:** Implemented — plan `docs/superpowers/plans/2026-08-10-home-week-attendance-strip.md`  
 **Product:** Polaris (Digitaro HRMS)  
 **Related:** `EmployeeHome`, `TeamAttendanceStrip`, `GET /api/v1/calendars/me`, `GET /api/v1/attendance/punches/today`, staff/team calendars design (`2026-08-09-staff-team-calendars-design.md`)
 
