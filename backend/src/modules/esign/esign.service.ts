@@ -871,6 +871,19 @@ export class EsignService {
     return result;
   }
 
+  async listPending(actor: EsignActor): Promise<EsignEnvelopeEntity[]> {
+    const tenantId = actor.tenantId ?? DIGITARO_TENANT_ID;
+    const workerId = await resolveActingWorkerId(
+      this.workerRepository,
+      actor.userId,
+      tenantId,
+    );
+    if (!workerId) {
+      return [];
+    }
+    return this.listPendingForWorker(workerId, tenantId);
+  }
+
   async listPendingForWorker(
     workerId: string,
     tenantId: string = DIGITARO_TENANT_ID,
@@ -886,7 +899,7 @@ export class EsignService {
       if (!signatories.length) {
         return [];
       }
-      return this.envelopeRepository.find({
+      const envelopes = await this.envelopeRepository.find({
         where: {
           tenantId,
           id: In(signatories.map((s) => s.envelopeId)),
@@ -895,8 +908,15 @@ export class EsignService {
             EsignEnvelopeStatus.PARTIALLY_SIGNED,
           ]),
         },
+        relations: ['signatories'],
         order: { createdAt: 'DESC' },
       });
+      for (const envelope of envelopes) {
+        if (envelope.signatories?.length) {
+          envelope.signatories.sort((a, b) => a.signingOrder - b.signingOrder);
+        }
+      }
+      return envelopes;
     } catch {
       return [];
     }

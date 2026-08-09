@@ -377,6 +377,51 @@ describe('EsignService', () => {
     expect(result.id).toBe('env-1');
   });
 
+  describe('listPending', () => {
+    it('returns pending envelopes for the acting worker with signatories', async () => {
+      workerRepository.findOne!.mockResolvedValue({
+        id: 'worker-1',
+      } as WorkerEntity);
+      signatoryRepository.find!.mockResolvedValue([signatoryA]);
+      envelopeRepository.find!.mockResolvedValue([
+        {
+          ...draftEnvelope,
+          status: EsignEnvelopeStatus.SENT,
+          signatories: [signatoryA, signatoryB],
+        },
+      ]);
+
+      const result = await service.listPending({
+        userId: 'user-employee',
+        tenantId: DIGITARO_TENANT_ID,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('env-1');
+      expect(result[0].signatories).toHaveLength(2);
+      expect(signatoryRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            workerId: 'worker-1',
+            status: EsignSignatoryStatus.PENDING,
+          }),
+        }),
+      );
+    });
+
+    it('returns empty when the user has no worker profile', async () => {
+      workerRepository.findOne!.mockResolvedValue(null);
+
+      const result = await service.listPending({
+        userId: 'user-orphan',
+        tenantId: DIGITARO_TENANT_ID,
+      });
+
+      expect(result).toEqual([]);
+      expect(signatoryRepository.find).not.toHaveBeenCalled();
+    });
+  });
+
   it('create persists envelope via transaction', async () => {
     envelopeRepository.findOne!.mockResolvedValue({
       ...draftEnvelope,

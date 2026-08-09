@@ -218,7 +218,7 @@ export function PolicyAckGate({ children }: PolicyAckGateProps) {
                     disabled={!isOnline || submitting}
                   >
                     <FileCheck2 className="size-4" aria-hidden />
-                    {t('acknowledge')}
+                    {t('read_and_acknowledge')}
                   </Button>
                 </div>
               </li>

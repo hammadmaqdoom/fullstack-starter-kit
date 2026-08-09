@@ -1,6 +1,7 @@
 import { AuditLogService } from '@/modules/compliance/audit-log.service';
 import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.constants';
 import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
+import { LegalEntityStatutoryIdEntity } from '@/modules/core-hr/entities/legal-entity-statutory-id.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { LegalEntityRenderProfile } from '@/modules/core-hr/enums/org.enum';
 import { DocumentTemplateVersionEntity } from '@/modules/country-config/entities/document-template-version.entity';
@@ -126,6 +127,10 @@ describe('DocumentService — issue / export / register', () => {
         {
           provide: getRepositoryToken(LegalEntityEntity),
           useValue: legalEntityRepository,
+        },
+        {
+          provide: getRepositoryToken(LegalEntityStatutoryIdEntity),
+          useValue: { find: jest.fn().mockResolvedValue([]) },
         },
         {
           provide: getRepositoryToken(LetterheadConfigEntity),

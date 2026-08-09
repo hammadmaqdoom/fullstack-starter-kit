@@ -7,10 +7,12 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { EntityStatus, LegalEntityRenderProfile } from '../enums/org.enum';
+import type { LegalEntityStatutoryIdEntity } from './legal-entity-statutory-id.entity';
 
 @Entity('legal_entities')
 @Index('IDX_legal_entities_tenant_code', ['tenantId', 'code'], { unique: true })
@@ -73,6 +75,36 @@ export class LegalEntityEntity {
     default: LegalEntityRenderProfile.FULL_DIGITAL,
   })
   defaultRenderProfile: LegalEntityRenderProfile;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  addressLine1: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  addressLine2: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  city: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  stateProvince: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  postalCode: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  phone: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  website: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  footerText: string | null;
+
+  @OneToMany('LegalEntityStatutoryIdEntity', 'legalEntity')
+  statutoryIds?: LegalEntityStatutoryIdEntity[];
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

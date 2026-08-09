@@ -1,6 +1,7 @@
 import { AuditLogService } from '@/modules/compliance/audit-log.service';
 import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.constants';
 import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
+import { LegalEntityStatutoryIdEntity } from '@/modules/core-hr/entities/legal-entity-statutory-id.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { DocumentTemplateVersionEntity } from '@/modules/country-config/entities/document-template-version.entity';
 import { DocumentTemplateEntity } from '@/modules/country-config/entities/document-template.entity';
@@ -27,6 +28,7 @@ import {
 import { GeneratedDocumentEntity } from './entities/generated-document.entity';
 import { LetterheadConfigEntity } from './entities/letterhead-config.entity';
 import { GeneratedDocumentStatus, RenderProfile } from './enums/document.enum';
+import { buildLegalEntityMergeData } from './legal-entity-merge.util';
 
 const MERGE_FIELD_TOKEN_PATTERN = /\{\{\s*([\w.]+)\s*\}\}/g;
 
@@ -54,6 +56,8 @@ export class DocumentService {
     private readonly workerRepository: Repository<WorkerEntity>,
     @InjectRepository(LegalEntityEntity)
     private readonly legalEntityRepository: Repository<LegalEntityEntity>,
+    @InjectRepository(LegalEntityStatutoryIdEntity)
+    private readonly legalEntityStatutoryIdRepository: Repository<LegalEntityStatutoryIdEntity>,
     @InjectRepository(LetterheadConfigEntity)
     private readonly letterheadRepository: Repository<LetterheadConfigEntity>,
     private readonly auditLogService: AuditLogService,
@@ -347,9 +351,19 @@ export class DocumentService {
       });
     }
 
+    const legalEntityId = dto.legalEntityId ?? worker.legalEntityId ?? undefined;
+    const legalMerge = legalEntityId
+      ? await this.resolveLegalEntityMergeData(legalEntityId, tenantId)
+      : {};
+    // Caller-provided merge data wins over auto-resolved legal entity fields.
+    const mergeData: Record<string, unknown> = {
+      ...legalMerge,
+      ...(dto.mergeData ?? {}),
+    };
+
     this.validateMergeFields(
       templateVersion.mergeFieldSchema ?? {},
-      dto.mergeData ?? {},
+      mergeData,
     );
 
     const generated = await this.generatedDocumentRepository.save(
@@ -359,14 +373,14 @@ export class DocumentService {
         templateVersionId: dto.templateVersionId,
         status: GeneratedDocumentStatus.DRAFT,
         blobUrl: null,
-        mergeData: dto.mergeData,
+        mergeData,
         templateSnapshot: {
           templateId: templateVersion.templateId,
           version: templateVersion.version,
           body: templateVersion.body,
           mergeFieldSchema: templateVersion.mergeFieldSchema,
         },
-        legalEntityId: dto.legalEntityId ?? worker.legalEntityId,
+        legalEntityId: legalEntityId ?? null,
         issuedBy: null,
         issuedAt: null,
       }),
@@ -639,6 +653,23 @@ export class DocumentService {
         details: { unresolved },
       });
     }
+  }
+
+  private async resolveLegalEntityMergeData(
+    legalEntityId: string,
+    tenantId: string,
+  ): Promise<Record<string, string>> {
+    const entity = await this.legalEntityRepository.findOne({
+      where: { id: legalEntityId, tenantId },
+    });
+    if (!entity) {
+      return {};
+    }
+    const statutoryIds = await this.legalEntityStatutoryIdRepository.find({
+      where: { tenantId, legalEntityId },
+      order: { fieldKey: 'ASC' },
+    });
+    return buildLegalEntityMergeData(entity, statutoryIds);
   }
 
   private async findGeneratedDocumentOrFail(

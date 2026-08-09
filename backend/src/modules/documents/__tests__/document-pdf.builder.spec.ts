@@ -74,6 +74,11 @@ describe('buildDocumentPdf', () => {
   const legalEntity = {
     registeredName: 'Digitaro Labs (Private) Limited',
     tradingName: 'Digitaro Labs',
+    addressLines: ['Office 12, Plot 45', 'Islamabad, ICT, 44000', 'PK'],
+    statutoryLines: ['NTN: 1234567-8', 'SECP Registration: 0123456'],
+    phone: '+92 51 8899 0100',
+    email: 'legal.pk@digitaro.co',
+    website: 'https://digitaro.co',
     requiresWetStamp: true,
     stampInstructions: 'Affix company seal before employee signature',
   };
@@ -119,7 +124,10 @@ describe('buildDocumentPdf', () => {
       renderProfile: RenderProfile.PRINT_ON_LETTERHEAD,
     });
 
-    expect(extractPdfText(digitalBytes)).toContain('Digitaro Labs');
+    const digitalText = extractPdfText(digitalBytes);
+    expect(digitalText).toContain('Digitaro Labs');
+    expect(digitalText).toContain('NTN: 1234567-8');
+    expect(digitalText).toContain('legal.pk@digitaro.co');
     expect(extractPdfText(printBytes)).not.toContain('Digitaro Labs');
   });
 

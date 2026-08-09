@@ -1,6 +1,7 @@
 import { ComplianceModule } from '@/modules/compliance/compliance.module';
 import { CoreHrModule } from '@/modules/core-hr/core-hr.module';
 import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
+import { LegalEntityStatutoryIdEntity } from '@/modules/core-hr/entities/legal-entity-statutory-id.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { CountryConfigModule } from '@/modules/country-config/country-config.module';
 import { DocumentTemplateVersionEntity } from '@/modules/country-config/entities/document-template-version.entity';
@@ -39,6 +40,7 @@ import { PolicyService } from './policy.service';
       DocumentTemplateVersionEntity,
       WorkerEntity,
       LegalEntityEntity,
+      LegalEntityStatutoryIdEntity,
       LetterheadConfigEntity,
       DocumentNumberSequenceEntity,
     ]),

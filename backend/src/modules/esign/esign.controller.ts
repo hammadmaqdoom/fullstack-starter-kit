@@ -76,6 +76,15 @@ export class EsignController {
     );
   }
 
+  @Get('envelopes')
+  @Roles(...ESIGN_READ_ROLES)
+  @ApiOperation({
+    summary: 'List envelopes awaiting the current worker signature',
+  })
+  listPending(@CurrentUserSession() session: CurrentUserSession) {
+    return this.esignService.listPending(this.actor(session));
+  }
+
   @Get('envelopes/:id')
   @Roles(...ESIGN_READ_ROLES)
   @ApiOperation({ summary: 'Get envelope detail + status tracker' })

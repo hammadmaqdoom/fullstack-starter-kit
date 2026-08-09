@@ -44,6 +44,7 @@ export class LetterheadConfigService {
   ): Promise<LegalEntityEntity[]> {
     return this.legalEntityRepository.find({
       where: { tenantId },
+      relations: ['statutoryIds'],
       order: { code: 'ASC' },
     });
   }

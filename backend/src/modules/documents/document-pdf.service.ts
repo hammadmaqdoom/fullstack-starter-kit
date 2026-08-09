@@ -1,4 +1,5 @@
 import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
+import { LegalEntityStatutoryIdEntity } from '@/modules/core-hr/entities/legal-entity-statutory-id.entity';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,12 +7,18 @@ import { buildDocumentPdf } from './document-pdf.builder';
 import { GeneratedDocumentEntity } from './entities/generated-document.entity';
 import { LetterheadConfigEntity } from './entities/letterhead-config.entity';
 import { RenderProfile } from './enums/document.enum';
+import {
+  formatLegalEntityAddressBlock,
+  formatLegalEntityStatutoryBlock,
+} from './legal-entity-merge.util';
 
 @Injectable()
 export class DocumentPdfService {
   constructor(
     @InjectRepository(LegalEntityEntity)
     private readonly legalEntityRepository: Repository<LegalEntityEntity>,
+    @InjectRepository(LegalEntityStatutoryIdEntity)
+    private readonly statutoryIdRepository: Repository<LegalEntityStatutoryIdEntity>,
     @InjectRepository(LetterheadConfigEntity)
     private readonly letterheadRepository: Repository<LetterheadConfigEntity>,
   ) {}
@@ -39,6 +46,14 @@ export class DocumentPdfService {
       });
     }
 
+    const statutoryIds = await this.statutoryIdRepository.find({
+      where: {
+        tenantId: document.tenantId,
+        legalEntityId: document.legalEntityId,
+      },
+      order: { fieldKey: 'ASC' },
+    });
+
     let letterhead: LetterheadConfigEntity | null = null;
     if (document.letterheadConfigId) {
       letterhead = await this.letterheadRepository.findOne({
@@ -55,6 +70,8 @@ export class DocumentPdfService {
     }
 
     const body = (document.templateSnapshot?.body as string | undefined) ?? '';
+    const addressBlock = formatLegalEntityAddressBlock(legalEntity);
+    const statutoryBlock = formatLegalEntityStatutoryBlock(statutoryIds);
 
     return buildDocumentPdf({
       documentNumber: document.documentNumber,
@@ -65,6 +82,12 @@ export class DocumentPdfService {
       legalEntity: {
         registeredName: legalEntity.registeredName,
         tradingName: legalEntity.tradingName,
+        footerText: legalEntity.footerText,
+        addressLines: addressBlock ? addressBlock.split('\n') : [],
+        statutoryLines: statutoryBlock ? statutoryBlock.split('\n') : [],
+        phone: legalEntity.phone,
+        email: legalEntity.email,
+        website: legalEntity.website,
         requiresWetStamp: legalEntity.requiresWetStamp,
         stampInstructions: legalEntity.stampInstructions,
       },

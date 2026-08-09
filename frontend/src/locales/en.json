@@ -829,6 +829,15 @@
     "status_archived": "Archived",
     "issue": "Issue",
     "export": "Export",
+    "preview": "Preview",
+    "preview_title": "Document preview",
+    "preview_close": "Close",
+    "preview_body_label": "Resolved body",
+    "preview_merge_label": "Merge data",
+    "preview_company_label": "Company legal details",
+    "preview_empty_body": "This document has no template body snapshot to preview.",
+    "preview_draft_hint": "Draft — not yet issued. Review the content before issuing.",
+    "error_preview": "Could not load the document preview.",
     "wet_stamp_dialog_title": "Wet stamp required",
     "wet_stamp_dialog_body": "This legal entity requires a physical wet stamp after printing. Confirm you have applied the stamp before downloading.",
     "wet_stamp_check_print": "I will print on official letterhead",
@@ -1358,11 +1367,15 @@
     "unit_hours": "Hours"
   },
   "Welcome": {
-    "title": "Welcome to Digitaro",
-    "subtitle": "Your onboarding checklist, policies, and documents are ready in Polaris.",
+    "eyebrow": "Welcome to Digitaro",
+    "greeting": "Welcome aboard",
+    "greeting_named": "Welcome, {name}",
+    "message": "We're glad you're here. Take a moment to settle in — confirm your details, acknowledge key policies, and say hello to your team when you're ready.",
+    "step_profile": "Confirm your profile details",
+    "step_policies": "Acknowledge required policies",
+    "step_team": "Meet your team in the directory",
     "cta_home": "Go to Today",
-    "cta_policies": "Review policies",
-    "cta_documents": "Sign documents"
+    "cta_policies": "View policies"
   },
   "Separations": {
     "title": "Separations",
@@ -1410,6 +1423,13 @@
     "org_subtree": "Org chart",
     "org_empty": "No reports in scope for this person.",
     "retry": "Try again"
+  },
+  "Welcome": {
+    "title": "Welcome to Digitaro",
+    "subtitle": "Your onboarding checklist, policies, and documents are ready in Polaris.",
+    "cta_home": "Go to Today",
+    "cta_policies": "Review policies",
+    "cta_documents": "Sign documents"
   },
   "DocumentTemplates": {
     "title": "Templates & letters",
@@ -1656,6 +1676,7 @@
     "approve_confirm_title": "Approve pay run",
     "approve_confirm_body": "Approving locks the calculated line items for this period. This action cannot be undone. Continue?",
     "approve_confirm_action": "Approve pay run",
+    "cancel": "Cancel",
     "approve_success": "Pay run approved.",
     "error_approve": "Could not approve the pay run.",
     "release_success": "Payslips released.",

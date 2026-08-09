@@ -1,12 +1,13 @@
 'use client';
 
 import type { PendingPolicyAcknowledgement } from '@/libs/api/policies';
-import { FileText } from 'lucide-react';
+import { resolvePolicyBody } from '@/libs/policies/policy-body';
+import { ExternalLink, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Dialog } from 'primereact/dialog';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type PolicyAckModalProps = {
   policy: PendingPolicyAcknowledgement | null;
@@ -22,20 +23,6 @@ function formatEffectiveDate(value: string): string {
   return value.length >= 10 ? value.slice(0, 10) : value;
 }
 
-function summaryText(policy: PendingPolicyAcknowledgement): string {
-  if (policy.contentSummary?.trim()) {
-    return policy.contentSummary.trim();
-  }
-  if (policy.contentHtml) {
-    const plain = policy.contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    if (plain.length > 400) {
-      return `${plain.slice(0, 400)}…`;
-    }
-    return plain || '—';
-  }
-  return '—';
-}
-
 export function PolicyAckModal({
   policy,
   visible,
@@ -46,6 +33,11 @@ export function PolicyAckModal({
 }: PolicyAckModalProps) {
   const t = useTranslations('Policies');
   const [accepted, setAccepted] = useState(false);
+
+  const body = useMemo(
+    () => (policy ? resolvePolicyBody(policy) : null),
+    [policy],
+  );
 
   useEffect(() => {
     if (visible) {
@@ -58,12 +50,12 @@ export function PolicyAckModal({
       header={policy?.policyTitle ?? t('ack_title')}
       visible={visible}
       onHide={mandatory ? () => undefined : onHide}
-      className="w-full max-w-lg"
+      className="w-full max-w-2xl"
       modal
       dismissableMask={!submitting && !mandatory}
       closable={!submitting && !mandatory}
     >
-      {policy && (
+      {policy && body && (
         <div className="space-y-4">
           <div className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
             <FileText className="mt-0.5 size-5 shrink-0 text-gray-500" aria-hidden />
@@ -79,12 +71,44 @@ export function PolicyAckModal({
 
           <div>
             <p className="mb-1 text-xs font-semibold tracking-wide text-gray-400 uppercase">
-              {t('content_summary')}
+              {t('content_body')}
             </p>
-            <div className="max-h-48 overflow-y-auto rounded-md border border-gray-200 bg-white p-3 text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">
-              {summaryText(policy)}
-            </div>
+            {body.html
+              ? (
+                  <div
+                    className="policy-ack-body max-h-72 overflow-y-auto rounded-md border border-gray-200 bg-white p-4 text-sm leading-relaxed text-gray-800 [&_h1]:mb-2 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2 [&_ul]:mb-2"
+                    dangerouslySetInnerHTML={{ __html: body.html }}
+                  />
+                )
+              : (
+                  <div className="rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-500">
+                    {body.summary ?? t('empty_body')}
+                  </div>
+                )}
           </div>
+
+          {body.summary && body.html && (
+            <div>
+              <p className="mb-1 text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                {t('content_summary')}
+              </p>
+              <p className="rounded-md border border-gray-100 bg-gray-50 p-3 text-sm text-gray-600 whitespace-pre-wrap">
+                {body.summary}
+              </p>
+            </div>
+          )}
+
+          {body.blobUrl && (
+            <a
+              href={body.blobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 underline underline-offset-2 hover:text-gray-700"
+            >
+              <ExternalLink className="size-3.5" aria-hidden />
+              {t('open_document')}
+            </a>
+          )}
 
           <label className="flex cursor-pointer items-start gap-2.5">
             <Checkbox

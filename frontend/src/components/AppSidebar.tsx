@@ -282,15 +282,12 @@ function SidebarPanel({
 
             {userMenuOpen && (
               <div className="absolute right-0 bottom-full left-0 z-10 mb-1 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                <SignOutButton>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    <LogOut className="size-4" aria-hidden />
-                    {t('sign_out')}
-                  </button>
+                <SignOutButton
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <LogOut className="size-4 shrink-0" aria-hidden />
+                  {t('sign_out')}
                 </SignOutButton>
               </div>
             )}

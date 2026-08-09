@@ -16,6 +16,7 @@ import { ContractorProfileEntity } from './entities/contractor-profile.entity';
 import { DepartmentEntity } from './entities/department.entity';
 import { DivisionEntity } from './entities/division.entity';
 import { LegalEntityEntity } from './entities/legal-entity.entity';
+import { LegalEntityStatutoryIdEntity } from './entities/legal-entity-statutory-id.entity';
 import { ManagerRelationshipEntity } from './entities/manager-relationship.entity';
 import { ProfileChangeRequestEntity } from './entities/profile-change-request.entity';
 import { ProjectAssignmentEntity } from './entities/project-assignment.entity';
@@ -44,6 +45,7 @@ import { WorkerService } from './worker.service';
       DivisionEntity,
       DepartmentEntity,
       LegalEntityEntity,
+      LegalEntityStatutoryIdEntity,
       ManagerRelationshipEntity,
       ProfileChangeRequestEntity,
       ApprovalDelegationEntity,

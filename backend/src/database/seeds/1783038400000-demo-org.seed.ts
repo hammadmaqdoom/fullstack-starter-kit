@@ -349,6 +349,18 @@ export class DemoOrgSeed1783038400000 implements Seeder {
       );
     }
 
+    const demoPolicyHtml = [
+      '<h2>Demo Code of Conduct</h2>',
+      '<p>This sample policy is for local role testing in Polaris. Read it before acknowledging.</p>',
+      '<h2>Respect</h2>',
+      '<p>Treat colleagues, clients, and partners with dignity. Harassment, discrimination, and retaliation are not tolerated.</p>',
+      '<h2>Integrity</h2>',
+      '<p>Be honest in communications and records. Do not misuse company systems, data, or credentials.</p>',
+      '<h2>Safety &amp; compliance</h2>',
+      '<p>Follow applicable laws and Digitaro security practices. Report concerns to People Ops or your manager promptly.</p>',
+      '<p>Acknowledging confirms you have read and understand this version.</p>',
+    ].join('');
+
     let version = await policyVersionRepo.findOne({
       where: { id: DEMO_POLICY_VERSION_ID },
     });
@@ -359,8 +371,7 @@ export class DemoOrgSeed1783038400000 implements Seeder {
           tenantId: DIGITARO_TENANT_ID,
           policyId: policy.id,
           version: 1,
-          contentHtml:
-            '<p>Demo Code of Conduct — acknowledge for local role testing.</p>',
+          contentHtml: demoPolicyHtml,
           blobUrl: null,
           effectiveFrom: '2024-01-01',
           status: PolicyVersionStatus.PUBLISHED,
@@ -368,6 +379,9 @@ export class DemoOrgSeed1783038400000 implements Seeder {
           publishedBy: null,
         }),
       );
+    } else if (version.contentHtml !== demoPolicyHtml) {
+      version.contentHtml = demoPolicyHtml;
+      version = await policyVersionRepo.save(version);
     }
 
     const existingRule = await populationRuleRepo.findOne({

@@ -22,6 +22,11 @@ export interface DocumentPdfLegalEntityInfo {
   registeredName: string;
   tradingName: string | null;
   footerText?: string | null;
+  addressLines?: string[];
+  statutoryLines?: string[];
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
   requiresWetStamp: boolean;
   stampInstructions: string | null;
 }
@@ -175,23 +180,45 @@ export async function buildDocumentPdf(
   if (!isPhysical) {
     if (layout.header?.showRegisteredName ?? true) {
       drawText(input.legalEntity.registeredName, {
-        size: 16,
+        size: 14,
         bold: true,
-        gap: 20,
+        gap: 14,
       });
     }
     if (layout.header?.showTradingName && input.legalEntity.tradingName) {
-      drawText(input.legalEntity.tradingName, { size: 11, gap: 18 });
+      drawText(input.legalEntity.tradingName, { size: 10, gap: 12 });
     }
+
+    const showAddress = layout.header?.showAddress ?? true;
+    if (showAddress) {
+      for (const line of input.legalEntity.addressLines ?? []) {
+        drawText(line, { size: 9, gap: 11 });
+      }
+      for (const line of input.legalEntity.statutoryLines ?? []) {
+        drawText(line, { size: 9, gap: 11 });
+      }
+      const contact = [
+        input.legalEntity.phone,
+        input.legalEntity.email,
+        input.legalEntity.website,
+      ]
+        .map((v) => v?.trim())
+        .filter(Boolean)
+        .join('  |  ');
+      if (contact) {
+        drawText(contact, { size: 9, gap: 14 });
+      }
+    }
+
     if (input.renderProfile === RenderProfile.INFORMATIONAL) {
       drawText('System-generated — no wet signature required', {
         size: 10,
         bold: true,
         color: rgb(0.4, 0.4, 0.4),
-        gap: 22,
+        gap: 18,
       });
     }
-    y -= 6;
+    y -= 8;
   }
 
   // --- Body ---
