@@ -1,7 +1,7 @@
 # Design: Employee Home (Today) Redesign
 
 **Date:** 2026-08-10  
-**Status:** Approved — awaiting implementation plan  
+**Status:** Implemented — see `docs/superpowers/plans/2026-08-10-employee-home-today.md`  
 **Product:** Polaris (Digitaro HRMS)  
 **Related:** `EmployeeHome`, shell check-in CTA → `/employee/home#check-in`, Hub, leave balances, calendars/me, workers/me  
 **Stories:** Human moments (birthday / anniversary) — `user-stories.md` birthday acknowledgement; Home / Today dashboard
@@ -157,15 +157,15 @@ Timezone: worker `timezone` when present; otherwise browser.
 
 ## 6. Acceptance checklist
 
-- [ ] Greeting shows time-of-day + first name + date; no permanent header Try again.
-- [ ] Check-in still works; `#check-in` still targets the punch section; shell CTA unchanged.
-- [ ] Leave balances render from API or clear empty state.
-- [ ] Up to 3 Hub `forMe` items with link to Hub.
-- [ ] Coming up shows leave/holidays for next 7 days or empty copy.
-- [ ] Shortcuts navigate to Leave, Calendar, Hub, Documents, Payslips.
-- [ ] Birthday card when DOB month/day is today; anniversary when startDate month/day is today and years ≥ 1.
-- [ ] `workers.date_of_birth` exists; `/workers/me` returns it; demo seed has a matchable DOB.
-- [ ] English strings only in `en.json`.
+- [x] Greeting shows time-of-day + first name + date; no permanent header Try again.
+- [x] Check-in still works; `#check-in` still targets the punch section; shell CTA unchanged.
+- [x] Leave balances render from API or clear empty state.
+- [x] Up to 3 Hub `forMe` items with link to Hub.
+- [x] Coming up shows leave/holidays for next 7 days or empty copy.
+- [x] Shortcuts navigate to Leave, Calendar, Hub, Documents, Payslips.
+- [x] Birthday card when DOB month/day is today; anniversary when startDate month/day is today and years ≥ 1.
+- [x] `workers.date_of_birth` exists; `/workers/me` returns it; demo seed has a matchable DOB.
+- [x] English strings only in `en.json`.
 
 ---
 
