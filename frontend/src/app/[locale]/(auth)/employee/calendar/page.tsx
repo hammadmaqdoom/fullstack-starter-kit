@@ -208,6 +208,7 @@ export default function EmployeeCalendarPage() {
           days={data.days}
           year={cursor.getFullYear()}
           monthIndex={cursor.getMonth()}
+          timezone={data.timezone}
         />
       )}
     </div>
