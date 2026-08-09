@@ -1,14 +1,17 @@
 'use client';
 
-import type { TodayAttendance } from '@/libs/api/attendance';
+import type { TeamPunchToday, TodayAttendance } from '@/libs/api/attendance';
 import type { WeekStripDay } from '@/libs/datetime/week-strip-days';
 import { WeekAttendanceStrip } from '@/components/calendar/WeekAttendanceStrip';
+import { TeamAttendanceStrip } from '@/components/manager/TeamAttendanceStrip';
 import { OfflineBanner, useOnlineStatus } from '@/components/ui/OfflineBanner';
 import { ApiRequestError } from '@/libs/api/client';
-import { checkIn, checkOut, getTodayAttendance } from '@/libs/api/attendance';
+import { checkIn, checkOut, getTodayAttendance, getTodayPunches } from '@/libs/api/attendance';
 import { getMyCalendar } from '@/libs/api/calendars';
 import { weekRange } from '@/libs/datetime/calendar-range';
 import { buildWeekStripDays } from '@/libs/datetime/week-strip-days';
+import { shouldShowTeamAttendanceOnHome } from '@/libs/home/home-role';
+import { usePolarisShell } from '@/libs/hooks/usePolarisShell';
 import { notifyAttendanceUpdated } from '@/libs/shell/attendance-events';
 import { AlertCircle, LogIn, LogOut, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -34,6 +37,8 @@ function formatPunchTime(iso: string | null | undefined): string {
 export default function EmployeeHomePage() {
   const t = useTranslations('EmployeeHome');
   const isOnline = useOnlineStatus();
+  const { shell } = usePolarisShell();
+  const showTeam = shouldShowTeamAttendanceOnHome(shell?.primaryLayout);
 
   const [today, setToday] = useState<TodayAttendance | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +51,10 @@ export default function EmployeeHomePage() {
   const [weekToday, setWeekToday] = useState(() => new Date().toISOString().slice(0, 10));
   const [weekLoading, setWeekLoading] = useState(true);
   const [weekError, setWeekError] = useState<string | null>(null);
+
+  const [teamPunches, setTeamPunches] = useState<TeamPunchToday[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -89,9 +98,33 @@ export default function EmployeeHomePage() {
     }
   }, [t]);
 
+  const loadTeam = useCallback(async () => {
+    if (!shouldShowTeamAttendanceOnHome(shell?.primaryLayout)) {
+      setTeamPunches([]);
+      setTeamError(null);
+      setTeamLoading(false);
+      return;
+    }
+    setTeamLoading(true);
+    setTeamError(null);
+    try {
+      const { data } = await getTodayPunches({ scope: 'team' });
+      setTeamPunches(data);
+    } catch (err) {
+      setTeamPunches([]);
+      setTeamError(err instanceof ApiRequestError ? err.message : t('team_today_error'));
+    } finally {
+      setTeamLoading(false);
+    }
+  }, [shell?.primaryLayout, t]);
+
   const refreshAll = useCallback(async () => {
-    await Promise.all([load(), loadWeek()]);
-  }, [load, loadWeek]);
+    const jobs: Array<Promise<void>> = [load(), loadWeek()];
+    if (shouldShowTeamAttendanceOnHome(shell?.primaryLayout)) {
+      jobs.push(loadTeam());
+    }
+    await Promise.all(jobs);
+  }, [load, loadTeam, loadWeek, shell?.primaryLayout]);
 
   useEffect(() => {
     void load();
@@ -100,6 +133,12 @@ export default function EmployeeHomePage() {
   useEffect(() => {
     void loadWeek();
   }, [loadWeek]);
+
+  useEffect(() => {
+    if (showTeam) {
+      void loadTeam();
+    }
+  }, [showTeam, loadTeam]);
 
   const status = today?.daySummary?.status ?? null;
   const isCheckedIn = status === 'in';
@@ -295,6 +334,25 @@ export default function EmployeeHomePage() {
           onRetry={() => void loadWeek()}
         />
       </section>
+
+      {showTeam && (
+        <section
+          className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+          aria-labelledby="team-today-heading"
+        >
+          <h2 id="team-today-heading" className="text-sm font-semibold text-gray-900">
+            {t('team_today_title')}
+          </h2>
+          <div className="mt-3">
+            <TeamAttendanceStrip
+              punches={teamPunches}
+              loading={teamLoading}
+              error={teamError}
+              onRetry={() => void loadTeam()}
+            />
+          </div>
+        </section>
+      )}
 
       <section className="rounded-xl border border-gray-200 bg-gray-50 p-5">
         <h2 className="text-sm font-semibold text-gray-900">{t('leave_balances_section')}</h2>
