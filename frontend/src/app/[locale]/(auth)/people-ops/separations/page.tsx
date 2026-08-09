@@ -19,17 +19,24 @@ import {
   getSeparation,
   getSeparationBoard,
   groupClearanceByCategory,
+  initiateSeparation,
   separationWorkerName,
 } from '@/libs/api/separation';
+import { listWorkers, type Worker } from '@/libs/api/workers';
+import { PageHeader } from '@/components/shared/PageHeader';
 import {
   Check,
   DoorOpen,
+  Plus,
   RefreshCw,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Button } from 'primereact/button';
+import { Calendar } from 'primereact/calendar';
 import { Dialog } from 'primereact/dialog';
+import { Dropdown } from 'primereact/dropdown';
+import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { Skeleton } from 'primereact/skeleton';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -101,6 +108,13 @@ export default function PeopleOpsSeparationsPage() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [clearingId, setClearingId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [createWorkerId, setCreateWorkerId] = useState('');
+  const [lastWorkingDay, setLastWorkingDay] = useState<Date | null>(null);
+  const [reason, setReason] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const statusLabels = useMemo(
     () => ({
@@ -122,6 +136,15 @@ export default function PeopleOpsSeparationsPage() {
     [t],
   );
 
+  const workerOptions = useMemo(
+    () =>
+      workers.map(w => ({
+        label: `${w.firstName} ${w.lastName}`.trim() || w.email,
+        value: w.id,
+      })),
+    [workers],
+  );
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -136,9 +159,19 @@ export default function PeopleOpsSeparationsPage() {
     }
   }, [t]);
 
+  const loadWorkers = useCallback(async () => {
+    try {
+      const { data } = await listWorkers({ status: 'active', limit: 200 });
+      setWorkers(data ?? []);
+    } catch {
+      setWorkers([]);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadWorkers();
+  }, [load, loadWorkers]);
 
   const grouped = useMemo(
     () => groupClearanceByCategory(cases, { includeDone: false }),
@@ -191,27 +224,72 @@ export default function PeopleOpsSeparationsPage() {
     }
   };
 
+  const openCreate = () => {
+    setCreateError(null);
+    setCreateWorkerId('');
+    setLastWorkingDay(null);
+    setReason('');
+    setCreateOpen(true);
+  };
+
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const handleInitiate = async () => {
+    if (!createWorkerId || !lastWorkingDay) {
+      return;
+    }
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const { data } = await initiateSeparation({
+        workerId: createWorkerId,
+        lastWorkingDay: formatDate(lastWorkingDay),
+        reason: reason.trim() || undefined,
+      });
+      setCreateOpen(false);
+      await load();
+      void openSeparation(data.id);
+    } catch (err) {
+      setCreateError(
+        err instanceof ApiRequestError ? err.message : t('error_initiate'),
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <OfflineBanner />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">{t('title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
-        </div>
-        <Button
-          type="button"
-          severity="secondary"
-          outlined
-          className="gap-2 self-start"
-          onClick={() => void load()}
-          disabled={loading}
-        >
-          <RefreshCw className="size-4" aria-hidden />
-          {t('refresh')}
-        </Button>
-      </div>
+      <PageHeader
+        title={t('title')}
+        description={t('subtitle')}
+        action={(
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              severity="secondary"
+              outlined
+              className="gap-2"
+              onClick={() => void load()}
+              disabled={loading}
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              {t('refresh')}
+            </Button>
+            <Button type="button" className="gap-2" onClick={openCreate}>
+              <Plus className="size-4" aria-hidden />
+              {t('initiate_cta')}
+            </Button>
+          </div>
+        )}
+      />
 
       {loading && (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -240,6 +318,8 @@ export default function PeopleOpsSeparationsPage() {
           icon={DoorOpen}
           title={t('empty_title')}
           description={t('empty_description')}
+          actionLabel={t('initiate_cta')}
+          onAction={openCreate}
         />
       )}
 
@@ -421,6 +501,79 @@ export default function PeopleOpsSeparationsPage() {
             </div>
           </div>
         )}
+      </Dialog>
+
+      <Dialog
+        header={t('initiate_title')}
+        visible={createOpen}
+        onHide={() => setCreateOpen(false)}
+        modal
+        dismissableMask
+        className="w-full max-w-md"
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              severity="secondary"
+              outlined
+              onClick={() => setCreateOpen(false)}
+              disabled={creating}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleInitiate()}
+              disabled={creating || !createWorkerId || !lastWorkingDay}
+              loading={creating}
+            >
+              {t('initiate_submit')}
+            </Button>
+          </div>
+        )}
+      >
+        <div className="space-y-4">
+          {createError && <Message severity="error" text={createError} className="w-full" />}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="sep-worker" className="text-sm font-medium text-gray-700">
+              {t('field_worker')}
+            </label>
+            <Dropdown
+              inputId="sep-worker"
+              value={createWorkerId || null}
+              options={workerOptions}
+              onChange={e => setCreateWorkerId(e.value ?? '')}
+              placeholder={t('field_worker_placeholder')}
+              className="w-full"
+              filter
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="sep-lwd" className="text-sm font-medium text-gray-700">
+              {t('field_last_working_day')}
+            </label>
+            <Calendar
+              inputId="sep-lwd"
+              value={lastWorkingDay}
+              onChange={e => setLastWorkingDay(e.value as Date | null)}
+              dateFormat="yy-mm-dd"
+              showIcon
+              className="w-full"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="sep-reason" className="text-sm font-medium text-gray-700">
+              {t('field_reason')}
+            </label>
+            <InputText
+              id="sep-reason"
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              className="w-full"
+              placeholder={t('field_reason_placeholder')}
+            />
+          </div>
+        </div>
       </Dialog>
     </div>
   );

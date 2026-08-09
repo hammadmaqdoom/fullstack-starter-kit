@@ -40,6 +40,18 @@ export async function listPreBoardingPackets() {
   }
 }
 
+export async function createPreBoardingPacket(input: {
+  workerId: string;
+  personalEmail: string;
+  candidateId?: string;
+  templateVersionId?: string;
+}) {
+  return apiRequest<PreBoardingPacket>(BASE, {
+    method: 'POST',
+    body: input,
+  });
+}
+
 export async function invitePreBoardingCandidate(packetId: string) {
   return apiRequest<PreBoardingPacket>(`${BASE}/${packetId}/invite`, {
     method: 'POST',

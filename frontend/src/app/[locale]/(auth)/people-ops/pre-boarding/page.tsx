@@ -8,15 +8,20 @@ import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { ApiRequestError } from '@/libs/api/client';
 import {
   candidatePortalUrl,
+  createPreBoardingPacket,
   invitePreBoardingCandidate,
   listPreBoardingPackets,
 } from '@/libs/api/pre-boarding';
-import { Copy, RefreshCw, Send, UserPlus } from 'lucide-react';
+import { listWorkers, type Worker } from '@/libs/api/workers';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Copy, Plus, RefreshCw, Send, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dialog } from 'primereact/dialog';
+import { Dropdown } from 'primereact/dropdown';
+import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { Skeleton } from 'primereact/skeleton';
 import { Tag } from 'primereact/tag';
@@ -67,6 +72,12 @@ export default function PeopleOpsPreBoardingPage() {
   const [detailMessage, setDetailMessage] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createWorkerId, setCreateWorkerId] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [workers, setWorkers] = useState<Worker[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,9 +94,19 @@ export default function PeopleOpsPreBoardingPage() {
     }
   }, [t]);
 
+  const loadWorkers = useCallback(async () => {
+    try {
+      const { data } = await listWorkers({ status: 'active', limit: 200 });
+      setWorkers(data ?? []);
+    } catch {
+      setWorkers([]);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadWorkers();
+  }, [load, loadWorkers]);
 
   const openDetail = (packet: PreBoardingPacket) => {
     setDetail(packet);
@@ -135,27 +156,72 @@ export default function PeopleOpsPreBoardingPage() {
     }));
   }, [detail, t]);
 
+  const workerOptions = useMemo(
+    () =>
+      workers.map(w => ({
+        label: `${w.firstName} ${w.lastName}`.trim() || w.email,
+        value: w.id,
+        email: w.email,
+      })),
+    [workers],
+  );
+
+  const openCreate = () => {
+    setCreateError(null);
+    setCreateWorkerId('');
+    setCreateEmail('');
+    setCreateOpen(true);
+  };
+
+  const handleCreate = async () => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const { data } = await createPreBoardingPacket({
+        workerId: createWorkerId.trim(),
+        personalEmail: createEmail.trim(),
+      });
+      setCreateOpen(false);
+      setCreateWorkerId('');
+      setCreateEmail('');
+      await load();
+      openDetail(data);
+    } catch (err) {
+      setCreateError(
+        err instanceof ApiRequestError ? err.message : t('error_create'),
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <OfflineBanner />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">{t('title')}</h1>
-          <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
-        </div>
-        <Button
-          type="button"
-          severity="secondary"
-          outlined
-          className="gap-2 self-start"
-          onClick={() => void load()}
-          disabled={loading}
-        >
-          <RefreshCw className="size-4" aria-hidden />
-          {t('refresh')}
-        </Button>
-      </div>
+      <PageHeader
+        title={t('title')}
+        description={t('subtitle')}
+        action={(
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              severity="secondary"
+              outlined
+              className="gap-2"
+              onClick={() => void load()}
+              disabled={loading}
+            >
+              <RefreshCw className="size-4" aria-hidden />
+              {t('refresh')}
+            </Button>
+            <Button type="button" className="gap-2" onClick={openCreate}>
+              <Plus className="size-4" aria-hidden />
+              {t('create_cta')}
+            </Button>
+          </div>
+        )}
+      />
 
       {unavailable && (
         <Message severity="warn" text={t('error_load')} className="w-full" />
@@ -179,7 +245,13 @@ export default function PeopleOpsPreBoardingPage() {
       )}
 
       {!loading && !error && packets.length === 0 && (
-        <EmptyState icon={UserPlus} title={t('empty_title')} description={t('empty_description')} />
+        <EmptyState
+          icon={UserPlus}
+          title={t('empty_title')}
+          description={t('empty_description')}
+          actionLabel={t('create_cta')}
+          onAction={openCreate}
+        />
       )}
 
       {!loading && !error && packets.length > 0 && (
@@ -307,6 +379,73 @@ export default function PeopleOpsPreBoardingPage() {
             </div>
           </div>
         )}
+      </Dialog>
+
+      <Dialog
+        header={t('create_title')}
+        visible={createOpen}
+        onHide={() => setCreateOpen(false)}
+        modal
+        dismissableMask
+        className="w-full max-w-md"
+        footer={(
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              severity="secondary"
+              outlined
+              onClick={() => setCreateOpen(false)}
+              disabled={creating}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleCreate()}
+              disabled={creating || !createWorkerId || !createEmail.trim()}
+              loading={creating}
+            >
+              {t('create_submit')}
+            </Button>
+          </div>
+        )}
+      >
+        <div className="space-y-4">
+          {createError && <Message severity="error" text={createError} className="w-full" />}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="preboard-worker" className="text-sm font-medium text-gray-700">
+              {t('field_worker')}
+            </label>
+            <Dropdown
+              inputId="preboard-worker"
+              value={createWorkerId || null}
+              options={workerOptions}
+              onChange={(e) => {
+                setCreateWorkerId(e.value ?? '');
+                const selected = workers.find(w => w.id === e.value);
+                if (selected?.email && !createEmail.trim()) {
+                  setCreateEmail(selected.email);
+                }
+              }}
+              placeholder={t('field_worker_placeholder')}
+              className="w-full"
+              filter
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="preboard-email" className="text-sm font-medium text-gray-700">
+              {t('field_personal_email')}
+            </label>
+            <InputText
+              id="preboard-email"
+              type="email"
+              value={createEmail}
+              onChange={e => setCreateEmail(e.target.value)}
+              className="w-full"
+              placeholder={t('field_personal_email_placeholder')}
+            />
+          </div>
+        </div>
       </Dialog>
     </div>
   );
