@@ -18,6 +18,7 @@ import {
   ExpenseClaimLineDto,
   QueryExpenseClaimsDto,
   RejectExpenseClaimDto,
+  ApproveFinanceExpenseDto,
   UpdateExpenseClaimDto,
   UpsertExpensePolicyDto,
 } from './dto/expense.dto';
@@ -27,7 +28,12 @@ import {
   ExpensePolicyViolation,
 } from './entities/expense-claim.entity';
 import { ExpensePolicyEntity } from './entities/expense-policy.entity';
-import { ExpenseCategory, ExpenseClaimStatus } from './enums/expense.enum';
+import {
+  ExpenseCategory,
+  ExpenseClaimStatus,
+  ExpenseSettlementMode,
+} from './enums/expense.enum';
+import { ExpenseSettlementService } from './expense-settlement.service';
 
 /**
  * FLW-OPS-001 — expense claim submission & approvals (PRD §6.9).
@@ -47,6 +53,7 @@ export class ExpenseClaimService {
     private readonly auditLogService: AuditLogService,
     private readonly rbacService: RbacService,
     private readonly dataSource: DataSource,
+    private readonly expenseSettlementService: ExpenseSettlementService,
   ) {}
 
   async list(
@@ -373,6 +380,7 @@ export class ExpenseClaimService {
     correlationId?: string,
     ipAddress?: string,
     tenantId: string = DIGITARO_TENANT_ID,
+    dto?: ApproveFinanceExpenseDto,
   ): Promise<ExpenseClaimEntity> {
     const claim = await this.getClaimOrThrow(id, tenantId);
     await this.assertFinanceAuth(actorId, tenantId);
@@ -380,6 +388,14 @@ export class ExpenseClaimService {
 
     claim.financeApprovedBy = actorId;
     claim.financeApprovedAt = new Date();
+    if (dto?.settlementMode) {
+      claim.settlementMode = dto.settlementMode;
+      if (dto.settlementMode !== ExpenseSettlementMode.BUNDLE_WITH_PAYROLL) {
+        claim.payRunLineItemId = null;
+      }
+    } else if (!claim.settlementMode) {
+      claim.settlementMode = ExpenseSettlementMode.EXPORT_ONLY;
+    }
     const saved = await this.claimRepository.save(claim);
 
     await this.auditLogService.append({
@@ -390,6 +406,7 @@ export class ExpenseClaimService {
       entityId: saved.id,
       changes: {
         financeApprovedAt: { old: null, new: saved.financeApprovedAt },
+        settlementMode: { old: null, new: saved.settlementMode },
       },
       correlationId,
       ipAddress,

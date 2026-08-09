@@ -19,6 +19,7 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 import {
+  ApproveFinanceExpenseDto,
   CreateExpenseClaimDto,
   QueryExpenseClaimsDto,
   RejectExpenseClaimDto,
@@ -178,6 +179,7 @@ export class ExpenseClaimController {
   })
   async approveFinance(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ApproveFinanceExpenseDto,
     @CurrentUserSession() session: CurrentUserSession,
     @Headers('x-correlation-id') correlationId?: string,
     @Req() request?: FastifyRequest,
@@ -187,6 +189,8 @@ export class ExpenseClaimController {
       session.user.id,
       correlationId,
       request?.ip,
+      undefined,
+      dto,
     );
   }
 

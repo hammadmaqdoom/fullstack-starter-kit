@@ -15,7 +15,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { ExpenseCategory, ExpenseClaimStatus } from '../enums/expense.enum';
+import { ExpenseCategory, ExpenseClaimStatus, ExpenseSettlementMode } from '../enums/expense.enum';
 
 export class ExpenseClaimLineDto {
   @ApiProperty({ example: 'Taxi to client site' })
@@ -164,6 +164,13 @@ export class RejectExpenseClaimDto {
   @IsString()
   @MaxLength(1000)
   reason: string;
+}
+
+export class ApproveFinanceExpenseDto {
+  @ApiPropertyOptional({ enum: ExpenseSettlementMode })
+  @IsOptional()
+  @IsEnum(ExpenseSettlementMode)
+  settlementMode?: ExpenseSettlementMode;
 }
 
 export class UpsertExpensePolicyDto {

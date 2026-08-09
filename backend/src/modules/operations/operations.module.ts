@@ -21,6 +21,7 @@ import { TravelItineraryEntity } from './entities/travel-itinerary.entity';
 import { TravelRequestEntity } from './entities/travel-request.entity';
 import { ExpenseClaimController } from './expense-claim.controller';
 import { ExpenseClaimService } from './expense-claim.service';
+import { ExpenseSettlementService } from './expense-settlement.service';
 import { HelpDeskController } from './help-desk.controller';
 import { HelpDeskService } from './help-desk.service';
 import { HubController } from './hub.controller';
@@ -61,6 +62,7 @@ import { TravelRequestService } from './travel-request.service';
     HubService,
     ContractorInvoiceService,
     ExpenseClaimService,
+    ExpenseSettlementService,
     TravelRequestService,
     HelpDeskService,
   ],
@@ -68,6 +70,7 @@ import { TravelRequestService } from './travel-request.service';
     HubService,
     ContractorInvoiceService,
     ExpenseClaimService,
+    ExpenseSettlementService,
     TravelRequestService,
     HelpDeskService,
   ],

@@ -27,3 +27,13 @@ export enum ExpenseClaimStatus {
   REJECTED = 'rejected',
   PAID = 'paid',
 }
+
+/**
+ * How an approved claim is settled (payout rails design).
+ * Default `export_only` preserves pre-rails behaviour.
+ */
+export enum ExpenseSettlementMode {
+  BUNDLE_WITH_PAYROLL = 'bundle_with_payroll',
+  STANDALONE_PAYOUT = 'standalone_payout',
+  EXPORT_ONLY = 'export_only',
+}

@@ -12,7 +12,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ExpenseCategory, ExpenseClaimStatus } from '../enums/expense.enum';
+import { ExpenseCategory, ExpenseClaimStatus, ExpenseSettlementMode } from '../enums/expense.enum';
 import type { ExpenseClaimLineEntity } from './expense-claim-line.entity';
 
 /** Policy check result recorded for manager/finance visibility (FLW-OPS-001 step 1). */
@@ -121,6 +121,16 @@ export class ExpenseClaimEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   policyViolation: ExpensePolicyViolation | null;
+
+  @Column({
+    type: 'varchar',
+    length: 32,
+    default: ExpenseSettlementMode.EXPORT_ONLY,
+  })
+  settlementMode: ExpenseSettlementMode;
+
+  @Column({ type: 'uuid', nullable: true })
+  payRunLineItemId: string | null;
 
   /** Inverse side — string relation name avoids circular import with expense-claim-line.entity. */
   @OneToMany('ExpenseClaimLineEntity', 'claim')

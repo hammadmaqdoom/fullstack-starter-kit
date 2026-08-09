@@ -11,6 +11,7 @@ import {
   ExpenseClaimStatus,
 } from '@/modules/operations/enums/expense.enum';
 import { ExpenseClaimService } from '@/modules/operations/expense-claim.service';
+import { ExpenseSettlementService } from '@/modules/operations/expense-settlement.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -212,6 +213,15 @@ describe('ExpenseClaimService', () => {
         { provide: AuditLogService, useValue: auditLogService },
         { provide: RbacService, useValue: { getAuthContext } },
         { provide: DataSource, useValue: dataSource },
+        {
+          provide: ExpenseSettlementService,
+          useValue: {
+            setSettlementMode: jest.fn(),
+            assertEligibleForStandalonePayout: jest.fn(),
+            attachToPayRunLine: jest.fn(),
+            markPaidFromPayout: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
