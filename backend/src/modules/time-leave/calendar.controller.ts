@@ -43,21 +43,6 @@ export class CalendarController {
     return this.calendarService.getMyCalendar(query, session.user.id);
   }
 
-  @Get('staff/:workerId')
-  @Roles(...CALENDAR_ROLES)
-  @ApiOperation({ summary: 'Staff calendar for a worker (RBAC scoped)' })
-  staffById(
-    @Param('workerId') workerId: string,
-    @Query() query: QueryCalendarRangeDto,
-    @CurrentUserSession() session: CurrentUserSession,
-  ) {
-    return this.calendarService.getStaffCalendar(
-      workerId,
-      query,
-      session.user.id,
-    );
-  }
-
   @Get('team')
   @Roles(...TEAM_CALENDAR_ROLES)
   @ApiOperation({ summary: 'Team calendar heatmap (leave + attendance)' })
@@ -79,5 +64,20 @@ export class CalendarController {
     @CurrentUserSession() session: CurrentUserSession,
   ) {
     return this.leaveService.staffCalendar(query, session.user.id);
+  }
+
+  @Get('staff/:workerId')
+  @Roles(...CALENDAR_ROLES)
+  @ApiOperation({ summary: 'Staff calendar for a worker (RBAC scoped)' })
+  staffById(
+    @Param('workerId') workerId: string,
+    @Query() query: QueryCalendarRangeDto,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.calendarService.getStaffCalendar(
+      workerId,
+      query,
+      session.user.id,
+    );
   }
 }
