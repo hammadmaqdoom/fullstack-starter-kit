@@ -18,6 +18,8 @@ export interface AppendAuditLogInput {
 
 @Injectable()
 export class AuditLogService {
+  static readonly EXPORT_ROW_LIMIT = 10_000;
+
   constructor(
     @InjectRepository(AuditLogEntity)
     private readonly auditLogRepository: Repository<AuditLogEntity>,
@@ -48,6 +50,75 @@ export class AuditLogService {
     query: Partial<QueryAuditLogDto>,
     tenantId: string,
   ): Promise<PaginatedServiceResult<AuditLogEntity>> {
+    const qb = this.buildFilteredQuery(query, tenantId);
+    qb.orderBy('auditLog.createdAt', 'DESC');
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 25;
+    const total = await qb.getCount();
+    const items = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * CSV export for US-COMP-001 evidence. Always scoped to session tenant.
+   * Caps at EXPORT_ROW_LIMIT rows (newest first).
+   */
+  async exportCsv(
+    query: Partial<QueryAuditLogDto>,
+    tenantId: string,
+  ): Promise<string> {
+    const qb = this.buildFilteredQuery(query, tenantId);
+    qb.orderBy('auditLog.createdAt', 'DESC').take(AuditLogService.EXPORT_ROW_LIMIT);
+    const rows = await qb.getMany();
+
+    const header = [
+      'id',
+      'createdAt',
+      'actorId',
+      'action',
+      'entityType',
+      'entityId',
+      'changesSummary',
+      'correlationId',
+      'ipAddress',
+    ];
+
+    const lines = [header.join(',')];
+    for (const row of rows) {
+      lines.push(
+        [
+          csvEscape(row.id),
+          csvEscape(row.createdAt?.toISOString?.() ?? String(row.createdAt)),
+          csvEscape(row.actorId),
+          csvEscape(row.action),
+          csvEscape(row.entityType),
+          csvEscape(row.entityId),
+          csvEscape(summarizeChanges(row.changes)),
+          csvEscape(row.correlationId ?? ''),
+          csvEscape(row.ipAddress ?? ''),
+        ].join(','),
+      );
+    }
+    return `${lines.join('\n')}\n`;
+  }
+
+  private buildFilteredQuery(
+    query: Partial<QueryAuditLogDto>,
+    tenantId: string,
+  ) {
     const qb = this.auditLogRepository
       .createQueryBuilder('auditLog')
       .where('auditLog.tenantId = :tenantId', { tenantId });
@@ -83,24 +154,20 @@ export class AuditLogService {
       );
     }
 
-    qb.orderBy('auditLog.createdAt', 'DESC');
-
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 25;
-    const total = await qb.getCount();
-    const items = await qb
-      .skip((page - 1) * limit)
-      .take(limit)
-      .getMany();
-
-    return {
-      items,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return qb;
   }
+}
+
+function summarizeChanges(changes: AuditLogChanges | null | undefined): string {
+  if (!changes || typeof changes !== 'object') {
+    return '';
+  }
+  return Object.keys(changes).join('; ');
+}
+
+function csvEscape(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }

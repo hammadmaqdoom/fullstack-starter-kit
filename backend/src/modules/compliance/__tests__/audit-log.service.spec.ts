@@ -142,4 +142,45 @@ describe('AuditLogService', () => {
       });
     });
   });
+
+  describe('exportCsv', () => {
+    it('scopes export to tenantId and includes only that tenant rows', async () => {
+      const OTHER = 'b0000000-0000-4000-8000-000000000099';
+      const qb = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([
+          {
+            id: 'a1',
+            tenantId: DIGITARO_TENANT_ID,
+            actorId: 'u1',
+            action: 'worker.create',
+            entityType: 'worker',
+            entityId: 'w1',
+            changes: { email: { old: null, new: 'a@digitaro.co' } },
+            correlationId: null,
+            ipAddress: null,
+            createdAt: new Date('2026-08-01T00:00:00.000Z'),
+          },
+        ]),
+      };
+      repository.createQueryBuilder.mockReturnValue(qb as never);
+
+      const csv = await service.exportCsv({ entityType: 'worker' }, DIGITARO_TENANT_ID);
+
+      expect(qb.where).toHaveBeenCalledWith('auditLog.tenantId = :tenantId', {
+        tenantId: DIGITARO_TENANT_ID,
+      });
+      expect(qb.where).not.toHaveBeenCalledWith(
+        'auditLog.tenantId = :tenantId',
+        { tenantId: OTHER },
+      );
+      expect(qb.take).toHaveBeenCalledWith(AuditLogService.EXPORT_ROW_LIMIT);
+      expect(csv).toContain('worker.create');
+      expect(csv).toContain('email');
+      expect(csv.split('\n')[0]).toContain('changesSummary');
+    });
+  });
 });

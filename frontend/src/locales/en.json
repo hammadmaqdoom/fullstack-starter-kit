@@ -99,6 +99,7 @@
     "separations_link": "Separations",
     "policies_link": "Policies",
     "compliance_link": "Compliance",
+    "audit_link": "Audit log",
     "leave_admin_link": "Leave & calendar",
     "performance_link": "Performance",
     "letterheads_link": "Letterheads",
@@ -1604,6 +1605,25 @@
     "col_version": "Version",
     "col_pending": "Pending",
     "col_acked": "Acknowledged"
+  },
+  "AuditLog": {
+    "title": "Audit log",
+    "subtitle": "Tenant-scoped mutation history for compliance evidence (US-COMP-001).",
+    "refresh": "Refresh",
+    "retry": "Try again",
+    "export_csv": "Export CSV",
+    "error_load": "Could not load the audit log.",
+    "error_export": "Could not export the audit log.",
+    "empty_title": "No audit entries",
+    "empty_description": "Mutations across Polaris will appear here as they are recorded.",
+    "filter_q": "Search action or entity…",
+    "filter_entity": "Entity type (e.g. worker)",
+    "col_when": "When",
+    "col_action": "Action",
+    "col_entity": "Entity",
+    "col_entity_id": "Entity ID",
+    "col_actor": "Actor",
+    "col_changes": "Changed fields"
   },
   "LeaveAdmin": {
     "title": "Leave & calendar",

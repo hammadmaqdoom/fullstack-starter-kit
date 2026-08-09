@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Briefcase,
+  Building2,
   CalendarDays,
   Circle,
   ClipboardList,
@@ -14,6 +15,7 @@ import {
   Inbox,
   LayoutDashboard,
   Receipt,
+  ScrollText,
   Search,
   Send,
   Settings,
@@ -35,6 +37,7 @@ const ICONS: Record<string, LucideIcon> = {
   leave: CalendarDays,
   policies: ClipboardList,
   compliance: ShieldCheck,
+  audit: ScrollText,
   documents: FileSignature,
   directory: Search,
   performance: Target,
@@ -47,6 +50,7 @@ const ICONS: Record<string, LucideIcon> = {
   manager_performance: Target,
   hr_dashboard: LayoutDashboard,
   workers: Users,
+  org: Building2,
   pre_boarding: Send,
   onboarding: UserPlus,
   separations: DoorOpen,
