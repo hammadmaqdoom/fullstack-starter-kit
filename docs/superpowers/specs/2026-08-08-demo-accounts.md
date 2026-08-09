@@ -41,7 +41,7 @@ PolarisDemo!2026
 | `employee2.demo@digitaro.local` | employee |
 | `contractor.demo@digitaro.local` | contractor |
 
-Org: Labs division; manager reports to divhead; employee, employee2, and contractor report to manager. Sample data: pending leave for manager Hub, policy `DEMO_CODE_OF_CONDUCT` for PK ack.
+Org: Labs division; manager reports to divhead; employee, employee2, and contractor report to manager. Sample data: pending leave for manager Hub, policy `DEMO_CODE_OF_CONDUCT` for PK ack. `employee.demo` has `dateOfBirth` set to today’s month/day (year 1995) so Employee Home shows the birthday card after seeding.
 
 ## Suggested smoke order
 
@@ -56,8 +56,8 @@ Org: Labs division; manager reports to divhead; employee, employee2, and contrac
 
 | Role | Land on | Must do |
 |---|---|---|
-| employee | `/employee/performance` | See seeded goals/feedback/1:1/OKRs; add goal; check-in; feedback via WorkerPicker; self-assessment; Hub `?reviewId=` / `?developmentActionId=`; pulse at `/employee/performance/pulse` |
-| manager | `/manager/performance` | See team board; submit manager review for employee2; schedule/complete 1:1; Hub manager `?reviewId=` |
+| employee | `/employee/performance` | See seeded goals/feedback/1:1/OKRs; add goal; check-in; feedback via WorkerPicker; self-assessment; view manager feedback after manager submit; sign off; Hub `?reviewId=` / `?developmentActionId=`; pulse at `/employee/performance/pulse` |
+| manager | `/manager/performance` | See team board; submit manager review (incl. probation outcome on probation cycles); sign off; feedback via WorkerPicker; schedule/complete 1:1; Hub `?reviewId=` / `?developmentActionId=`; start separation after terminate |
 | people_ops | `/people-ops/performance` | Create cycle with calibration flag; OKRs at `/people-ops/performance/okrs`; pulse admin at `/people-ops/performance/pulse` |
 | division_head | `/people-ops/performance/calibration` | Calibrate seeded `pending_calibration` review |
 

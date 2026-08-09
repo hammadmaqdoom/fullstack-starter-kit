@@ -40,6 +40,12 @@ const DEMO_POLICY_VERSION_ID = 'a3000000-0000-4000-8000-000000000002';
 const DEMO_LEAVE_REQUEST_ID = 'a3000000-0000-4000-8000-000000000003';
 const LABS_DIVISION_ID = 'd0000000-0000-4000-8000-000000000001';
 
+function demoBirthdayIso(now = new Date()): string {
+  const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(now.getUTCDate()).padStart(2, '0');
+  return `1995-${mm}-${dd}`;
+}
+
 /**
  * LOCAL/DEV demo org for role testing.
  * Do not run against production Digitaro data.
@@ -221,6 +227,7 @@ export class DemoOrgSeed1783038400000 implements Seeder {
             entraObjectId: null,
             probationEndDate: null,
             startDate: '2024-01-01',
+            dateOfBirth: persona.key === 'employee' ? demoBirthdayIso() : null,
             endDate: null,
             fteFraction: persona.employmentTypeCode === 'CONTRACTOR' ? '0.5' : '1',
             timezone: null,
@@ -232,6 +239,9 @@ export class DemoOrgSeed1783038400000 implements Seeder {
         worker.userId = user.id;
         worker.managerId = managerWorkerId;
         worker.status = WorkerStatus.ACTIVE;
+        if (persona.key === 'employee') {
+          worker.dateOfBirth = demoBirthdayIso();
+        }
         await workerRepo.save(worker);
       }
 
