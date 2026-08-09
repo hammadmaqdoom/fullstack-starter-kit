@@ -1,8 +1,9 @@
 # Design: Payout Rails — Aspire Primary, Wise Secondary, Manual CSV
 
 **Date:** 2026-08-10  
-**Status:** Draft — pending user review  
+**Status:** Approved  
 **Product:** Polaris (Digitaro HRMS)  
+**Plan:** [../plans/2026-08-10-payout-rails-aspire-wise.md](../plans/2026-08-10-payout-rails-aspire-wise.md)  
 **Related:** PRD §6.9 (expenses), §6.12 (payroll / export / remittance), `docs/compliance/tax-compliance-boundary.md`  
 **External docs:** [Wise Platform](https://docs.wise.com/guides), [Aspire Payroll](https://docs.api.aspireapp.com/use-cases/payroll-automations), [Aspire Accounting](https://docs.api.aspireapp.com/use-cases/accounting-automation), [Aspire Cards](https://docs.api.aspireapp.com/use-cases/card-ota)
 
