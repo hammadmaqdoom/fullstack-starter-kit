@@ -1680,6 +1680,19 @@ All tables: **`tenant_id UUID FK NOT NULL`** on every row. Financial records als
 #### `scheduled_report_subscriptions` — `tenant_id` + report type + cadence
 #### `compliance_alerts` — `tenant_id` + `worker_id` + alert type
 
+#### People-domain evidence layer (GRC-lite) — all `tenant_id` NOT NULL
+
+| Table | Notes |
+|---|---|
+| `compliance_programme` | **UNIQUE (`tenant_id`)** — evidence_window_start, target_frameworks, next_audit_target_date |
+| `compliance_controls` | **UNIQUE (`tenant_id`, `code`)** — domain, owner_role, frequency, in_scope, test_adapter_key |
+| `control_framework_maps` | **UNIQUE (`tenant_id`, `control_id`, `framework`, `external_ref`)** |
+| `control_test_runs` | Append-oriented history; index (`tenant_id`, `control_id`, `ran_at` DESC) |
+| `control_evidence_links` | Pinned manual evidence paths |
+
+`training_courses.counts_toward_awareness_control` BOOLEAN — feeds `PEO-TRAIN-AWARENESS` adapter.  
+Alert type `control_test_fail` on `compliance_alerts`. Spec: `docs/superpowers/specs/2026-08-10-people-domain-evidence-layer-design.md`.
+
 #### `office_locations`
 | Column | Type | Notes |
 |---|---|---|

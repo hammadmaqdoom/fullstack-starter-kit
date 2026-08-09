@@ -100,6 +100,7 @@ export class TrainingService {
         renewalPeriodMonths: dto.renewalPeriodMonths ?? null,
         externalUrl: dto.externalUrl ?? null,
         attachmentBlobUrl: dto.attachmentBlobUrl ?? null,
+        countsTowardAwarenessControl: dto.countsTowardAwarenessControl ?? false,
         createdByUserId: actor.userId,
       }),
     );

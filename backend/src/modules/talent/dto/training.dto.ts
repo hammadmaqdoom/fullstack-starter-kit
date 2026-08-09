@@ -54,6 +54,11 @@ export class CreateTrainingCourseDto {
   @IsOptional()
   @IsString()
   attachmentBlobUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  countsTowardAwarenessControl?: boolean;
 }
 
 export class UpdateTrainingCourseDto {
@@ -71,6 +76,11 @@ export class UpdateTrainingCourseDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  countsTowardAwarenessControl?: boolean;
 }
 
 export class AssignTrainingDto {

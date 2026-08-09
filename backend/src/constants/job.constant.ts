@@ -21,6 +21,7 @@ export const Job = {
   },
   Compliance: {
     ScanAlerts: 'scan-alerts',
+    ScanControlTests: 'scan-control-tests',
   },
   Reports: {
     DeliverSubscription: 'deliver-subscription',

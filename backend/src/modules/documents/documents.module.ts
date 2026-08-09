@@ -8,7 +8,7 @@ import { DocumentTemplateVersionEntity } from '@/modules/country-config/entities
 import { DocumentTemplateEntity } from '@/modules/country-config/entities/document-template.entity';
 import { AwsModule } from '@/services/aws/aws.module';
 import { LocalStorageService } from '@/services/local-storage.service';
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DocumentBlobStorageService } from './document-blob-storage.service';
 import { DocumentNumberService } from './document-number.service';
@@ -44,7 +44,7 @@ import { PolicyService } from './policy.service';
       LetterheadConfigEntity,
       DocumentNumberSequenceEntity,
     ]),
-    ComplianceModule,
+    forwardRef(() => ComplianceModule),
     CountryConfigModule,
     CoreHrModule,
     AwsModule,

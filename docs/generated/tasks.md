@@ -250,6 +250,7 @@
 - [ ] All Phase 2 user stories acceptance criteria met
 - [x] DSAR basic export API (runbook: [deferred-compliance-work.md](../compliance/deferred-compliance-work.md) §2) — `POST /api/v1/compliance/dsar/export`
 - [x] Quarterly access review export ready (runbook §3) — `GET /api/v1/compliance/evidence/access-review`
+- [x] People-domain evidence layer Wave 1 — control catalogue, adapters, scheduled tests, `GET /compliance/evidence/status|export`, People Ops UI ([plan](../superpowers/plans/2026-08-10-people-domain-evidence-layer.md))
 
 ---
 
@@ -280,7 +281,7 @@
 ## Compliance verification checklist
 
 - [ ] All flows in [feature-flows.md](../compliance/feature-flows.md) implemented with controls
-- [ ] Evidence catalogue exportable
+- [x] Evidence catalogue exportable — `GET /api/v1/compliance/evidence/export` + People Ops catalogue
 - [ ] 5-year retention policy enforced
 - [ ] Segregation of duties matrix verified
 - [ ] Append-only tables have no UPDATE/DELETE grants at DB level

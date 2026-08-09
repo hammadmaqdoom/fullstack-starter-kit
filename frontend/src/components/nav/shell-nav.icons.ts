@@ -34,6 +34,7 @@ const ICONS: Record<string, LucideIcon> = {
   me: User,
   leave: CalendarDays,
   policies: ClipboardList,
+  compliance: ShieldCheck,
   documents: FileSignature,
   directory: Search,
   performance: Target,
