@@ -1,7 +1,10 @@
 import type { CalendarCellStatus } from './calendar.types';
 import type { AttendanceDayStatus } from './enums/attendance.enum';
 
-/** TODO: replace with work_week_patterns lookup when entity exists. */
+/**
+ * TODO: swap in work_week_patterns lookup (table now exists) when calendar
+ * resolve is wired; keep Mon–Fri fallback until then.
+ */
 export function isDefaultWorkingDay(isoDate: string): boolean {
   const dow = new Date(`${isoDate}T00:00:00.000Z`).getUTCDay(); // 0=Sun
   return dow >= 1 && dow <= 5;

@@ -1,5 +1,6 @@
 import { TenantEntity } from '@/modules/compliance/entities/tenant.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
+import { WorkMode } from '@/modules/core-hr/enums/worker.enum';
 import {
   Column,
   CreateDateColumn,
@@ -50,6 +51,23 @@ export class AttendancePunchEntity {
 
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
   longitude: string | null;
+
+  @Column({
+    type: 'enum',
+    enum: WorkMode,
+    enumName: 'work_mode_enum',
+    nullable: true,
+  })
+  workMode: WorkMode | null;
+
+  @Column({ type: 'decimal', precision: 8, scale: 2, nullable: true })
+  accuracyMeters: string | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  officeMatch: boolean | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  deviceInfo: string | null;
 
   @Column({
     type: 'enum',

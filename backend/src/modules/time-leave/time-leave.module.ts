@@ -18,12 +18,15 @@ import { CompOffController } from './comp-off.controller';
 import { CompOffService } from './comp-off.service';
 import { AttendanceDaySummaryEntity } from './entities/attendance-day-summary.entity';
 import { AttendancePunchEntity } from './entities/attendance-punch.entity';
+import { CompanyClosureEntity } from './entities/company-closure.entity';
 import { CompOffCreditEntity } from './entities/comp-off-credit.entity';
 import { LeaveBalanceEntity } from './entities/leave-balance.entity';
 import { LeaveRequestEntity } from './entities/leave-request.entity';
 import { PunchCorrectionRequestEntity } from './entities/punch-correction-request.entity';
 import { ShiftAssignmentEntity } from './entities/shift-assignment.entity';
 import { ShiftRosterEntity } from './entities/shift-roster.entity';
+import { StaffCalendarDayEntity } from './entities/staff-calendar-day.entity';
+import { WorkWeekPatternEntity } from './entities/work-week-pattern.entity';
 import { LeaveAccrualService } from './leave-accrual.service';
 import { LeaveController } from './leave.controller';
 import { LeaveService } from './leave.service';
@@ -47,6 +50,9 @@ import { ShiftRosterService } from './shift-roster.service';
       ShiftRosterEntity,
       ShiftAssignmentEntity,
       CompOffCreditEntity,
+      WorkWeekPatternEntity,
+      CompanyClosureEntity,
+      StaffCalendarDayEntity,
     ]),
     ComplianceModule,
     CountryConfigModule,

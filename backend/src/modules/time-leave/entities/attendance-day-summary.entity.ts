@@ -45,6 +45,12 @@ export class AttendanceDaySummaryEntity {
   })
   status: AttendanceDayStatus;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, default: null })
+  totalHours: string | null;
+
+  @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
+  lopDays: string;
+
   @Column({ type: 'timestamptz', nullable: true })
   firstIn: Date | null;
 

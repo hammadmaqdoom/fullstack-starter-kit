@@ -50,6 +50,9 @@ export class LeaveRequestEntity {
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   days: string;
 
+  @Column({ type: 'boolean', default: false })
+  isHalfDay: boolean;
+
   @Column({ type: 'text', nullable: true })
   reason: string | null;
 
