@@ -17,6 +17,7 @@ export enum ComplianceAlertType {
   PROBATION_END = 'probation_end',
   BIRTHDAY = 'birthday',
   WORK_ANNIVERSARY = 'work_anniversary',
+  CONTROL_TEST_FAIL = 'control_test_fail',
 }
 
 export enum ComplianceAlertStatus {

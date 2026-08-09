@@ -53,6 +53,9 @@ export class TrainingCourseEntity {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  countsTowardAwarenessControl: boolean;
+
   @Column({ type: 'uuid' })
   createdByUserId: string;
 
