@@ -10,13 +10,11 @@ import { formatHeaderDate, resolveCheckInCta } from '@/libs/shell/shell-topbar.u
 
 type Props = {
   showCheckIn: boolean;
-  onOpenCommandPalette: () => void;
   onOpenMobileMenu: () => void;
 };
 
-export function ShellTopBar({ showCheckIn, onOpenCommandPalette, onOpenMobileMenu }: Props) {
+export function ShellTopBar({ showCheckIn, onOpenMobileMenu }: Props) {
   const t = useTranslations('AppSidebar');
-  const tShell = useTranslations('AuthenticatedShell');
   const { today } = useTodayAttendance();
   const geo = useGeolocationLabel();
   const ctaModel = showCheckIn ? resolveCheckInCta(today) : { kind: 'hidden' as const };
@@ -36,26 +34,18 @@ export function ShellTopBar({ showCheckIn, onOpenCommandPalette, onOpenMobileMen
         {t('workspace_name')}
       </span>
 
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <ShellContextStrip
-          dateLabel={dateLabel}
-          locationLabel={geo.label}
-          locationStatus={geo.status}
-          onRetryLocation={geo.retry}
-        />
-        <button
-          type="button"
-          onClick={onOpenCommandPalette}
-          className="hidden shrink-0 items-center gap-2 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-50 lg:inline-flex"
-          aria-label={t('quick_actions')}
-        >
-          <span>{tShell('search')}</span>
-          <kbd className="rounded border border-gray-200 bg-gray-50 px-1 text-[10px]">
-            ⌘K
-          </kbd>
-        </button>
-        {showCheckIn && <ShellCheckInCta model={ctaModel} />}
-      </div>
+      <ShellContextStrip
+        dateLabel={dateLabel}
+        locationLabel={geo.label}
+        locationStatus={geo.status}
+        onRetryLocation={geo.retry}
+      />
+
+      {showCheckIn && (
+        <div className="ml-auto shrink-0">
+          <ShellCheckInCta model={ctaModel} />
+        </div>
+      )}
     </header>
   );
 }

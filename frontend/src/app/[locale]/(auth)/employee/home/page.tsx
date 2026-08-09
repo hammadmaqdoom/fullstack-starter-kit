@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { OfflineBanner, useOnlineStatus } from '@/components/ui/OfflineBanner';
 import { ApiRequestError } from '@/libs/api/client';
 import { checkIn, checkOut, getTodayAttendance } from '@/libs/api/attendance';
+import { notifyAttendanceUpdated } from '@/libs/shell/attendance-events';
 
 function formatPunchTime(iso: string | null | undefined): string {
   if (!iso) {
@@ -81,6 +82,7 @@ export default function EmployeeHomePage() {
               punches: [data.punch],
             },
       );
+      notifyAttendanceUpdated();
     } catch (err) {
       setPunchError(err instanceof ApiRequestError ? err.message : t('error_punch'));
     } finally {

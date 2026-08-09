@@ -30,7 +30,6 @@ export function AuthenticatedShell({ children }: { children: React.ReactNode }) 
         <div className="flex min-w-0 flex-1 flex-col">
           <ShellTopBar
             showCheckIn={showCheckIn}
-            onOpenCommandPalette={() => setCommandOpen(true)}
             onOpenMobileMenu={() => setMobileOpen(true)}
           />
           <main className="flex-1 overflow-auto px-4 py-6 pb-20 lg:px-8 lg:py-8 lg:pb-8">

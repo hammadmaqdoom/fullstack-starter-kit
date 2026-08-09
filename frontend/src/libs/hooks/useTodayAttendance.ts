@@ -2,6 +2,7 @@
 
 import type { TodayAttendance } from '@/libs/api/attendance';
 import { getTodayAttendance } from '@/libs/api/attendance';
+import { ATTENDANCE_UPDATED_EVENT } from '@/libs/shell/attendance-events';
 import { useCallback, useEffect, useState } from 'react';
 
 export function useTodayAttendance() {
@@ -51,11 +52,16 @@ export function useTodayAttendance() {
     const onFocus = () => {
       refetch();
     };
+    const onAttendanceUpdated = () => {
+      refetch();
+    };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onFocus);
+    window.addEventListener(ATTENDANCE_UPDATED_EVENT, onAttendanceUpdated);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener(ATTENDANCE_UPDATED_EVENT, onAttendanceUpdated);
     };
   }, [refetch]);
 
