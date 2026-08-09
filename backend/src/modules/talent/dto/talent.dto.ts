@@ -5,7 +5,9 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -309,6 +311,80 @@ export class CreateOneOnOneNoteDto {
   isShared?: boolean;
 }
 
+export class AssessmentQuestionOptionDto {
+  @ApiProperty()
+  @IsString()
+  id: string;
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  label: string;
+}
+
+export class AssessmentQuestionDto {
+  @ApiProperty()
+  @IsString()
+  id: string;
+
+  @ApiProperty({
+    enum: [
+      'short_text',
+      'long_text',
+      'rating',
+      'yes_no',
+      'single_choice',
+      'multi_choice',
+    ],
+  })
+  @IsIn([
+    'short_text',
+    'long_text',
+    'rating',
+    'yes_no',
+    'single_choice',
+    'multi_choice',
+  ])
+  type:
+    | 'short_text'
+    | 'long_text'
+    | 'rating'
+    | 'yes_no'
+    | 'single_choice'
+    | 'multi_choice';
+
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  label: string;
+
+  @ApiProperty()
+  @IsBoolean()
+  required: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  helpText?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  scaleMin?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  scaleMax?: number;
+
+  @ApiPropertyOptional({ type: [AssessmentQuestionOptionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssessmentQuestionOptionDto)
+  options?: AssessmentQuestionOptionDto[];
+}
+
 export class CreatePerformanceCycleDto {
   @ApiProperty()
   @IsString()
@@ -341,6 +417,20 @@ export class CreatePerformanceCycleDto {
   @IsOptional()
   @IsBoolean()
   calibrationEnabled?: boolean;
+
+  @ApiPropertyOptional({ type: [AssessmentQuestionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssessmentQuestionDto)
+  selfAssessmentTemplate?: AssessmentQuestionDto[];
+
+  @ApiPropertyOptional({ type: [AssessmentQuestionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssessmentQuestionDto)
+  managerAssessmentTemplate?: AssessmentQuestionDto[];
 }
 
 export class UpdatePerformanceCycleDto {
@@ -358,13 +448,30 @@ export class UpdatePerformanceCycleDto {
   @IsOptional()
   @IsBoolean()
   peerFeedbackEnabled?: boolean;
+
+  @ApiPropertyOptional({ type: [AssessmentQuestionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssessmentQuestionDto)
+  selfAssessmentTemplate?: AssessmentQuestionDto[];
+
+  @ApiPropertyOptional({ type: [AssessmentQuestionDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssessmentQuestionDto)
+  managerAssessmentTemplate?: AssessmentQuestionDto[];
 }
 
 export class SubmitSelfAssessmentDto {
-  @ApiProperty()
-  @IsString()
-  @MinLength(1)
-  selfAssessment: string;
+  @ApiProperty({
+    description: 'Answers keyed by questionId',
+    type: 'object',
+    additionalProperties: true,
+  })
+  @IsObject()
+  answers: Record<string, string | number | boolean | string[]>;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -373,10 +480,13 @@ export class SubmitSelfAssessmentDto {
 }
 
 export class SubmitManagerReviewDto {
-  @ApiProperty()
-  @IsString()
-  @MinLength(1)
-  managerAssessment: string;
+  @ApiProperty({
+    description: 'Answers keyed by questionId',
+    type: 'object',
+    additionalProperties: true,
+  })
+  @IsObject()
+  answers: Record<string, string | number | boolean | string[]>;
 
   @ApiProperty({ enum: ReviewOutcome })
   @IsEnum(ReviewOutcome)
