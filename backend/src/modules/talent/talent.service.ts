@@ -85,6 +85,12 @@ import {
   workerDisplayName,
 } from './performance-dashboard.util';
 import {
+  assertValidTemplate,
+  buildAssessmentPayload,
+  summarizeAssessment,
+  type AssessmentQuestion,
+} from './assessment-questionnaire.util';
+import {
   assertWorkerPerformanceAccess,
   isPeopleOpsOrAdmin,
 } from './talent-scope.util';
@@ -793,6 +799,15 @@ export class TalentService {
       });
     }
 
+    if (dto.selfAssessmentTemplate) {
+      assertValidTemplate(dto.selfAssessmentTemplate as AssessmentQuestion[]);
+    }
+    if (dto.managerAssessmentTemplate) {
+      assertValidTemplate(
+        dto.managerAssessmentTemplate as AssessmentQuestion[],
+      );
+    }
+
     const cycle = await this.cycleRepository.save(
       this.cycleRepository.create({
         tenantId,
@@ -803,6 +818,8 @@ export class TalentService {
         populationFilter: dto.populationFilter ?? {},
         peerFeedbackEnabled: dto.peerFeedbackEnabled ?? false,
         calibrationEnabled: dto.calibrationEnabled ?? false,
+        selfAssessmentTemplate: dto.selfAssessmentTemplate ?? [],
+        managerAssessmentTemplate: dto.managerAssessmentTemplate ?? [],
         createdByUserId: actor.userId,
       }),
     );
@@ -837,6 +854,15 @@ export class TalentService {
         code: 'CYCLE_NOT_FOUND',
         message: 'Cycle not found',
       });
+    }
+
+    if (dto.selfAssessmentTemplate) {
+      assertValidTemplate(dto.selfAssessmentTemplate as AssessmentQuestion[]);
+    }
+    if (dto.managerAssessmentTemplate) {
+      assertValidTemplate(
+        dto.managerAssessmentTemplate as AssessmentQuestion[],
+      );
     }
 
     const activating =
@@ -1067,7 +1093,20 @@ export class TalentService {
       });
     }
 
-    review.selfAssessment = dto.selfAssessment;
+    const cycle = await this.cycleRepository.findOne({
+      where: { id: review.cycleId, tenantId },
+    });
+    if (!cycle) {
+      throw new NotFoundException({
+        code: 'CYCLE_NOT_FOUND',
+        message: 'Cycle not found',
+      });
+    }
+
+    const template = cycle.selfAssessmentTemplate ?? [];
+    const payload = buildAssessmentPayload(template, dto.answers);
+    review.selfAssessmentPayload = payload;
+    review.selfAssessment = summarizeAssessment(payload);
     review.competencyRatings =
       dto.competencyRatings ?? review.competencyRatings;
     review.selfSubmittedAt = new Date();
@@ -1112,7 +1151,10 @@ export class TalentService {
       });
     }
 
-    review.managerAssessment = dto.managerAssessment;
+    const template = review.cycle?.managerAssessmentTemplate ?? [];
+    const payload = buildAssessmentPayload(template, dto.answers);
+    review.managerAssessmentPayload = payload;
+    review.managerAssessment = summarizeAssessment(payload);
     review.outcome = dto.outcome;
     review.probationOutcome = dto.probationOutcome ?? null;
     if (dto.competencyRatings) {
