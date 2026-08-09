@@ -151,7 +151,11 @@
   },
   "AuthenticatedShell": {
     "check_in": "Check in",
-    "search": "Search"
+    "checked_in_with_time": "Checked in · {time}",
+    "checked_out": "Checked out",
+    "search": "Search",
+    "location_unavailable": "Location unavailable",
+    "retry_location": "Retry location"
   },
   "CommonUi": {
     "offline_banner": "You're offline. Cached data may be shown; actions will sync when you're back online."
