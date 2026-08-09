@@ -11,6 +11,7 @@ import { EsignAuditEventEntity } from './entities/esign-audit-event.entity';
 import { EsignEnvelopeEntity } from './entities/esign-envelope.entity';
 import { EsignFieldEntity } from './entities/esign-field.entity';
 import { EsignSignatoryEntity } from './entities/esign-signatory.entity';
+import { SigningCertificateEntity } from './entities/signing-certificate.entity';
 import { EsignBlobStorageService } from './esign-blob-storage.service';
 import { EsignController } from './esign.controller';
 import { EsignService } from './esign.service';
@@ -25,6 +26,7 @@ import { PadesSealingService } from './pades-sealing.service';
       EsignSignatoryEntity,
       EsignFieldEntity,
       EsignAuditEventEntity,
+      SigningCertificateEntity,
       WorkerEntity,
     ]),
     BullModule.registerQueue({ name: QueueEnum.Esign }),

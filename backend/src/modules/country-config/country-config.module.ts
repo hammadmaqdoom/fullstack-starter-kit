@@ -21,6 +21,7 @@ import { HolidayCalendarEntity } from './entities/holiday-calendar.entity';
 import { HolidayEntity } from './entities/holiday.entity';
 import { LeaveTypeEntity } from './entities/leave-type.entity';
 import { SetupWizardProgressEntity } from './entities/setup-wizard-progress.entity';
+import { TenantCurrencyEntity } from './entities/tenant-currency.entity';
 import { FxController } from './fx.controller';
 import { FxService } from './fx.service';
 import { SetupWizardController } from './setup-wizard.controller';
@@ -31,6 +32,7 @@ import { SetupWizardService } from './setup-wizard.service';
     ComplianceModule,
     TypeOrmModule.forFeature([
       CurrencyCodeEntity,
+      TenantCurrencyEntity,
       CountryConfigEntity,
       EmploymentTypeEntity,
       EmploymentTypeCountryConfigEntity,

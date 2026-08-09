@@ -103,6 +103,15 @@ export class LegalEntityEntity {
   @Column({ type: 'text', nullable: true })
   footerText: string | null;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  logoBlobUrl: string | null;
+
+  @Column({ type: 'boolean', default: true })
+  pageNumberingEnabled: boolean;
+
+  @Column({ type: 'uuid', nullable: true })
+  payrollExportProfileId: string | null;
+
   @OneToMany('LegalEntityStatutoryIdEntity', 'legalEntity')
   statutoryIds?: LegalEntityStatutoryIdEntity[];
 

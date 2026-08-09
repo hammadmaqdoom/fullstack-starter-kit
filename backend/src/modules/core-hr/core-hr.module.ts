@@ -17,6 +17,11 @@ import { DepartmentEntity } from './entities/department.entity';
 import { DivisionEntity } from './entities/division.entity';
 import { LegalEntityEntity } from './entities/legal-entity.entity';
 import { LegalEntityStatutoryIdEntity } from './entities/legal-entity-statutory-id.entity';
+import {
+  LegalEntityCurrencyEntity,
+  LegalEntityDivisionMappingEntity,
+} from './entities/legal-entity-division-mapping.entity';
+import { LegalEntitySignatoryEntity } from './entities/legal-entity-signatory.entity';
 import { ManagerRelationshipEntity } from './entities/manager-relationship.entity';
 import { ProfileChangeRequestEntity } from './entities/profile-change-request.entity';
 import { ProjectAssignmentEntity } from './entities/project-assignment.entity';
@@ -46,6 +51,9 @@ import { WorkerService } from './worker.service';
       DepartmentEntity,
       LegalEntityEntity,
       LegalEntityStatutoryIdEntity,
+      LegalEntityDivisionMappingEntity,
+      LegalEntityCurrencyEntity,
+      LegalEntitySignatoryEntity,
       ManagerRelationshipEntity,
       ProfileChangeRequestEntity,
       ApprovalDelegationEntity,
