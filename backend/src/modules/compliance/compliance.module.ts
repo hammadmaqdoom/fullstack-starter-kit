@@ -18,6 +18,7 @@ import { RoleEntity } from './entities/role.entity';
 import { TenantEntity } from './entities/tenant.entity';
 import { UserRoleAssignmentEntity } from './entities/user-role-assignment.entity';
 import { EvidenceController } from './evidence.controller';
+import { ComplianceControlSeedService } from './compliance-control-seed.service';
 import { RbacService } from './rbac.service';
 
 @Module({
@@ -43,7 +44,13 @@ import { RbacService } from './rbac.service';
     RbacService,
     AccessReviewService,
     DsarExportService,
+    ComplianceControlSeedService,
   ],
-  exports: [AuditLogService, RbacService, TypeOrmModule],
+  exports: [
+    AuditLogService,
+    RbacService,
+    TypeOrmModule,
+    ComplianceControlSeedService,
+  ],
 })
 export class ComplianceModule {}
