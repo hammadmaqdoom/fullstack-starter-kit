@@ -50,6 +50,18 @@ Org: Labs division; manager reports to divhead; employee, employee2, and contrac
 3. `employee` → `manager` — leave / Hub approve  
 4. `contractor` — contractor portal  
 5. `finance`, `itadmin`, `hrbp`, `divhead` — nav + scope  
+6. **Performance:** `employee` → `manager` → `peopleops` → `divhead` (see below)
+
+## Performance smoke (IPMS)
+
+| Role | Land on | Must do |
+|---|---|---|
+| employee | `/employee/performance` | See seeded goals/feedback/1:1/OKRs; add goal; check-in; feedback via WorkerPicker; self-assessment; Hub `?reviewId=` / `?developmentActionId=`; pulse at `/employee/performance/pulse` |
+| manager | `/manager/performance` | See team board; submit manager review for employee2; schedule/complete 1:1; Hub manager `?reviewId=` |
+| people_ops | `/people-ops/performance` | Create cycle with calibration flag; OKRs at `/people-ops/performance/okrs`; pulse admin at `/people-ops/performance/pulse` |
+| division_head | `/people-ops/performance/calibration` | Calibrate seeded `pending_calibration` review |
+
+Seed: `1783040700000-demo-performance.seed.ts` (runs with `pnpm seed:run`).
 
 ## Per-role smoke
 

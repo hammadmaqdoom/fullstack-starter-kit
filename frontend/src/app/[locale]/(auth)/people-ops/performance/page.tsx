@@ -108,6 +108,12 @@ export default function PeopleOpsPerformancePage() {
         >
           {t('calibration_link')}
         </Link>
+        <Link
+          href="/people-ops/performance/pulse"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
+        >
+          {t('pulse_link')}
+        </Link>
       </div>
 
       <section className="space-y-4">

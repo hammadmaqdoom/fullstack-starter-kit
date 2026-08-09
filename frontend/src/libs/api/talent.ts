@@ -340,6 +340,81 @@ export async function listDevelopmentPlans(workerId?: string) {
   });
 }
 
+export type DevelopmentPlanAction = {
+  id: string;
+  planId: string;
+  actionType: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  status: string;
+};
+
+export async function listDevelopmentPlanActions(planId: string) {
+  return apiRequest<DevelopmentPlanAction[]>(
+    `${BASE}/development-plans/${planId}/actions`,
+  );
+}
+
+export async function createDevelopmentPlan(input: {
+  workerId: string;
+  title: string;
+  summary?: string;
+}) {
+  return apiRequest<DevelopmentPlan>(`${BASE}/development-plans`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function createDevelopmentPlanAction(
+  planId: string,
+  input: { title: string; actionType?: string; description?: string },
+) {
+  return apiRequest<DevelopmentPlanAction>(
+    `${BASE}/development-plans/${planId}/actions`,
+    {
+      method: 'POST',
+      body: {
+        title: input.title,
+        actionType: input.actionType ?? 'other',
+        description: input.description,
+      },
+    },
+  );
+}
+
+export async function updateDevelopmentPlanAction(
+  actionId: string,
+  input: { status: string },
+) {
+  return apiRequest<DevelopmentPlanAction>(
+    `${BASE}/development-actions/${actionId}`,
+    { method: 'PATCH', body: input },
+  );
+}
+
+export async function createPulseSurvey(input: {
+  title: string;
+  description?: string;
+  questions: Array<{ id: string; text: string; scaleMin: number; scaleMax: number }>;
+}) {
+  return apiRequest<PulseSurvey>(`${BASE}/pulse-surveys`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function updatePulseSurvey(
+  id: string,
+  input: { status?: string; title?: string },
+) {
+  return apiRequest<PulseSurvey>(`${BASE}/pulse-surveys/${id}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
 export async function listPulseSurveys() {
   return apiRequest<PulseSurvey[]>(`${BASE}/pulse-surveys`);
 }

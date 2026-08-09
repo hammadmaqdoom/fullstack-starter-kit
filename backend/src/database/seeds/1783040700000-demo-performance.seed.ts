@@ -1,6 +1,10 @@
 import { DEMO_PERSONAS } from '@/modules/compliance/constants/demo-persona.constants';
 import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.constants';
 import {
+  DevelopmentPlanActionEntity,
+  DevelopmentPlanEntity,
+} from '@/modules/talent/entities/development-plan.entity';
+import {
   FeedbackEntryEntity,
   RecognitionEntryEntity,
 } from '@/modules/talent/entities/feedback.entity';
@@ -10,7 +14,11 @@ import { OrganizationalObjectiveEntity } from '@/modules/talent/entities/organiz
 import { PerformanceCycleEntity } from '@/modules/talent/entities/performance-cycle.entity';
 import { PerformanceGoalEntity } from '@/modules/talent/entities/performance-goal.entity';
 import { PerformanceReviewEntity } from '@/modules/talent/entities/performance-review.entity';
+import { PulseSurveyEntity } from '@/modules/talent/entities/pulse-survey.entity';
 import {
+  DevelopmentActionStatus,
+  DevelopmentActionType,
+  DevelopmentPlanStatus,
   FeedbackType,
   GoalProgressStatus,
   GoalStatus,
@@ -21,6 +29,8 @@ import {
   OneOnOneStatus,
   PerformanceCycleStatus,
   PerformanceCycleType,
+  PulseSurveyStatus,
+  ReviewOutcome,
   ReviewStatus,
 } from '@/modules/talent/enums/performance.enum';
 import { DataSource, Repository } from 'typeorm';
@@ -38,6 +48,10 @@ const IDS = {
   cycle1: 'a3100000-0000-4000-8000-000000000050',
   reviewEmployeePendingSelf: 'a3100000-0000-4000-8000-000000000051',
   reviewEmployee2PendingManager: 'a3100000-0000-4000-8000-000000000052',
+  reviewManagerPendingCalibration: 'a3100000-0000-4000-8000-000000000053',
+  pulse1: 'a3100000-0000-4000-8000-000000000070',
+  plan1: 'a3100000-0000-4000-8000-000000000060',
+  planAction1: 'a3100000-0000-4000-8000-000000000061',
 } as const;
 
 function persona(key: string) {
@@ -64,7 +78,8 @@ async function upsertById<T extends { id: string }>(
 
 /** Demo IPMS fixtures for employee/manager/people-ops performance smoke. */
 export class DemoPerformanceSeed1783040700000 implements Seeder {
-  track = true;
+  /** Idempotent upserts — re-run on every seed:run so fixture updates land. */
+  track = false;
 
   public async run(
     dataSource: DataSource,
@@ -74,6 +89,7 @@ export class DemoPerformanceSeed1783040700000 implements Seeder {
     const employee2 = persona('employee2');
     const manager = persona('manager');
     const peopleops = persona('peopleops');
+    const divhead = persona('divhead');
     const year = new Date().getFullYear();
     const periodStart = `${year}-01-01`;
     const periodEnd = `${year}-12-31`;
@@ -93,6 +109,9 @@ export class DemoPerformanceSeed1783040700000 implements Seeder {
     const keyResultRepo = dataSource.getRepository(ObjectiveKeyResultEntity);
     const cycleRepo = dataSource.getRepository(PerformanceCycleEntity);
     const reviewRepo = dataSource.getRepository(PerformanceReviewEntity);
+    const pulseRepo = dataSource.getRepository(PulseSurveyEntity);
+    const planRepo = dataSource.getRepository(DevelopmentPlanEntity);
+    const planActionRepo = dataSource.getRepository(DevelopmentPlanActionEntity);
 
     await upsertById(goalRepo, IDS.goalEmployeeOnTrack, {
       tenantId: DIGITARO_TENANT_ID,
@@ -250,9 +269,76 @@ export class DemoPerformanceSeed1783040700000 implements Seeder {
       completedAt: null,
     });
 
+    await upsertById(reviewRepo, IDS.reviewManagerPendingCalibration, {
+      tenantId: DIGITARO_TENANT_ID,
+      cycleId: IDS.cycle1,
+      workerId: manager.workerId,
+      managerWorkerId: divhead.workerId,
+      status: ReviewStatus.PENDING_CALIBRATION,
+      selfAssessment: 'Led the team through Hub and leave delivery milestones.',
+      managerAssessment: 'Consistent delivery; recommend meets with stretch goals next cycle.',
+      outcome: ReviewOutcome.MEETS,
+      probationOutcome: null,
+      competencyRatings: {},
+      snapshotGoalIds: [],
+      employeeSignedOff: false,
+      managerSignedOff: false,
+      selfSubmittedAt: new Date(),
+      managerSubmittedAt: new Date(),
+      completedAt: null,
+    });
+
+    await upsertById(pulseRepo, IDS.pulse1, {
+      tenantId: DIGITARO_TENANT_ID,
+      title: 'Q3 Engagement Pulse (Demo)',
+      description: 'Short anonymous pulse on workload and clarity.',
+      questions: [
+        {
+          id: 'q-workload',
+          text: 'My workload is manageable.',
+          scaleMin: 1,
+          scaleMax: 5,
+        },
+        {
+          id: 'q-clarity',
+          text: 'I understand what success looks like in my role.',
+          scaleMin: 1,
+          scaleMax: 5,
+        },
+      ],
+      populationFilter: {},
+      anonymityThreshold: 3,
+      status: PulseSurveyStatus.ACTIVE,
+      closesAt: `${year}-12-31`,
+      createdByUserId: peopleops.userId,
+    });
+
+    await upsertById(planRepo, IDS.plan1, {
+      tenantId: DIGITARO_TENANT_ID,
+      workerId: employee.workerId,
+      reviewId: null,
+      title: '2026 Development plan',
+      summary: 'Grow system design skills and mentoring capacity.',
+      status: DevelopmentPlanStatus.ACTIVE,
+      employeeSignedOff: false,
+      managerSignedOff: false,
+      createdByUserId: manager.userId,
+    });
+
+    await upsertById(planActionRepo, IDS.planAction1, {
+      tenantId: DIGITARO_TENANT_ID,
+      planId: IDS.plan1,
+      actionType: DevelopmentActionType.TRAINING,
+      title: 'Complete advanced TypeScript workshop',
+      description: 'Finish the internal workshop and share notes with the team.',
+      dueDate: `${year}-11-30`,
+      status: DevelopmentActionStatus.PENDING,
+      trainingCourseId: null,
+    });
+
     // eslint-disable-next-line no-console
     console.log(
-      'Demo performance seed ready (goals, feedback, 1:1, OKRs, reviews).',
+      'Demo performance seed ready (goals, feedback, 1:1, OKRs, reviews, pulse, IDP).',
     );
   }
 }

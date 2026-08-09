@@ -11,6 +11,7 @@ import {
   submitSelfAssessment,
 } from '@/libs/api/talent';
 import { ApiRequestError } from '@/libs/api/client';
+import { DevelopmentPlanPanel } from '@/components/performance/DevelopmentPlanPanel';
 import { parsePerformanceSearchParams } from '@/libs/performance/performance-query';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { StatusTracker, type TrackerStep } from '@/components/shared/StatusTracker';
@@ -110,6 +111,7 @@ export function PerformanceDashboardView({
   const [selfAssessmentOpen, setSelfAssessmentOpen] = useState(false);
   const [selfAssessmentText, setSelfAssessmentText] = useState('');
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
+  const [developmentActionId, setDevelopmentActionId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -131,7 +133,11 @@ export function PerformanceDashboardView({
 
   useEffect(() => {
     if (!data) return;
-    const { reviewId } = parsePerformanceSearchParams(window.location.search);
+    const { reviewId, developmentActionId: actionId } =
+      parsePerformanceSearchParams(window.location.search);
+    if (actionId) {
+      setDevelopmentActionId(actionId);
+    }
     if (!reviewId) return;
     const review = data.reviews.find((r) => r.id === reviewId);
     if (review?.status === 'pending_self') {
@@ -542,19 +548,10 @@ export function PerformanceDashboardView({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           {t('development_plans')}
         </h2>
-        {data.developmentPlans.length === 0 ? (
-          <EmptyState icon={ClipboardList} title={t('no_development_plans')} />
-        ) : (
-          data.developmentPlans.map((plan) => (
-            <Card key={plan.id} className="shadow-sm">
-              <p className="font-medium text-gray-900">{plan.title}</p>
-              {plan.summary && (
-                <p className="mt-1 text-sm text-gray-500">{plan.summary}</p>
-              )}
-              <Tag className="mt-2" value={plan.status} />
-            </Card>
-          ))
-        )}
+        <DevelopmentPlanPanel
+          workerId={data.actingWorkerId}
+          highlightActionId={developmentActionId}
+        />
       </section>
 
       {(data.reviewsAwaitingMe ?? 0) > 0 && (

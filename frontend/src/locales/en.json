@@ -567,6 +567,7 @@
     "cycle_type_probation": "Probation",
     "okrs_link": "Manage OKRs",
     "calibration_link": "Calibration board",
+    "pulse_link": "Pulse surveys",
     "no_cycles": "No review cycles yet.",
     "cycle_name": "Name",
     "cycle_type": "Type",
@@ -606,6 +607,16 @@
     "empty": "Team performance data is not available.",
     "error_load": "Could not load team performance.",
     "error_save": "Could not save changes."
+  },
+  "DevelopmentPlan": {
+    "loading": "Loading development plans…",
+    "empty": "No active development plans yet.",
+    "no_worker": "Link a worker profile to view development plans.",
+    "mark_done": "Mark done",
+    "add_action": "Add action",
+    "action_title_placeholder": "New action title",
+    "error_load": "Could not load development plans.",
+    "error_save": "Could not save development plan changes."
   },
   "OkrAdmin": {
     "title": "OKRs",
@@ -822,6 +833,22 @@
     "error_load": "Could not load pulse surveys.",
     "error_submit": "Could not submit your response.",
     "retry": "Try again"
+  },
+  "PulseAdmin": {
+    "title": "Pulse surveys",
+    "subtitle": "Create and activate anonymous engagement pulses.",
+    "create": "Create survey",
+    "refresh": "Refresh",
+    "survey_title": "Title",
+    "description": "Description",
+    "status": "Status",
+    "anonymity": "Anonymity threshold",
+    "actions": "Actions",
+    "activate": "Activate",
+    "save": "Save",
+    "empty": "No pulse surveys yet.",
+    "error_load": "Could not load pulse surveys.",
+    "error_save": "Could not save pulse survey."
   },
   "LetterheadAdmin": {
     "title": "Letterheads",
