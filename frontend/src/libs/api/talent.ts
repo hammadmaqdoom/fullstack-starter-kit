@@ -275,6 +275,7 @@ export async function createCycle(input: {
   periodStart: string;
   periodEnd: string;
   peerFeedbackEnabled?: boolean;
+  calibrationEnabled?: boolean;
 }) {
   return apiRequest<PerformanceCycle>(`${BASE}/performance-cycles`, { method: 'POST', body: input });
 }
