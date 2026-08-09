@@ -10,6 +10,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { AssessmentPayload } from '../assessment-questionnaire.util';
 import {
   PeerFeedbackRole,
   ProbationOutcome,
@@ -66,6 +67,12 @@ export class PerformanceReviewEntity {
 
   @Column({ type: 'text', nullable: true })
   managerAssessment: string | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  selfAssessmentPayload: AssessmentPayload | null;
+
+  @Column({ type: 'jsonb', nullable: true })
+  managerAssessmentPayload: AssessmentPayload | null;
 
   @Column({ type: 'enum', enum: ReviewOutcome, nullable: true })
   outcome: ReviewOutcome | null;

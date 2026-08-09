@@ -9,6 +9,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import type { AssessmentQuestion } from '../assessment-questionnaire.util';
 import {
   PerformanceCycleStatus,
   PerformanceCycleType,
@@ -57,6 +58,12 @@ export class PerformanceCycleEntity {
 
   @Column({ type: 'boolean', default: false })
   calibrationEnabled: boolean;
+
+  @Column({ type: 'jsonb', default: [] })
+  selfAssessmentTemplate: AssessmentQuestion[];
+
+  @Column({ type: 'jsonb', default: [] })
+  managerAssessmentTemplate: AssessmentQuestion[];
 
   @Column({ type: 'uuid' })
   createdByUserId: string;
