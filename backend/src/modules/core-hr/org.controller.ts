@@ -1,12 +1,13 @@
 import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
+import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { QueryDirectoryDto } from './dto/query-directory.dto';
 import { QueryOrgChartDto } from './dto/query-org-chart.dto';
 import { OrgService } from './org.service';
-import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 
 @ApiTags('org')
 @Controller({ path: 'org', version: '1' })
@@ -28,7 +29,11 @@ export class OrgController {
     @Query() query: QueryOrgChartDto,
     @CurrentUserSession() session: CurrentUserSession,
   ) {
-    return this.orgService.getOrgChart(query, session.user.id);
+    return this.orgService.getOrgChart(
+      query,
+      session.user.id,
+      resolveTenantId(session),
+    );
   }
 
   @Get('directory')
@@ -46,6 +51,10 @@ export class OrgController {
     @Query() query: QueryDirectoryDto,
     @CurrentUserSession() session: CurrentUserSession,
   ) {
-    return this.orgService.getDirectory(query, session.user.id);
+    return this.orgService.getDirectory(
+      query,
+      session.user.id,
+      resolveTenantId(session),
+    );
   }
 }

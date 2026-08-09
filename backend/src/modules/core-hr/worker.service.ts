@@ -1,4 +1,3 @@
-import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.constants';
 import { AuditLogService } from '@/modules/compliance/audit-log.service';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
 import { ScopeType } from '@/modules/compliance/enums/scope-type.enum';
@@ -54,9 +53,9 @@ export class WorkerService {
   async create(
     dto: CreateWorkerDto,
     actorId: string,
+    tenantId: string,
     correlationId?: string,
     ipAddress?: string,
-    tenantId: string = DIGITARO_TENANT_ID,
   ): Promise<WorkerResponse> {
     const rules = await this.countryConfigService.resolveEmploymentTypeCountryRules(
       dto.employmentTypeId,
@@ -160,7 +159,7 @@ export class WorkerService {
   async findAll(
     query: QueryWorkersDto,
     actorId: string,
-    tenantId: string = DIGITARO_TENANT_ID,
+    tenantId: string,
   ): Promise<PaginatedServiceResult<WorkerResponse>> {
     const auth = await this.rbacService.getAuthContext(actorId, tenantId);
     const actingWorkerId = await resolveActingWorkerId(
@@ -239,7 +238,7 @@ export class WorkerService {
   async findOne(
     id: string,
     actorId: string,
-    tenantId: string = DIGITARO_TENANT_ID,
+    tenantId: string,
   ): Promise<WorkerResponse> {
     const auth = await this.rbacService.getAuthContext(actorId, tenantId);
     const worker = await this.getWorkerOrThrow(id, tenantId);
@@ -256,7 +255,7 @@ export class WorkerService {
   /** Resolve the worker profile linked to the current session (Me/Profile screen). */
   async findMe(
     actorId: string,
-    tenantId: string = DIGITARO_TENANT_ID,
+    tenantId: string,
   ): Promise<WorkerResponse> {
     const auth = await this.rbacService.getAuthContext(actorId, tenantId);
     const workerId = await resolveActingWorkerId(
@@ -285,9 +284,9 @@ export class WorkerService {
     id: string,
     dto: UpdateWorkerDto,
     actorId: string,
+    tenantId: string,
     correlationId?: string,
     ipAddress?: string,
-    tenantId: string = DIGITARO_TENANT_ID,
   ): Promise<WorkerResponse> {
     const worker = await this.getWorkerOrThrow(id, tenantId);
     const before = { ...worker };
@@ -404,9 +403,9 @@ export class WorkerService {
   async archive(
     id: string,
     actorId: string,
+    tenantId: string,
     correlationId?: string,
     ipAddress?: string,
-    tenantId: string = DIGITARO_TENANT_ID,
   ): Promise<void> {
     const worker = await this.getWorkerOrThrow(id, tenantId);
 

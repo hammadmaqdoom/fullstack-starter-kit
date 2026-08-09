@@ -106,7 +106,11 @@ describe('OrgService', () => {
 
   it('builds org chart with manager hierarchy', async () => {
     const query = Object.assign(new QueryOrgChartDto(), { depth: 2 });
-    const chart = await service.getOrgChart(query, 'actor-user-id');
+    const chart = await service.getOrgChart(
+      query,
+      'actor-user-id',
+      DIGITARO_TENANT_ID,
+    );
 
     expect(chart).toHaveLength(1);
     expect(chart[0].workerId).toBe('manager-1');
@@ -150,7 +154,11 @@ describe('OrgService', () => {
     });
 
     const query = Object.assign(new QueryDirectoryDto(), { page: 1, limit: 25 });
-    const result = await service.getDirectory(query, 'employee-user-id');
+    const result = await service.getDirectory(
+      query,
+      'employee-user-id',
+      DIGITARO_TENANT_ID,
+    );
 
     expect(result.items[0].phone).toBeNull();
     expect(result.meta.total).toBe(2);

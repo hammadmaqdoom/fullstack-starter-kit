@@ -2,7 +2,6 @@ import { PaginatedServiceResult } from '@/shared/types/api-envelope.type';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { DIGITARO_TENANT_ID } from './constants/tenant.constants';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 import { AuditLogChanges, AuditLogEntity } from './entities/audit-log.entity';
 
@@ -47,7 +46,7 @@ export class AuditLogService {
    */
   async list(
     query: Partial<QueryAuditLogDto>,
-    tenantId: string = DIGITARO_TENANT_ID,
+    tenantId: string,
   ): Promise<PaginatedServiceResult<AuditLogEntity>> {
     const qb = this.auditLogRepository
       .createQueryBuilder('auditLog')

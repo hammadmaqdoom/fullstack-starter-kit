@@ -151,7 +151,12 @@ describe('WorkerService', () => {
   });
 
   it('creates PK full-time worker and writes audit log', async () => {
-    const result = await service.create(pkWorkerDto, 'actor-user-id', 'corr-1');
+    const result = await service.create(
+      pkWorkerDto,
+      'actor-user-id',
+      DIGITARO_TENANT_ID,
+      'corr-1',
+    );
 
     expect(workerRepository.save).toHaveBeenCalled();
     expect(auditLogService.append).toHaveBeenCalledWith(
@@ -175,6 +180,7 @@ describe('WorkerService', () => {
           statutoryFields: { cnic: '35202-1234567-1' },
         },
         'actor-user-id',
+        DIGITARO_TENANT_ID,
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
@@ -195,7 +201,11 @@ describe('WorkerService', () => {
       broadestScope: ScopeType.TEAM,
     });
 
-    const result = await service.create(pkWorkerDto, 'manager-user-id');
+    const result = await service.create(
+      pkWorkerDto,
+      'manager-user-id',
+      DIGITARO_TENANT_ID,
+    );
 
     expect(result.compensationBand).toBeNull();
     expect(result.statutoryFields).toBeNull();
@@ -205,6 +215,7 @@ describe('WorkerService', () => {
     await service.create(
       { ...pkWorkerDto, dateOfBirth: '1995-08-10' },
       'actor-user-id',
+      DIGITARO_TENANT_ID,
     );
 
     expect(workerRepository.create).toHaveBeenCalledWith(

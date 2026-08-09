@@ -1,4 +1,3 @@
-import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.constants';
 import { RbacService } from '@/modules/compliance/rbac.service';
 import { PaginatedServiceResult } from '@/shared/types/api-envelope.type';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -30,7 +29,7 @@ export class OrgService {
   async getOrgChart(
     query: QueryOrgChartDto,
     actorId: string,
-    tenantId: string = DIGITARO_TENANT_ID,
+    tenantId: string,
   ): Promise<OrgChartNode[]> {
     const workers = await this.loadScopedWorkers(actorId, tenantId);
     const maxDepth = query.depth ?? 2;
@@ -51,7 +50,7 @@ export class OrgService {
   async getDirectory(
     query: QueryDirectoryDto,
     actorId: string,
-    tenantId: string = DIGITARO_TENANT_ID,
+    tenantId: string,
   ): Promise<PaginatedServiceResult<DirectoryEntry>> {
     const auth = await this.rbacService.getAuthContext(actorId, tenantId);
     const actingWorkerId = await resolveActingWorkerId(
