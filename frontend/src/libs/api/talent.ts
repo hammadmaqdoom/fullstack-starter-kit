@@ -125,6 +125,8 @@ export type ObjectiveKeyResult = {
 export type PerformanceDashboard = {
   actingWorkerId: string | null;
   goals: PerformanceGoal[];
+  goalWeightTotal?: number;
+  goalWeightsComplete?: boolean;
   feedback: FeedbackEntry[];
   oneOnOnes: OneOnOneMeeting[];
   reviews: PerformanceReview[];
@@ -363,12 +365,33 @@ export async function submitManagerReview(
     answers: Record<string, string | number | boolean | string[]>;
     outcome: string;
     probationOutcome?: string;
+    probationExtensionDays?: number;
   },
 ) {
   return apiRequest(`${BASE}/reviews/${reviewId}/manager-review`, {
     method: 'POST',
     body: input,
   });
+}
+
+export async function disputeReview(reviewId: string, reason: string) {
+  return apiRequest<PerformanceReview>(`${BASE}/reviews/${reviewId}/dispute`, {
+    method: 'POST',
+    body: { reason },
+  });
+}
+
+export async function resolveDispute(
+  reviewId: string,
+  returnStatus?: string,
+) {
+  return apiRequest<PerformanceReview>(
+    `${BASE}/reviews/${reviewId}/resolve-dispute`,
+    {
+      method: 'POST',
+      body: returnStatus ? { returnStatus } : {},
+    },
+  );
 }
 
 export async function signOffReview(reviewId: string, asManager: boolean) {

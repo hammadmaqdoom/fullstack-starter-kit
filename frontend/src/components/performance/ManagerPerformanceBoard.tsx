@@ -68,6 +68,7 @@ export function ManagerPerformanceBoard() {
   const [reviewDetailLoading, setReviewDetailLoading] = useState(false);
   const [outcome, setOutcome] = useState('meets');
   const [probationOutcome, setProbationOutcome] = useState<string | null>(null);
+  const [probationExtensionDays, setProbationExtensionDays] = useState(90);
 
   const [oneOnOneOpen, setOneOnOneOpen] = useState(false);
   const [oneOnOneWorkerId, setOneOnOneWorkerId] = useState<string | null>(null);
@@ -204,6 +205,10 @@ export function ManagerPerformanceBoard() {
         probationOutcome: isProbationCycle
           ? (probationOutcome ?? undefined)
           : undefined,
+        probationExtensionDays:
+          isProbationCycle && probationOutcome === 'extend'
+            ? probationExtensionDays
+            : undefined,
       });
       setReviewDialogOpen(false);
       setActiveReview(null);
@@ -602,6 +607,39 @@ export function ManagerPerformanceBoard() {
                     placeholder={t('select_probation_outcome')}
                     className="w-full"
                   />
+                  {probationOutcome === 'extend' && (
+                    <div className="mt-3">
+                      <label
+                        className="mb-1 block text-xs font-medium text-gray-600"
+                        htmlFor="mgr-extension-days"
+                      >
+                        {t('probation_extension_days')}
+                      </label>
+                      <InputText
+                        id="mgr-extension-days"
+                        type="number"
+                        min={1}
+                        max={365}
+                        value={String(probationExtensionDays)}
+                        onChange={(e) =>
+                          setProbationExtensionDays(
+                            Math.min(
+                              365,
+                              Math.max(1, Number(e.target.value) || 90),
+                            ),
+                          )}
+                        className="w-full"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t('probation_letter_pending_hint')}
+                      </p>
+                    </div>
+                  )}
+                  {probationOutcome === 'confirm' && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      {t('probation_letter_pending_hint')}
+                    </p>
+                  )}
                 </div>
               )}
               <AssessmentQuestionnaireForm

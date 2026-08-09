@@ -31,7 +31,9 @@ import {
   CreatePerformanceCycleDto,
   CreatePulseSurveyDto,
   CreateRecognitionDto,
+  DisputeReviewDto,
   FinalizeCalibrationDto,
+  ResolveDisputeDto,
   SubmitManagerReviewDto,
   SubmitPeerFeedbackDto,
   SubmitPulseResponseDto,
@@ -93,6 +95,14 @@ import {
   summarizeAssessment,
   type AssessmentQuestion,
 } from './assessment-questionnaire.util';
+import {
+  assertGoalWeightsDoNotExceed100,
+  isGoalWeightTotalComplete,
+} from './goal-weight.util';
+import {
+  computeProbationEndAfterConfirm,
+  computeProbationEndAfterExtend,
+} from './probation-outcome.util';
 import {
   assertWorkerPerformanceAccess,
   isPeopleOpsOrAdmin,
@@ -413,6 +423,22 @@ export class TalentService {
     const worker = await this.getWorkerOrFail(dto.workerId, tenantId);
     assertWorkerPerformanceAccess(auth, actingWorkerId, worker);
 
+    const siblings = await this.goalRepository.find({
+      where: {
+        tenantId,
+        workerId: dto.workerId,
+        status: GoalStatus.ACTIVE,
+      },
+    });
+    try {
+      assertGoalWeightsDoNotExceed100(siblings, dto.weightPercent ?? 0);
+    } catch (err) {
+      throw new BadRequestException({
+        code: 'GOAL_WEIGHT_EXCEEDS_100',
+        message: err instanceof Error ? err.message : 'Goal weights exceed 100%',
+      });
+    }
+
     const goal = await this.goalRepository.save(
       this.goalRepository.create({
         tenantId,
@@ -451,6 +477,25 @@ export class TalentService {
 
     const worker = await this.getWorkerOrFail(goal.workerId, tenantId);
     assertWorkerPerformanceAccess(auth, actingWorkerId, worker);
+
+    if (dto.weightPercent != null) {
+      const siblings = await this.goalRepository.find({
+        where: {
+          tenantId,
+          workerId: goal.workerId,
+          status: GoalStatus.ACTIVE,
+        },
+      });
+      try {
+        assertGoalWeightsDoNotExceed100(siblings, dto.weightPercent, goal.id);
+      } catch (err) {
+        throw new BadRequestException({
+          code: 'GOAL_WEIGHT_EXCEEDS_100',
+          message:
+            err instanceof Error ? err.message : 'Goal weights exceed 100%',
+        });
+      }
+    }
 
     Object.assign(goal, dto);
     const saved = await this.goalRepository.save(goal);
@@ -1166,11 +1211,18 @@ export class TalentService {
       review.competencyRatings = dto.competencyRatings;
     }
     review.managerSubmittedAt = new Date();
-    review.status = review.cycle?.peerFeedbackEnabled
-      ? ReviewStatus.PENDING_PEER
-      : review.cycle?.calibrationEnabled
-        ? ReviewStatus.PENDING_CALIBRATION
-        : ReviewStatus.PENDING_SIGN_OFF;
+    // v1 is manager-led: peer feedback rows remain writable but do not block
+    // the appraisal status machine (PRD §13 #5 / §6.14.3).
+    review.status = review.cycle?.calibrationEnabled
+      ? ReviewStatus.PENDING_CALIBRATION
+      : ReviewStatus.PENDING_SIGN_OFF;
+
+    if (
+      review.cycle?.cycleType === PerformanceCycleType.PROBATION &&
+      dto.probationOutcome
+    ) {
+      await this.applyProbationOutcomeSideEffects(review, dto, actor, tenantId);
+    }
 
     const saved = await this.reviewRepository.save(review);
     await this.audit(
@@ -1180,7 +1232,174 @@ export class TalentService {
       reviewId,
       {
         outcome: dto.outcome,
+        probationOutcome: dto.probationOutcome ?? null,
       },
+    );
+    return saved;
+  }
+
+  private async applyProbationOutcomeSideEffects(
+    review: PerformanceReviewEntity,
+    dto: SubmitManagerReviewDto,
+    actor: ActorContext,
+    tenantId: string,
+  ): Promise<void> {
+    const worker = await this.getWorkerOrFail(review.workerId, tenantId);
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (dto.probationOutcome === ProbationOutcome.CONFIRM) {
+      const previous = worker.probationEndDate;
+      worker.probationEndDate = computeProbationEndAfterConfirm();
+      await this.workerRepository.save(worker);
+      review.outcomeLetterStatus = 'pending_template';
+      await this.audit(
+        actor,
+        'review.probation_confirm',
+        'performance_review',
+        review.id,
+        {
+          probationEndDate: { old: previous, new: null },
+          outcomeLetterStatus: 'pending_template',
+          letterTemplateCode: 'probation_confirmation',
+        },
+      );
+      return;
+    }
+
+    if (dto.probationOutcome === ProbationOutcome.EXTEND) {
+      const days = dto.probationExtensionDays ?? 90;
+      let nextEnd: string;
+      try {
+        nextEnd = computeProbationEndAfterExtend({
+          currentEndDate: worker.probationEndDate,
+          today,
+          extensionDays: days,
+        });
+      } catch (err) {
+        throw new BadRequestException({
+          code: 'INVALID_PROBATION_EXTENSION',
+          message:
+            err instanceof Error ? err.message : 'Invalid probation extension',
+        });
+      }
+      const previous = worker.probationEndDate;
+      worker.probationEndDate = nextEnd;
+      await this.workerRepository.save(worker);
+      review.outcomeLetterStatus = 'pending_template';
+      await this.audit(
+        actor,
+        'review.probation_extend',
+        'performance_review',
+        review.id,
+        {
+          probationEndDate: { old: previous, new: nextEnd },
+          probationExtensionDays: days,
+          outcomeLetterStatus: 'pending_template',
+          letterTemplateCode: 'probation_extension',
+        },
+      );
+    }
+  }
+
+  async disputeReview(
+    reviewId: string,
+    dto: DisputeReviewDto,
+    actor: ActorContext,
+  ) {
+    const { auth, actingWorkerId, tenantId } = await this.getContext(
+      actor.userId,
+      actor.tenantId,
+    );
+    const review = await this.reviewRepository.findOne({
+      where: { id: reviewId, tenantId },
+    });
+    if (!review) {
+      throw new NotFoundException({
+        code: 'REVIEW_NOT_FOUND',
+        message: 'Review not found',
+      });
+    }
+
+    const isSubject = actingWorkerId === review.workerId;
+    const isManager = actingWorkerId === review.managerWorkerId;
+    if (!isSubject && !isManager && !isPeopleOpsOrAdmin(auth)) {
+      throw new ForbiddenException({
+        code: 'DISPUTE_DENIED',
+        message: 'Only the employee, manager, or People Ops can dispute',
+      });
+    }
+    if (
+      review.status === ReviewStatus.COMPLETED ||
+      review.status === ReviewStatus.DISPUTED
+    ) {
+      throw new BadRequestException({
+        code: 'DISPUTE_NOT_ALLOWED',
+        message: 'Review cannot be disputed in its current status',
+      });
+    }
+
+    review.status = ReviewStatus.DISPUTED;
+    review.disputeReason = dto.reason;
+    review.disputedAt = new Date();
+    review.disputedByUserId = actor.userId;
+    const saved = await this.reviewRepository.save(review);
+    await this.audit(actor, 'review.dispute', 'performance_review', reviewId, {
+      reason: dto.reason,
+    });
+    return saved;
+  }
+
+  async resolveDispute(
+    reviewId: string,
+    dto: ResolveDisputeDto,
+    actor: ActorContext,
+  ) {
+    const { auth, tenantId } = await this.getContext(
+      actor.userId,
+      actor.tenantId,
+    );
+    if (!isPeopleOpsOrAdmin(auth)) {
+      throw new ForbiddenException({
+        code: 'RESOLVE_DISPUTE_DENIED',
+        message: 'Only People Ops can resolve disputes',
+      });
+    }
+    const review = await this.reviewRepository.findOne({
+      where: { id: reviewId, tenantId },
+    });
+    if (!review) {
+      throw new NotFoundException({
+        code: 'REVIEW_NOT_FOUND',
+        message: 'Review not found',
+      });
+    }
+    if (review.status !== ReviewStatus.DISPUTED) {
+      throw new BadRequestException({
+        code: 'NOT_DISPUTED',
+        message: 'Review is not disputed',
+      });
+    }
+
+    const returnStatus =
+      dto.returnStatus ?? ReviewStatus.PENDING_SIGN_OFF;
+    if (
+      returnStatus === ReviewStatus.DISPUTED ||
+      returnStatus === ReviewStatus.COMPLETED
+    ) {
+      throw new BadRequestException({
+        code: 'INVALID_RETURN_STATUS',
+        message: 'Return status must be an in-progress review status',
+      });
+    }
+
+    review.status = returnStatus;
+    const saved = await this.reviewRepository.save(review);
+    await this.audit(
+      actor,
+      'review.resolve_dispute',
+      'performance_review',
+      reviewId,
+      { returnStatus },
     );
     return saved;
   }
@@ -1906,6 +2125,16 @@ export class TalentService {
     return {
       actingWorkerId,
       goals,
+      goalWeightTotal: (goals as { weightPercent?: number }[]).reduce(
+        (sum, g) => sum + (g.weightPercent ?? 0),
+        0,
+      ),
+      goalWeightsComplete: isGoalWeightTotalComplete(
+        (goals as { weightPercent: number; status: string }[]).map((g) => ({
+          weightPercent: g.weightPercent ?? 0,
+          status: g.status ?? 'active',
+        })),
+      ),
       feedback: enrichedFeedback,
       oneOnOnes,
       reviews: reviewsSlice,

@@ -2,8 +2,8 @@
 
 **Product:** Polaris  
 **Status:** Approved for implementation  
-**Last updated:** 26 June 2026  
-**Companion to:** [prd.md](./prd.md) §10 · [system-architecture.md](./system-architecture.md)
+**Last updated:** 10 August 2026  
+**Companion to:** [prd.md](./prd.md) §6.14 · §10 · [system-architecture.md](./system-architecture.md)
 
 ---
 
@@ -209,9 +209,21 @@ Application layer validates `worker.tenant_id = leave_request.tenant_id` on inse
 | worker_visa_attachments | ✅ | — | |
 | entra_provisioning_jobs | ✅ | — | |
 | interview_scorecards | ✅ | — | |
-| performance_cycles | ✅ | — | |
-| performance_goals | ✅ | — | |
-| performance_reviews | ✅ | — | |
+| performance_cycles | ✅ | — | Assessment templates JSONB |
+| performance_goals | ✅ | — | Soft-delete; optional KR link |
+| goal_check_ins | ✅ | — | Mid-cycle progress |
+| performance_reviews | ✅ | — | Assessment payloads; probation outcome |
+| performance_review_peer_feedback | ✅ | — | Peer/upward rows |
+| organizational_objectives | ✅ | — | Company/division/department OKRs |
+| objective_key_results | ✅ | — | |
+| feedback_entries | ✅ | — | Continuous feedback |
+| recognition_entries | ✅ | — | |
+| one_on_one_meetings | ✅ | — | |
+| one_on_one_notes | ✅ | — | |
+| development_plans | ✅ | — | IDPs |
+| development_plan_actions | ✅ | — | |
+| pulse_surveys | ✅ | — | |
+| pulse_survey_responses | ✅ | — | |
 | training_courses | ✅ | — | |
 | training_assignments | ✅ | — | |
 | training_completions | ✅ | — | |
@@ -1458,8 +1470,89 @@ All tables: **`tenant_id UUID FK NOT NULL`** on every row. Financial records als
 #### `interview_scorecards` — `tenant_id` + `candidate_id`
 
 #### `performance_cycles` — `tenant_id`
-#### `performance_goals` — `tenant_id` + `worker_id` + `cycle_id`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| name | VARCHAR(255) | |
+| cycle_type | ENUM | annual, semi_annual, quarterly, probation |
+| status | ENUM | draft → active → manager_review → calibration → completed → locked |
+| period_start / period_end | DATE | |
+| population_filter | JSONB | Division/country/department filters |
+| peer_feedback_enabled | BOOLEAN | Default false |
+| rating_scale | VARCHAR(50) | Label only (e.g. exceeds_meets_below) |
+| calibration_enabled | BOOLEAN | Default false |
+| self_assessment_template | JSONB | Question[] — People Ops builder |
+| manager_assessment_template | JSONB | Question[] |
+| created_by_user_id | UUID | |
+| created_at / updated_at | TIMESTAMPTZ | |
+
+#### `performance_goals` — `tenant_id` + `worker_id` (+ optional `cycle_id`, `key_result_id`)
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| worker_id | UUID FK | |
+| cycle_id | UUID FK nullable | |
+| key_result_id | UUID FK nullable | → `objective_key_results` |
+| goal_type | ENUM | individual, team, project |
+| title | VARCHAR(255) | |
+| description | TEXT | |
+| weight_percent | INT | Per-goal; sum-to-100% not DB-enforced yet |
+| progress_percent | INT | |
+| progress_status | ENUM | on_track, at_risk, off_track |
+| status | ENUM | |
+| due_date | DATE nullable | |
+| created_by_user_id | UUID | |
+| created_at / updated_at | TIMESTAMPTZ | |
+| deleted_at | TIMESTAMPTZ | Soft delete |
+
+#### `goal_check_ins` — `tenant_id` + `goal_id`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| goal_id | UUID FK | |
+| progress_percent | INT | |
+| progress_status | ENUM | |
+| notes | TEXT | |
+| author_user_id | UUID | |
+| created_at | TIMESTAMPTZ | Append-style |
+
 #### `performance_reviews` — `tenant_id` + `worker_id` + `cycle_id`
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| tenant_id | UUID FK NOT NULL | |
+| cycle_id | UUID FK | |
+| worker_id | UUID FK | |
+| manager_worker_id | UUID nullable | |
+| status | ENUM | pending_self, pending_manager, pending_peer, pending_calibration, pending_sign_off, completed, disputed |
+| self_assessment / manager_assessment | TEXT | Plain-text summary (legacy + Hub) |
+| self_assessment_payload / manager_assessment_payload | JSONB | `{ questionsSnapshot, answers }` |
+| outcome | ENUM nullable | exceeds, meets, below |
+| probation_outcome | ENUM nullable | confirm, extend, terminate |
+| outcome_letter_status | ENUM | not_required, pending_template, drafted |
+| outcome_letter_document_id | UUID nullable | When a draft letter is linked |
+| dispute_reason | TEXT nullable | Set when status=disputed |
+| disputed_at | TIMESTAMPTZ nullable | |
+| disputed_by_user_id | UUID nullable | |
+| competency_ratings | JSONB | Freeform map — not yet FK to skills |
+| snapshot_goal_ids | JSONB | string[] |
+| employee_signed_off / manager_signed_off | BOOLEAN | |
+| self_submitted_at / manager_submitted_at / completed_at | TIMESTAMPTZ | |
+| created_at / updated_at | TIMESTAMPTZ | |
+
+**Unique:** `(tenant_id, cycle_id, worker_id)`
+
+#### `performance_review_peer_feedback` — `tenant_id` + `review_id`
+#### `organizational_objectives` / `objective_key_results` — OKR tree (`tenant_id`)
+#### `feedback_entries` / `recognition_entries` — continuous feedback (`tenant_id` + author/recipient workers)
+#### `one_on_one_meetings` / `one_on_one_notes` — manager↔employee 1:1s
+#### `development_plans` / `development_plan_actions` — IDPs (+ optional `review_id`)
+#### `pulse_surveys` / `pulse_survey_responses` — engagement pulse with `anonymity_threshold`
+
+**IPMS schema backlog (not in DB yet):** `kpi_library` / role KPI templates; review evidence attachments; calibration session/adjustment audit table; dispute reason/resolution columns; letter/document FK triggers on review outcomes; structured rating-scale definition beyond varchar; skills FK for competency ratings.
 
 #### `training_courses` — `tenant_id`
 #### `training_assignments` — `tenant_id` + `worker_id` + `course_id`

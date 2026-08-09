@@ -31,7 +31,9 @@ import {
   CreatePerformanceCycleDto,
   CreatePulseSurveyDto,
   CreateRecognitionDto,
+  DisputeReviewDto,
   FinalizeCalibrationDto,
+  ResolveDisputeDto,
   SubmitManagerReviewDto,
   TriggerProbationSeparationDto,
   SubmitPeerFeedbackDto,
@@ -470,6 +472,38 @@ export class TalentController {
       id,
       this.actor(session, correlationId, request),
       asManager === 'true',
+    );
+  }
+
+  @Post('reviews/:id/dispute')
+  @Roles(...TALENT_ROLES)
+  disputeReview(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DisputeReviewDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.talentService.disputeReview(
+      id,
+      dto,
+      this.actor(session, correlationId, request),
+    );
+  }
+
+  @Post('reviews/:id/resolve-dispute')
+  @Roles(PolarisRoleCode.PEOPLE_OPS, PolarisRoleCode.SUPER_ADMIN)
+  resolveDispute(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ResolveDisputeDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.talentService.resolveDispute(
+      id,
+      dto,
+      this.actor(session, correlationId, request),
     );
   }
 

@@ -6,6 +6,7 @@ describe('parsePerformanceSearchParams', () => {
     expect(parsePerformanceSearchParams('?reviewId=abc')).toEqual({
       reviewId: 'abc',
       developmentActionId: null,
+      meetingId: null,
     });
   });
 
@@ -15,6 +16,15 @@ describe('parsePerformanceSearchParams', () => {
     ).toEqual({
       reviewId: null,
       developmentActionId: 'act-1',
+      meetingId: null,
+    });
+  });
+
+  it('reads meetingId', () => {
+    expect(parsePerformanceSearchParams('?meetingId=m-1')).toEqual({
+      reviewId: null,
+      developmentActionId: null,
+      meetingId: 'm-1',
     });
   });
 
@@ -22,6 +32,7 @@ describe('parsePerformanceSearchParams', () => {
     expect(parsePerformanceSearchParams('')).toEqual({
       reviewId: null,
       developmentActionId: null,
+      meetingId: null,
     });
   });
 });

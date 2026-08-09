@@ -1,6 +1,7 @@
 export function parsePerformanceSearchParams(search: string): {
   reviewId: string | null;
   developmentActionId: string | null;
+  meetingId: string | null;
 } {
   const params = new URLSearchParams(
     search.startsWith('?') ? search.slice(1) : search,
@@ -8,5 +9,6 @@ export function parsePerformanceSearchParams(search: string): {
   return {
     reviewId: params.get('reviewId'),
     developmentActionId: params.get('developmentActionId'),
+    meetingId: params.get('meetingId'),
   };
 }

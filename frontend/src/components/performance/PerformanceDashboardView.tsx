@@ -23,6 +23,10 @@ import {
 } from '@/libs/performance/assessment-questionnaire';
 import { parsePerformanceSearchParams } from '@/libs/performance/performance-query';
 import {
+  sumGoalWeights,
+  wouldExceedGoalWeightCap,
+} from '@/libs/performance/goal-weights';
+import {
   canEmployeeSignOff,
   canViewManagerFeedback,
 } from '@/libs/performance/review-visibility';
@@ -127,6 +131,7 @@ export function PerformanceDashboardView({
   const [selfTemplateLoading, setSelfTemplateLoading] = useState(false);
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
   const [developmentActionId, setDevelopmentActionId] = useState<string | null>(null);
+  const [highlightMeetingId, setHighlightMeetingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -164,10 +169,18 @@ export function PerformanceDashboardView({
 
   useEffect(() => {
     if (!data) return;
-    const { reviewId, developmentActionId: actionId } =
+    const { reviewId, developmentActionId: actionId, meetingId } =
       parsePerformanceSearchParams(window.location.search);
     if (actionId) {
       setDevelopmentActionId(actionId);
+    }
+    if (meetingId) {
+      setHighlightMeetingId(meetingId);
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`meeting-${meetingId}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     }
     if (!reviewId) return;
     const review = data.reviews.find((r) => r.id === reviewId);
@@ -181,6 +194,11 @@ export function PerformanceDashboardView({
     const workerId = data?.actingWorkerId;
     if (!workerId) {
       setError(t('error_no_worker_profile'));
+      return;
+    }
+    const proposed = newGoalWeight ?? 0;
+    if (wouldExceedGoalWeightCap(data?.goals ?? [], proposed)) {
+      setError(t('goal_weight_exceeds'));
       return;
     }
     setSubmitting(true);
@@ -445,9 +463,20 @@ export function PerformanceDashboardView({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            {t('my_goals')}
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+              {t('my_goals')}
+            </h2>
+            <p
+              className={`text-xs ${
+                data.goalWeightsComplete ? 'text-emerald-700' : 'text-amber-700'
+              }`}
+            >
+              {t('goal_weight_total', {
+                total: data.goalWeightTotal ?? sumGoalWeights(data.goals),
+              })}
+            </p>
+          </div>
           {data.goals.length === 0 ? (
             <EmptyState
               icon={Target}
@@ -563,7 +592,15 @@ export function PerformanceDashboardView({
             <EmptyState icon={Calendar} title={t('no_one_on_ones')} />
           ) : (
             data.oneOnOnes.map((meeting) => (
-              <Card key={meeting.id} className="shadow-sm">
+              <Card
+                key={meeting.id}
+                id={`meeting-${meeting.id}`}
+                className={`shadow-sm ${
+                  highlightMeetingId === meeting.id
+                    ? 'ring-2 ring-blue-400'
+                    : ''
+                }`}
+              >
                 <p className="font-medium text-gray-900">
                   {new Date(meeting.scheduledAt).toLocaleString()}
                 </p>
@@ -571,6 +608,28 @@ export function PerformanceDashboardView({
                   <p className="mt-1 text-sm text-gray-500">{meeting.agenda}</p>
                 )}
                 <Tag className="mt-2" value={meeting.status} />
+              </Card>
+            ))
+          )}
+
+          <h2 className="pt-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+            {t('feedback_feed')}
+          </h2>
+          {data.feedback.length === 0 ? (
+            <EmptyState icon={MessageSquare} title={t('no_feedback')} />
+          ) : (
+            data.feedback.map((entry) => (
+              <Card key={entry.id} className="shadow-sm">
+                <p className="text-sm text-gray-800">{entry.message}</p>
+                <p className="mt-2 text-xs text-gray-400">
+                  {entry.authorName
+                    ? t('feedback_from', { name: entry.authorName })
+                    : null}
+                  {entry.authorName ? ' · ' : ''}
+                  {entry.feedbackType}
+                  {' · '}
+                  {new Date(entry.createdAt).toLocaleDateString()}
+                </p>
               </Card>
             ))
           )}
@@ -693,6 +752,11 @@ export function PerformanceDashboardView({
               max={100}
               className="w-full"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              {t('goal_weight_total', {
+                total: sumGoalWeights(data?.goals ?? []) + (newGoalWeight ?? 0),
+              })}
+            </p>
           </div>
           <Button type="button" loading={submitting} onClick={() => void handleCreateGoal()}>
             {t('save')}

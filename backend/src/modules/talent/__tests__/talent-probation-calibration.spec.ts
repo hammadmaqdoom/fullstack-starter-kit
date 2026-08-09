@@ -37,9 +37,10 @@ import {
   PulseSurveyEntity,
   PulseSurveyResponseEntity,
 } from '../entities/pulse-survey.entity';
-import { PerformanceCycleType, ReviewStatus } from '../enums/performance.enum';
+import { PerformanceCycleType, ProbationOutcome, ReviewStatus } from '../enums/performance.enum';
 import { SeparationService } from '../separation.service';
 import { TalentService } from '../talent.service';
+import { ReviewOutcome } from '../enums/performance.enum';
 
 function emptyRepository<T extends object>(): Pick<
   Repository<T>,
@@ -59,7 +60,7 @@ function emptyRepository<T extends object>(): Pick<
 describe('TalentService probation auto-cycle and calibration board', () => {
   let service: TalentService;
   let workerRepository: jest.Mocked<
-    Pick<Repository<WorkerEntity>, 'createQueryBuilder' | 'findOne'>
+    Pick<Repository<WorkerEntity>, 'createQueryBuilder' | 'findOne' | 'save'>
   >;
   let cycleRepository: jest.Mocked<
     Pick<
@@ -95,6 +96,7 @@ describe('TalentService probation auto-cycle and calibration board', () => {
     workerRepository = {
       createQueryBuilder: jest.fn().mockReturnValue(workerQb),
       findOne: jest.fn().mockResolvedValue(null),
+      save: jest.fn(async (entity) => entity),
     } as unknown as typeof workerRepository;
 
     const cycleQb = {
@@ -344,6 +346,164 @@ describe('TalentService probation auto-cycle and calibration board', () => {
       expect(saved.outcome).toBe('exceeds');
       expect(auditLogService.append).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'review.calibration_finalize' }),
+      );
+    });
+  });
+
+  describe('submitManagerReview gaps', () => {
+    const managerAuth = {
+      tenantId,
+      userId: 'manager-user',
+      roleCodes: [PolarisRoleCode.MANAGER],
+      assignments: [],
+      broadestScope: ScopeType.TEAM,
+    };
+
+    it('skips pending_peer even when peer feedback is enabled (v1 manager-led)', async () => {
+      getAuthContext.mockResolvedValue(managerAuth);
+      workerRepository.findOne
+        .mockResolvedValueOnce({ id: 'manager-1' } as WorkerEntity)
+        .mockResolvedValueOnce({
+          id: 'worker-1',
+          tenantId,
+          probationEndDate: '2026-09-01',
+        } as WorkerEntity);
+
+      reviewRepository.findOne.mockResolvedValue({
+        id: 'review-1',
+        tenantId,
+        workerId: 'worker-1',
+        managerWorkerId: 'manager-1',
+        status: ReviewStatus.PENDING_MANAGER,
+        cycle: {
+          peerFeedbackEnabled: true,
+          calibrationEnabled: false,
+          cycleType: PerformanceCycleType.ANNUAL,
+          managerAssessmentTemplate: [
+            {
+              id: 'q1',
+              type: 'short_text',
+              label: 'Summary',
+              required: true,
+            },
+          ],
+        },
+      } as unknown as PerformanceReviewEntity);
+
+      const saved = await service.submitManagerReview(
+        'review-1',
+        {
+          answers: { q1: 'Good work' },
+          outcome: ReviewOutcome.MEETS,
+        },
+        { userId: 'manager-user', tenantId },
+      );
+
+      expect(saved.status).toBe(ReviewStatus.PENDING_SIGN_OFF);
+    });
+
+    it('clears probation end date and queues confirmation letter on confirm', async () => {
+      getAuthContext.mockResolvedValue(managerAuth);
+      const worker = {
+        id: 'worker-1',
+        tenantId,
+        probationEndDate: '2026-09-01',
+      } as WorkerEntity;
+      workerRepository.findOne
+        .mockResolvedValueOnce({ id: 'manager-1' } as WorkerEntity)
+        .mockResolvedValueOnce(worker);
+
+      reviewRepository.findOne.mockResolvedValue({
+        id: 'review-1',
+        tenantId,
+        workerId: 'worker-1',
+        managerWorkerId: 'manager-1',
+        status: ReviewStatus.PENDING_MANAGER,
+        cycle: {
+          peerFeedbackEnabled: false,
+          calibrationEnabled: false,
+          cycleType: PerformanceCycleType.PROBATION,
+          managerAssessmentTemplate: [
+            {
+              id: 'q1',
+              type: 'short_text',
+              label: 'Summary',
+              required: true,
+            },
+          ],
+        },
+      } as unknown as PerformanceReviewEntity);
+
+      const saved = await service.submitManagerReview(
+        'review-1',
+        {
+          answers: { q1: 'Confirmed' },
+          outcome: ReviewOutcome.MEETS,
+          probationOutcome: ProbationOutcome.CONFIRM,
+        },
+        { userId: 'manager-user', tenantId },
+      );
+
+      expect(workerRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'worker-1', probationEndDate: null }),
+      );
+      expect(saved.outcomeLetterStatus).toBe('pending_template');
+      expect(auditLogService.append).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'review.probation_confirm' }),
+      );
+    });
+
+    it('extends probation end date on extend outcome', async () => {
+      getAuthContext.mockResolvedValue(managerAuth);
+      const worker = {
+        id: 'worker-1',
+        tenantId,
+        probationEndDate: '2026-09-01',
+      } as WorkerEntity;
+      workerRepository.findOne
+        .mockResolvedValueOnce({ id: 'manager-1' } as WorkerEntity)
+        .mockResolvedValueOnce(worker);
+
+      reviewRepository.findOne.mockResolvedValue({
+        id: 'review-1',
+        tenantId,
+        workerId: 'worker-1',
+        managerWorkerId: 'manager-1',
+        status: ReviewStatus.PENDING_MANAGER,
+        cycle: {
+          peerFeedbackEnabled: false,
+          calibrationEnabled: false,
+          cycleType: PerformanceCycleType.PROBATION,
+          managerAssessmentTemplate: [
+            {
+              id: 'q1',
+              type: 'short_text',
+              label: 'Summary',
+              required: true,
+            },
+          ],
+        },
+      } as unknown as PerformanceReviewEntity);
+
+      await service.submitManagerReview(
+        'review-1',
+        {
+          answers: { q1: 'Extend' },
+          outcome: ReviewOutcome.MEETS,
+          probationOutcome: ProbationOutcome.EXTEND,
+          probationExtensionDays: 30,
+        },
+        { userId: 'manager-user', tenantId },
+      );
+
+      expect(workerRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'worker-1',
+          probationEndDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      );
+      expect(auditLogService.append).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'review.probation_extend' }),
       );
     });
   });

@@ -3,17 +3,14 @@ import { detectBot } from '@arcjet/next';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import arcjet from '@/libs/Arcjet';
+import {
+  SESSION_COOKIE_NAME,
+  buildSignInRedirectUrl,
+  requiresAuthentication,
+} from '@/libs/auth/route-protection';
 import { routing } from './libs/I18nRouting';
 
 const handleI18nRouting = createMiddleware(routing);
-
-// Protected routes that require authentication
-const protectedRoutes = ['/dashboard'];
-
-// Check if the path matches a protected route
-function isProtectedRoute(pathname: string): boolean {
-  return protectedRoutes.some(route => pathname.includes(route));
-}
 
 // Improve security with Arcjet
 const aj = arcjet.withRule(
@@ -43,27 +40,19 @@ export default async function proxy(
     }
   }
 
-  // Check authentication for protected routes
-  if (isProtectedRoute(request.nextUrl.pathname)) {
-    // Get session cookie from Better Auth
-    // The cookie prefix is set in backend config: TmVzdEpTIEJvaWxlcnBsYXRl
-    const sessionCookie = request.cookies.get('TmVzdEpTIEJvaWxlcnBsYXRl.session_token');
-    
-    if (!sessionCookie) {
-      // Extract locale and path without locale prefix
-      const pathParts = request.nextUrl.pathname.split('/').filter(Boolean);
-      const locale = pathParts[0] || '';
-      const isLocale = locale && routing.locales.includes(locale);
-      
-      // Build sign-in URL with proper locale handling
-      const signInPath = isLocale ? `/${locale}/sign-in` : '/sign-in';
-      const signInUrl = new URL(signInPath, request.url);
-      
-      // Store the path without locale for redirect (i18n router will handle locale)
-      const pathWithoutLocale = isLocale ? `/${pathParts.slice(1).join('/')}` : request.nextUrl.pathname;
-      signInUrl.searchParams.set('redirect', pathWithoutLocale);
-      
-      return NextResponse.redirect(signInUrl);
+  // Default-deny: every Polaris app route requires a session cookie.
+  // Guest auth pages (sign-in, etc.) remain public.
+  if (requiresAuthentication(request.nextUrl.pathname, routing.locales)) {
+    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME);
+
+    if (!sessionCookie?.value) {
+      return NextResponse.redirect(
+        buildSignInRedirectUrl(
+          request.url,
+          request.nextUrl.pathname,
+          routing.locales,
+        ),
+      );
     }
   }
 

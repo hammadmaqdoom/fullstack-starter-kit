@@ -2,6 +2,7 @@
 
 import type { DevelopmentPlan, DevelopmentPlanAction } from '@/libs/api/talent';
 import {
+  createDevelopmentPlan,
   createDevelopmentPlanAction,
   listDevelopmentPlanActions,
   listDevelopmentPlans,
@@ -36,6 +37,8 @@ export function DevelopmentPlanPanel({
   const [error, setError] = useState<string | null>(null);
   const [newActionTitle, setNewActionTitle] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [newPlanTitle, setNewPlanTitle] = useState('');
+  const [creatingPlan, setCreatingPlan] = useState(false);
 
   const load = useCallback(async () => {
     if (!workerId) {
@@ -103,6 +106,23 @@ export function DevelopmentPlanPanel({
     }
   };
 
+  const handleCreatePlan = async () => {
+    if (!workerId || !newPlanTitle.trim()) return;
+    setCreatingPlan(true);
+    try {
+      await createDevelopmentPlan({
+        workerId,
+        title: newPlanTitle.trim(),
+      });
+      setNewPlanTitle('');
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_save'));
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
+
   if (!workerId) {
     return <EmptyState icon={ClipboardList} title={t('no_worker')} />;
   }
@@ -119,13 +139,36 @@ export function DevelopmentPlanPanel({
     );
   }
 
-  if (plans.length === 0) {
-    return <EmptyState icon={ClipboardList} title={t('empty')} />;
-  }
-
   return (
     <div className="space-y-3">
-      {plans.map((plan) => (
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="min-w-[12rem] flex-1">
+          <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="new-plan-title">
+            {t('create_plan')}
+          </label>
+          <InputText
+            id="new-plan-title"
+            value={newPlanTitle}
+            onChange={(e) => setNewPlanTitle(e.target.value)}
+            placeholder={t('plan_title_placeholder')}
+            className="w-full"
+          />
+        </div>
+        <Button
+          type="button"
+          size="small"
+          loading={creatingPlan}
+          disabled={!newPlanTitle.trim()}
+          onClick={() => void handleCreatePlan()}
+        >
+          {t('create_plan')}
+        </Button>
+      </div>
+
+      {plans.length === 0 ? (
+        <EmptyState icon={ClipboardList} title={t('empty')} />
+      ) : (
+        plans.map((plan) => (
         <Card key={plan.id} className="shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -187,7 +230,8 @@ export function DevelopmentPlanPanel({
             </Button>
           </div>
         </Card>
-      ))}
+      ))
+      )}
     </div>
   );
 }

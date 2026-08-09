@@ -497,10 +497,35 @@ export class SubmitManagerReviewDto {
   @IsEnum(ProbationOutcome)
   probationOutcome?: ProbationOutcome;
 
+  @ApiPropertyOptional({
+    description: 'Days to extend probation (required when probationOutcome=extend)',
+    minimum: 1,
+    maximum: 365,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  probationExtensionDays?: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
   competencyRatings?: Record<string, number>;
+}
+
+export class DisputeReviewDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  reason: string;
+}
+
+export class ResolveDisputeDto {
+  @ApiPropertyOptional({ enum: ReviewStatus })
+  @IsOptional()
+  @IsEnum(ReviewStatus)
+  returnStatus?: ReviewStatus;
 }
 
 export class SubmitPeerFeedbackDto {

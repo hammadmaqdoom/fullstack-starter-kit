@@ -19,6 +19,11 @@ import {
 } from '../enums/performance.enum';
 import { PerformanceCycleEntity } from './performance-cycle.entity';
 
+export type OutcomeLetterStatus =
+  | 'not_required'
+  | 'pending_template'
+  | 'drafted';
+
 @Entity('performance_reviews')
 @Index(
   'IDX_performance_reviews_cycle_worker',
@@ -79,6 +84,25 @@ export class PerformanceReviewEntity {
 
   @Column({ type: 'enum', enum: ProbationOutcome, nullable: true })
   probationOutcome: ProbationOutcome | null;
+
+  @Column({
+    type: 'enum',
+    enum: ['not_required', 'pending_template', 'drafted'],
+    default: 'not_required',
+  })
+  outcomeLetterStatus: OutcomeLetterStatus;
+
+  @Column({ type: 'uuid', nullable: true })
+  outcomeLetterDocumentId: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  disputeReason: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  disputedAt: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  disputedByUserId: string | null;
 
   @Column({ type: 'jsonb', default: {} })
   competencyRatings: Record<string, number>;

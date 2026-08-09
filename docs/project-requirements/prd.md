@@ -3,7 +3,7 @@
 **Product name:** Polaris (Digitaro internal HR platform)  
 **Document owner:** Hammad (Founder & CEO)  
 **Status:** Approved for implementation  
-**Version:** v0.14  
+**Version:** v0.15  
 **Last updated:** 10 August 2026  
 **Audience:** Digitaro Labs engineering, People Ops, Finance, IT, founders  
 **Companions:** [product-brief.md](./product-brief.md) · [srs.md](./srs.md) · [system-architecture.md](./system-architecture.md) · [../compliance/feature-flows.md](../compliance/feature-flows.md)
@@ -1245,41 +1245,93 @@ Available from: onboarding checklist, envelope detail screen, and worker Documen
 - In-person signing on a shared kiosk/tablet mode.
 - Blockchain anchoring of document hashes.
 
-### 6.14 Performance management
+### 6.14 Performance management (IPMS)
 
-Single dashboard for goals, reviews, and KPIs — **Phase 2**.
+Integrated Performance Management System (IPMS) — goals, OKRs, continuous feedback, appraisals, calibration, pulse surveys, and development plans — **Phase 2**. Implementation lives in the `talent` bounded context (`/api/v1/talent`) with role surfaces under `/employee/performance`, `/manager/performance`, and `/people-ops/performance`.
+
+**Design companions:** [../superpowers/specs/2026-08-09-ipms-end-to-end-design.md](../superpowers/specs/2026-08-09-ipms-end-to-end-design.md), [../superpowers/specs/2026-08-10-review-assessment-questionnaire-design.md](../superpowers/specs/2026-08-10-review-assessment-questionnaire-design.md).
 
 #### 6.14.1 Review cycles
 
-- Configurable cycles: annual, semi-annual, quarterly, probation review (auto-triggered 2 weeks before probation end).
+- Configurable cycles: annual, semi-annual, quarterly, probation review (auto-triggered 2 weeks before probation end via daily `probation-auto-cycle` job).
 - Cycle states: `Draft` → `Active` → `Manager review` → `Calibration` (optional) → `Completed` → `Locked`.
-- Populations: all staff, by division, country, department, or employment type (contractors excluded by default).
+- Populations: all staff, by division, country, department, or employment type (contractors / non-FTE excluded by default on cycle activate).
+- Per-cycle flags: peer feedback enabled, calibration enabled, rating-scale label.
+- **Structured assessment questionnaires (implemented):** People Ops configures separate **self-assessment** and **manager-assessment** question templates per cycle (short/long text, rating, yes/no, single/multi choice). On submit, answers are validated and stored as a snapshotted JSONB payload so later template edits do not rewrite past responses; a plain-text summary is also written for Hub/legacy surfaces. Submit is blocked when the relevant template is empty.
 
-#### 6.14.2 Goals & KPIs
+#### 6.14.2 Goals, OKRs & continuous performance
 
-- Employee and manager set SMART goals per cycle with weighting (must total 100%).
-- Goal types: individual, team, project-aligned.
+- Employee and manager set SMART goals per cycle with weighting (must total 100% — **enforcement still outstanding**; field exists).
+- Goal types: individual, team, project-aligned; optional link to an organisational key result.
 - Mid-cycle check-ins: progress %, notes, status (on track / at risk / off track).
-- KPI library per role template (optional pre-fill for common roles).
+- KPI library per role template (optional pre-fill for common roles) — **not yet implemented**.
+- **Organisational OKRs (implemented):** company / division / department objectives with key results; People Ops admin at `/people-ops/performance/okrs`; active objectives visible read-only on employee/manager dashboards.
+- **Continuous feedback & recognition (implemented):** directed feedback (praise / constructive / private) and public recognition entries with optional competency/value tags.
+- **1:1 meetings (implemented):** manager schedules and completes one-on-ones with agenda/notes; Hub surfaces upcoming meetings.
 
 #### 6.14.3 Appraisal workflow
 
 - Self-assessment → manager assessment → optional peer/360 feedback (configurable per cycle).
-- Rating scale configurable (e.g. 1–5, exceeds/meets/below); forced distribution optional (off by default).
-- Competency ratings linked to skills on profile (§6.1).
-- Comments and evidence attachments per criterion.
-- Manager and employee sign-off; disputes escalated to People Ops.
+- **v1 decision:** manager-led appraisals are the primary path; peer feedback table + cycle flag exist, but full peer/360 questionnaire UX and status advancement out of `pending_peer` are incomplete (see §13 #5).
+- Rating scale configurable as a cycle label (e.g. exceeds/meets/below); forced distribution optional (off by default) — **forced distribution not yet implemented**.
+- Competency ratings stored as freeform JSON on the review — **not yet linked to skills on profile (§6.1)**.
+- Comments via questionnaire answers; evidence attachments per criterion — **not yet implemented**.
+- Manager and employee sign-off; disputes escalated to People Ops — **`disputed` status exists; dispute raise/resolve flow not yet implemented**.
+- **Calibration (implemented):** Division Head / People Ops calibration board for cycles with `calibrationEnabled`; calibrated outcome + notes finalize pending reviews.
+- **Hub inbox (implemented):** self-assessment due (`pending_self`) and manager review due (`pending_manager`) appear as Hub items with deep-links (`?reviewId=`); development-plan actions and upcoming 1:1s also surface.
 
-#### 6.14.4 Outcomes & HR integration
+#### 6.14.4 Outcomes, IDPs, pulse & HR integration
 
-- Review completion triggers optional increment/promotion letter draft (§6.8) when compensation change flagged.
+- Review completion triggers optional increment/promotion letter draft (§6.8) when compensation change flagged — **letter trigger not yet implemented**.
 - Probation review outcome: Confirm → generate probation confirmation letter | Extend → extension letter | Terminate → separation workflow (§6.4).
-- Performance history on employee timeline; restricted visibility (employee sees own; manager sees reports).
+  - **Implemented today:** terminate → `trigger-separation` creates a separation case; confirm → clears `probationEndDate` and queues letter (`outcomeLetterStatus=pending_template`); extend → pushes `probationEndDate` by N days (default 90) and queues extension letter. PDF auto-generate runs when People Ops publishes templates with codes `probation_confirmation` / `probation_extension` (draft hook pending template publish).
+  - **Outstanding:** automatic PDF generation when templates exist; increment/promotion letter drafts.
+- Performance history on employee timeline; restricted visibility (employee sees own; manager sees reports) — **timeline surface not yet implemented**; visibility rules enforced on review payloads.
+- **Individual development plans (implemented):** plans linked optionally to a review; actions (training / mentoring / stretch / other) with due dates; employee marks actions complete; Hub deep-link `?developmentActionId=`.
+- **Pulse surveys (implemented):** People Ops create/activate surveys with Likert-style questions, population filter, and anonymity threshold; employees respond at `/employee/performance/pulse`; aggregated results hidden until response count ≥ threshold.
 
-#### 6.14.5 Acceptance criteria (performance)
+#### 6.14.5 Role surfaces (implemented)
 
-- Given an active annual cycle, when an employee submits self-assessment, then their manager receives a task to complete manager review.
-- Given probation end in 14 days, when alert fires, then probation review cycle is auto-created for employee and manager.
+| Role | Surface | Capabilities |
+|---|---|---|
+| Employee | `/employee/performance` (+ `/pulse`) | Goals, check-ins, feedback/recognition, self-assessment questionnaire, sign-off, OKR read-only, recognition feed, IDP actions, pulse respond |
+| Manager | `/manager/performance` | Team board (reports’ goals/reviews), manager assessment questionnaire, probation outcome, 1:1 schedule/complete, feedback, separation after terminate, IDP deep-link |
+| People Ops | `/people-ops/performance` (+ `/okrs`, `/pulse`, `/calibration`) | Cycle create/activate + questionnaire builders, OKR admin, pulse admin, calibration board, own dashboard embed |
+| Division Head | `/people-ops/performance/calibration` | Calibration board for calibration-enabled cycles |
+
+#### 6.14.6 Data entities (IPMS)
+
+`performance_cycles` (incl. assessment templates), `performance_reviews` (incl. assessment payloads, probation/outcome, competency ratings), `performance_review_peer_feedback`, `performance_goals`, `goal_check_ins`, `organizational_objectives`, `objective_key_results`, `feedback_entries`, `recognition_entries`, `one_on_one_meetings`, `one_on_one_notes`, `development_plans`, `development_plan_actions`, `pulse_surveys`, `pulse_survey_responses`.
+
+Schema detail: [database-design.md](./database-design.md) §3.6 performance tables. Migrations: `1783037400000-CreatePerformanceManagement`, `1783040800000-AddReviewAssessmentQuestionnaires`.
+
+#### 6.14.7 Acceptance criteria (performance)
+
+- Given an active annual cycle with a non-empty self-assessment template, when an employee submits self-assessment answers, then their manager receives a Hub task to complete manager review and the review status becomes `pending_manager`.
+- Given probation end in 14 days, when the daily probation job runs, then a probation review cycle is auto-created for the employee and manager (templates may still need People Ops configuration before submit).
+- Given a calibration-enabled cycle with reviews in `pending_calibration`, when Division Head finalizes calibration, then the calibrated outcome is persisted and the review advances.
+- Given an active pulse survey and responses below the anonymity threshold, when results are requested, then individual/aggregate scores are withheld until the threshold is met.
+- Given a probation review with outcome Terminate, when the manager triggers separation, then a separation case is created (§6.4).
+
+#### 6.14.8 Known gaps (backlog vs this PRD)
+
+Tracked for follow-up; do **not** treat coverage as 100% until closed.
+
+**Closed in wave 1 (10 Aug 2026):** goal weight cap (≤100%) + UI total; probation confirm/extend employment side-effects + letter `pending_template` queue; peer path no longer stalls on `pending_peer` (v1 manager-led); dispute raise/resolve API + columns; Hub `meetingId` deep-link; feedback feed; create development plan UI.
+
+| Gap | Area |
+|---|---|
+| KPI / role-template library | Goals |
+| Forced distribution on calibration | Calibration |
+| Competency ratings ↔ worker skills (§6.1) | Appraisal |
+| Evidence attachments per criterion | Appraisal |
+| Peer/360 questionnaire UX (optional async peer rows remain) | Appraisal |
+| Increment/promotion letter draft on compensation flag | Outcomes |
+| Auto-generate probation confirm/extend PDF when template published | Outcomes |
+| Performance history on employee timeline | Outcomes |
+| Cycle state machine auto-advance / lock enforcement | Cycles |
+| Population filter UI (employment type) on cycle admin | Cycles |
+| Richer pulse question builder (admin create is thin) | Pulse |
 
 ### 6.15 Recruitment management
 
@@ -1605,7 +1657,7 @@ This is the single biggest source of complexity and the main reason an off-the-s
 - **Integration layer:** background jobs/queue for alert scheduling, Entra provisioning tasks, daily Frankfurter FX fetch, envelope expiry/reminders, async PDF sealing, scheduled reports.
 - **Observability:** Azure Application Insights; structured logging.
 
-**Data model — core entities (high level):** Employee, EmploymentRecord, EmploymentType, EmploymentTypeCountryConfig, ContractorProfile, EmployeeSkill, CareerHistoryEntry, ProfileChangeRequest, Department, Division, Country/LocationConfig, OfficeLocation (geofence + IP allowlist per hub), Currency, ExchangeRate, ExchangeRateFetchBatch, CountryCurrencyConfig, LegalEntityCurrency, WorkWeekPattern, HolidayCalendar, Holiday, CompanyClosure, StaffCalendarDay, AttendancePunch (incl. device, IP, lat/lng/accuracy/source, office_match), AttendanceDaySummary, PunchCorrectionRequest, ShiftRoster, ShiftAssignment, LegalEntity, LetterheadConfig, DocumentTemplate, DocumentTemplateVersion, GeneratedDocument, ESignEnvelope, ESignSignatory, ESignField, ESignFieldPreset, ESignAuditEvent, SigningCertificate, ManagerRelationship, ProjectAssignment, LeaveType, LeaveBalance, LeaveRequest, CompOffCredit, Policy, PolicyVersion, PolicyAcknowledgement, Separation, ClearanceTask, ExpenseClaim, ExpensePolicy, ContractorInvoice, ContractorInvoiceLineItem, TravelRequest, TravelItinerary, HelpDeskTicket, TicketComment, TrainingCourse, TrainingAssignment, TrainingCompletion, JobRequisition, Candidate, PreBoardingPacket, PreBoardingFieldValue, EntraProvisioningJob, WorkerPassport, WorkerVisaRecord, WorkerVisaAttachment, InterviewScorecard, PerformanceCycle, PerformanceGoal, PerformanceReview, ManpowerPlan, ManpowerPosition, CompensationRecord, BenefitCategory, BenefitType, BenefitTypeField, BenefitTypeValidationRule, EmployeeBenefit, EmployeeBenefitFieldValue, PayComponentType, Payslip, ContractorPaymentBatch, ContractorPaymentLine, RemittanceCorridorConfig, RemittancePack, RemittancePackDocument, StatutoryRateSchedule, StatutoryRateEntry, PayRun, PayRunLineItem, PayRunExportBatch, AlertRule, ScheduledReportSubscription, OnboardingTemplate/Task, ComplianceAlert, AuditLog, Role, UserRoleAssignment.
+**Data model — core entities (high level):** Employee, EmploymentRecord, EmploymentType, EmploymentTypeCountryConfig, ContractorProfile, EmployeeSkill, CareerHistoryEntry, ProfileChangeRequest, Department, Division, Country/LocationConfig, OfficeLocation (geofence + IP allowlist per hub), Currency, ExchangeRate, ExchangeRateFetchBatch, CountryCurrencyConfig, LegalEntityCurrency, WorkWeekPattern, HolidayCalendar, Holiday, CompanyClosure, StaffCalendarDay, AttendancePunch (incl. device, IP, lat/lng/accuracy/source, office_match), AttendanceDaySummary, PunchCorrectionRequest, ShiftRoster, ShiftAssignment, LegalEntity, LetterheadConfig, DocumentTemplate, DocumentTemplateVersion, GeneratedDocument, ESignEnvelope, ESignSignatory, ESignField, ESignFieldPreset, ESignAuditEvent, SigningCertificate, ManagerRelationship, ProjectAssignment, LeaveType, LeaveBalance, LeaveRequest, CompOffCredit, Policy, PolicyVersion, PolicyAcknowledgement, Separation, ClearanceTask, ExpenseClaim, ExpensePolicy, ContractorInvoice, ContractorInvoiceLineItem, TravelRequest, TravelItinerary, HelpDeskTicket, TicketComment, TrainingCourse, TrainingAssignment, TrainingCompletion, JobRequisition, Candidate, PreBoardingPacket, PreBoardingFieldValue, EntraProvisioningJob, WorkerPassport, WorkerVisaRecord, WorkerVisaAttachment, InterviewScorecard, PerformanceCycle (incl. assessment templates), PerformanceGoal, GoalCheckIn, PerformanceReview (incl. assessment payloads), PerformanceReviewPeerFeedback, OrganizationalObjective, ObjectiveKeyResult, FeedbackEntry, RecognitionEntry, OneOnOneMeeting, OneOnOneNote, DevelopmentPlan, DevelopmentPlanAction, PulseSurvey, PulseSurveyResponse, ManpowerPlan, ManpowerPosition, CompensationRecord, BenefitCategory, BenefitType, BenefitTypeField, BenefitTypeValidationRule, EmployeeBenefit, EmployeeBenefitFieldValue, PayComponentType, Payslip, ContractorPaymentBatch, ContractorPaymentLine, RemittanceCorridorConfig, RemittancePack, RemittancePackDocument, StatutoryRateSchedule, StatutoryRateEntry, PayRun, PayRunLineItem, PayRunExportBatch, AlertRule, ScheduledReportSubscription, OnboardingTemplate/Task, ComplianceAlert, AuditLog, Role, UserRoleAssignment.
 
 ---
 
@@ -1645,7 +1697,7 @@ This is the single biggest source of complexity and the main reason an off-the-s
 | 2 | E-sign legal | Proceed with AES; export PDF / print / manual upload as equal path | §6.13.3, §6.13.8 |
 | 3 | PDF library | Resolved — QuestPDF + PDFsharp + BouncyCastle (open source). iText not used | §6.13.9, §10 |
 | 4 | Contractor withholding tax | Open — confirm PK/UAE/SG rules with tax advisor; export pack includes withholding columns | Phase 2 |
-| 5 | Performance 360 | Open — manager-only for v1 unless decided at performance launch | §6.14 |
+| 5 | Performance 360 | **Resolved for v1** — manager-led appraisals primary; peer feedback flag + table exist but peer/360 questionnaires deferred. Revisit if Digitaro requires full 360 | §6.14.3 |
 | 6 | Web & mobile | Resolved — responsive PWA only; no Capacitor | UX §9 |
 | 7 | Productization / multi-tenant | Open — defer; keep tenant-shaped seams | §12 assumption |
 | 8 | Xero integration | Resolved — no API. PDF/Excel export only; Finance enters Xero manually | §6.12.5, §9 |
@@ -1654,6 +1706,7 @@ This is the single biggest source of complexity and the main reason an off-the-s
 | 11 | WhatsApp | Resolved — `wa.me` link buttons (click to open WhatsApp with pre-filled message); not Business API | UX §5.3 |
 | 12 | Dark mode | Deferred post–Phase 1 | deferred-compliance-work.md §4 |
 | 13 | SOC 2 / DSAR / access review runbooks | Deferred — carry-forward checklists documented | deferred-compliance-work.md |
+| 14 | Assessment questionnaires | **Resolved** — per-cycle self + manager JSONB templates with snapshotted answer payloads (not free-text-only) | §6.14.1, questionnaire design 2026-08-10 |
 
 ---
 
@@ -1674,7 +1727,7 @@ This is the single biggest source of complexity and the main reason an off-the-s
 
 ## 15. Module coverage matrix
 
-Target: 100% functional coverage vs enterprise HRMS module list. Status as of v0.6 baseline (document version v0.14).
+Target: 100% functional coverage vs enterprise HRMS module list. Status as of document version **v0.15** (IPMS audit 10 Aug 2026).
 
 | Module | PRD section | Phase | Coverage |
 |---|---|---|---|
@@ -1684,7 +1737,7 @@ Target: 100% functional coverage vs enterprise HRMS module list. Status as of v0
 | Talent — onboarding | §6.3 | 1 | ✅ 100% |
 | Talent — separation | §6.4 | 1 | ✅ 100% — multi-dept clearance, settlement, exit interview |
 | Talent — recruitment | §6.15 | 2 | ✅ 100% — reqs, pipeline, scorecards, offer handoff |
-| Talent — performance | §6.14 | 2 | ✅ 100% — cycles, goals/KPIs, reviews, probation outcomes |
+| Talent — performance (IPMS) | §6.14 | 2 | 🟡 ~82% — wave-1 gaps closed (weights, probation confirm/extend side-effects, dispute API, peer stall fix, Hub meetingId, feedback feed, create IDP). Remaining in §6.14.8 (KPI library, evidence, skills-linked competencies, timeline, letter PDF auto-gen, pulse builder) |
 | Talent — training | §6.16 | 2 | ✅ 100% — catalog, assignments, compliance tracking |
 | Talent — manpower planning | §6.19 | 2 | ✅ 100% — plans, positions, actuals vs budget |
 | Pay & benefits — payroll | §6.12 | 2 | ✅ 100% — calc, statutory rates, payslips, PDF/Excel export |
