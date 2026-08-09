@@ -1026,7 +1026,14 @@
     "offline_queued": "{count} punch(es) waiting to sync.",
     "error_load": "Could not load today's status.",
     "error_punch": "Could not record punch.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "week_title": "This week",
+    "week_view_calendar": "View calendar",
+    "week_loading": "Loading this week's attendance",
+    "week_empty": "Weekly attendance will appear here once calendar data is available.",
+    "week_error": "Could not load this week's attendance.",
+    "team_today_title": "Team today",
+    "team_today_error": "Could not load team attendance."
   },
   "HumanMoments": {
     "section_label": "Celebrations",
