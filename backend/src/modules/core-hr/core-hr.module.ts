@@ -38,6 +38,8 @@ import { ManagerRelationshipController } from './manager-relationship.controller
 import { ManagerRelationshipService } from './manager-relationship.service';
 import { OrgController } from './org.controller';
 import { OrgService } from './org.service';
+import { OrgAdminController } from './org-admin.controller';
+import { OrgAdminService } from './org-admin.service';
 import { ProfileChangeRequestController } from './profile-change-request.controller';
 import { ProfileChangeRequestService } from './profile-change-request.service';
 import { ProjectAssignmentController } from './project-assignment.controller';
@@ -80,6 +82,7 @@ import { WorkerService } from './worker.service';
   controllers: [
     WorkerController,
     OrgController,
+    OrgAdminController,
     ProfileChangeRequestController,
     ApprovalDelegationController,
     ManagerRelationshipController,
@@ -91,6 +94,7 @@ import { WorkerService } from './worker.service';
   providers: [
     WorkerService,
     OrgService,
+    OrgAdminService,
     ProfileChangeRequestService,
     ApprovalDelegationService,
     ManagerRelationshipService,
@@ -102,6 +106,7 @@ import { WorkerService } from './worker.service';
   exports: [
     WorkerService,
     OrgService,
+    OrgAdminService,
     ProfileChangeRequestService,
     ApprovalDelegationService,
     ManagerRelationshipService,
