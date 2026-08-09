@@ -255,9 +255,13 @@ Query params: `?status=active&country_code=PK&employment_type=CONTRACTOR&divisio
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/staff-calendar/{workerId}` | Auto-built staff calendar |
-| GET | `/staff-calendar/me` | Own calendar |
+| GET | `/calendars/me` | Own calendar: holidays, leave, attendance cells (`from`/`to` optional → current week Mon–Sun) |
+| GET | `/calendars/staff/{workerId}` | Staff calendar for worker (RBAC scoped) |
+| GET | `/calendars/team` | Team heatmap (`from`/`to`, optional `divisionId`) — Manager+ |
+| GET | `/calendars/staff` | Legacy holidays + leave only (deprecated) |
 | GET | `/holidays` | Holidays for country/year |
+
+**Query rules:** `from` / `to` as ISO `YYYY-MM-DD`; both required together or both omitted (defaults to current week in acting worker timezone). Max span 62 days. Unknown params such as `month` are rejected (`forbidNonWhitelisted`).
 
 ### 4.7 Documents & policies — `/api/v1/documents`
 
