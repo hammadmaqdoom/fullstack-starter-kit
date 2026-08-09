@@ -9,13 +9,19 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { resolveCellStatus } from './calendar-cell.util';
 import {
+  computeWorkedMinutes,
+  groupPunchesByWorkerAndDate,
+  type PunchLike,
+} from './calendar-punch.util';
+import {
   assertCalendarRangeSpan,
   enumerateDates,
   resolveCalendarRange,
 } from './calendar-range.util';
-import type { CalendarDayCell } from './calendar.types';
+import type { CalendarDayCell, CalendarDayPunch } from './calendar.types';
 import { QueryCalendarRangeDto } from './dto/calendar.dto';
 import { AttendanceDaySummaryEntity } from './entities/attendance-day-summary.entity';
+import { AttendancePunchEntity } from './entities/attendance-punch.entity';
 import { LeaveRequestEntity } from './entities/leave-request.entity';
 import { LeaveRequestStatus } from './enums/leave.enum';
 import {
@@ -73,6 +79,8 @@ export class CalendarService {
     private readonly holidayRepository: Repository<HolidayEntity>,
     @InjectRepository(AttendanceDaySummaryEntity)
     private readonly daySummaryRepository: Repository<AttendanceDaySummaryEntity>,
+    @InjectRepository(AttendancePunchEntity)
+    private readonly punchRepository: Repository<AttendancePunchEntity>,
     @InjectRepository(WorkerEntity)
     private readonly workerRepository: Repository<WorkerEntity>,
     private readonly rbacService: RbacService,
@@ -156,10 +164,11 @@ export class CalendarService {
       ...new Set(workers.map((w) => w.countryCode).filter(Boolean)),
     ];
 
-    const [holidays, leaveRows, summaries] = await Promise.all([
+    const [holidays, leaveRows, summaries, punches] = await Promise.all([
       this.loadHolidays(tenantId, range.from, range.to, countryCodes),
       this.loadLeaveForWorkers(tenantId, workerIds, range.from, range.to),
       this.loadSummaries(tenantId, workerIds, range.from, range.to),
+      this.loadPunches(tenantId, workerIds, range.from, range.to),
     ]);
 
     const leaveTypeIds = [...new Set(leaveRows.map((r) => r.leaveTypeId))];
@@ -171,6 +180,14 @@ export class CalendarService {
         : [];
     const leaveTypeNameById = new Map(
       leaveTypes.map((lt) => [lt.id, lt.name] as const),
+    );
+
+    const timezoneByWorkerId = new Map(
+      workers.map((w) => [w.id, w.timezone?.trim() || 'UTC'] as const),
+    );
+    const punchesByWorkerDate = groupPunchesByWorkerAndDate(
+      punches,
+      timezoneByWorkerId,
     );
 
     const dates = enumerateDates(range.from, range.to);
@@ -231,6 +248,7 @@ export class CalendarService {
             holidayName: holiday?.name ?? null,
             firstIn: summary?.firstIn?.toISOString() ?? null,
             lastOut: summary?.lastOut?.toISOString() ?? null,
+            ...this.dayPunchFields(worker.id, date, punchesByWorkerDate),
           };
         });
 
@@ -278,10 +296,11 @@ export class CalendarService {
     assertCalendarRangeSpan(range.from, range.to);
     const today = workDateInTimezone(new Date(), timeZone);
 
-    const [holidays, leaveRows, summaries] = await Promise.all([
+    const [holidays, leaveRows, summaries, punches] = await Promise.all([
       this.loadHolidays(tenantId, range.from, range.to, [worker.countryCode]),
       this.loadLeaveForWorkers(tenantId, [workerId], range.from, range.to),
       this.loadSummaries(tenantId, [workerId], range.from, range.to),
+      this.loadPunches(tenantId, [workerId], range.from, range.to),
     ]);
 
     const leaveTypeIds = [...new Set(leaveRows.map((r) => r.leaveTypeId))];
@@ -300,6 +319,10 @@ export class CalendarService {
     );
     const summaryByDate = new Map(
       summaries.map((s) => [s.workDate, s] as const),
+    );
+    const punchesByWorkerDate = groupPunchesByWorkerAndDate(
+      punches,
+      new Map([[workerId, timeZone]]),
     );
 
     const days: CalendarDayCell[] = enumerateDates(range.from, range.to).map(
@@ -329,6 +352,7 @@ export class CalendarService {
           holidayName: holiday?.name ?? null,
           firstIn: summary?.firstIn?.toISOString() ?? null,
           lastOut: summary?.lastOut?.toISOString() ?? null,
+          ...this.dayPunchFields(workerId, date, punchesByWorkerDate),
         };
       },
     );
@@ -436,6 +460,48 @@ export class CalendarService {
       .andWhere('request.startDate <= :to', { to })
       .andWhere('request.endDate >= :from', { from })
       .orderBy('request.startDate', 'ASC')
+      .getMany();
+  }
+
+  private dayPunchFields(
+    workerId: string,
+    date: string,
+    grouped: Map<string, PunchLike[]>,
+  ): { punches: CalendarDayPunch[]; workedMinutes: number } {
+    const list = grouped.get(`${workerId}:${date}`) ?? [];
+    return {
+      punches: list.map((p) => ({
+        id: p.id,
+        punchType: p.punchType as 'check_in' | 'check_out',
+        punchedAt: p.punchedAt.toISOString(),
+      })),
+      workedMinutes: computeWorkedMinutes(list),
+    };
+  }
+
+  private async loadPunches(
+    tenantId: string,
+    workerIds: string[],
+    from: string,
+    to: string,
+  ): Promise<AttendancePunchEntity[]> {
+    if (workerIds.length === 0) {
+      return [];
+    }
+    const fromAt = new Date(`${from}T00:00:00.000Z`);
+    const toExclusive = new Date(`${to}T00:00:00.000Z`);
+    toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
+    // Widen by ±1 day so timezone shifts near range edges still load.
+    fromAt.setUTCDate(fromAt.getUTCDate() - 1);
+    toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
+
+    return this.punchRepository
+      .createQueryBuilder('punch')
+      .where('punch.tenantId = :tenantId', { tenantId })
+      .andWhere('punch.workerId IN (:...workerIds)', { workerIds })
+      .andWhere('punch.punchedAt >= :fromAt', { fromAt })
+      .andWhere('punch.punchedAt < :toExclusive', { toExclusive })
+      .orderBy('punch.punchedAt', 'ASC')
       .getMany();
   }
 

@@ -10,6 +10,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { CalendarService } from '../calendar.service';
 import { AttendanceDaySummaryEntity } from '../entities/attendance-day-summary.entity';
+import { AttendancePunchEntity } from '../entities/attendance-punch.entity';
 import { LeaveRequestEntity } from '../entities/leave-request.entity';
 import { AttendanceDayStatus } from '../enums/attendance.enum';
 import { LeaveRequestStatus } from '../enums/leave.enum';
@@ -36,6 +37,7 @@ describe('CalendarService', () => {
   let leaveTypeRepository: { find: jest.Mock };
   let holidayRepository: { createQueryBuilder: jest.Mock };
   let daySummaryRepository: { createQueryBuilder: jest.Mock };
+  let punchRepository: { createQueryBuilder: jest.Mock };
   let workerRepository: {
     findOne: jest.Mock;
     find: jest.Mock;
@@ -78,6 +80,7 @@ describe('CalendarService', () => {
     leaveTypeRepository = { find: jest.fn().mockResolvedValue([]) };
     holidayRepository = { createQueryBuilder: jest.fn() };
     daySummaryRepository = { createQueryBuilder: jest.fn() };
+    punchRepository = { createQueryBuilder: jest.fn() };
     workerRepository = {
       findOne: jest.fn(),
       find: jest.fn().mockResolvedValue([]),
@@ -125,6 +128,7 @@ describe('CalendarService', () => {
     holidayRepository.createQueryBuilder.mockReturnValue(createQbMock([]));
     leaveRequestRepository.createQueryBuilder.mockReturnValue(createQbMock([]));
     daySummaryRepository.createQueryBuilder.mockReturnValue(createQbMock([]));
+    punchRepository.createQueryBuilder.mockReturnValue(createQbMock([]));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -144,6 +148,10 @@ describe('CalendarService', () => {
         {
           provide: getRepositoryToken(AttendanceDaySummaryEntity),
           useValue: daySummaryRepository,
+        },
+        {
+          provide: getRepositoryToken(AttendancePunchEntity),
+          useValue: punchRepository,
         },
         {
           provide: getRepositoryToken(WorkerEntity),
@@ -245,5 +253,50 @@ describe('CalendarService', () => {
     const report = result.workers.find((w) => w.workerId === workerId);
     const cell = report?.cells.find((c) => c.date === '2026-08-04');
     expect(cell?.status).toBe('out');
+  });
+
+  it('attaches punches and workedMinutes to staff calendar days', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-08-05T12:00:00.000Z'));
+
+    punchRepository.createQueryBuilder.mockReturnValue(
+      createQbMock([
+        {
+          id: 'punch-in',
+          workerId,
+          punchType: 'check_in',
+          punchedAt: new Date('2026-08-04T09:00:00.000Z'),
+        },
+        {
+          id: 'punch-out',
+          workerId,
+          punchType: 'check_out',
+          punchedAt: new Date('2026-08-04T17:00:00.000Z'),
+        },
+      ]),
+    );
+
+    const result = await service.getMyCalendar(
+      { from: '2026-08-03', to: '2026-08-09' },
+      userId,
+    );
+
+    const day = result.days.find((d) => d.date === '2026-08-04');
+    expect(day?.punches).toEqual([
+      {
+        id: 'punch-in',
+        punchType: 'check_in',
+        punchedAt: '2026-08-04T09:00:00.000Z',
+      },
+      {
+        id: 'punch-out',
+        punchType: 'check_out',
+        punchedAt: '2026-08-04T17:00:00.000Z',
+      },
+    ]);
+    expect(day?.workedMinutes).toBe(480);
+    expect(result.days.every((d) => Array.isArray(d.punches))).toBe(true);
+
+    jest.useRealTimers();
   });
 });

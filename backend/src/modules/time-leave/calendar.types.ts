@@ -8,6 +8,12 @@ export type CalendarCellStatus =
   | 'non_working'
   | 'planned';
 
+export type CalendarDayPunch = {
+  id: string;
+  punchType: 'check_in' | 'check_out';
+  punchedAt: string;
+};
+
 export type CalendarDayCell = {
   date: string;
   status: CalendarCellStatus;
@@ -15,4 +21,6 @@ export type CalendarDayCell = {
   holidayName?: string | null;
   firstIn?: string | null;
   lastOut?: string | null;
+  punches: CalendarDayPunch[];
+  workedMinutes: number;
 };
