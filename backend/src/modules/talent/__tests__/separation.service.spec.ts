@@ -193,6 +193,56 @@ describe('SeparationService', () => {
     );
   });
 
+  it('allows the review manager to initiate separation from failed probation', async () => {
+    const managerWorkerId = 'm0000000-0000-4000-8000-000000000007';
+    const rbac = moduleRef.get(RbacService) as {
+      getAuthContext: jest.Mock;
+    };
+    rbac.getAuthContext.mockResolvedValue({
+      userId: 'manager-user',
+      tenantId: DIGITARO_TENANT_ID,
+      roleCodes: [PolarisRoleCode.MANAGER],
+      assignments: [
+        {
+          roleCode: PolarisRoleCode.MANAGER,
+          scopeType: ScopeType.TEAM,
+          scopeId: null,
+        },
+      ],
+      broadestScope: ScopeType.TEAM,
+    });
+
+    workerRepository.findOne
+      .mockResolvedValueOnce({ id: managerWorkerId } as WorkerEntity)
+      .mockResolvedValueOnce({ id: workerId } as WorkerEntity);
+
+    separationRepository.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: separationId,
+        tenantId: DIGITARO_TENANT_ID,
+        workerId,
+        lastWorkingDay: '2026-09-15',
+        status: SeparationCaseStatus.INITIATED,
+        reason: 'Probation failed',
+        clearanceItems: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as SeparationCaseEntity);
+
+    const result = await service.initiateFromProbationTerminate(
+      {
+        workerId,
+        lastWorkingDay: '2026-09-15',
+        reason: 'Probation failed',
+      },
+      { userId: 'manager-user', correlationId: 'corr-prob-1' },
+      managerWorkerId,
+    );
+
+    expect(result.id).toBe(separationId);
+  });
+
   it('rejects manager clearing an HR clearance item', async () => {
     const rbac = moduleRef.get(RbacService) as {
       getAuthContext: jest.Mock;

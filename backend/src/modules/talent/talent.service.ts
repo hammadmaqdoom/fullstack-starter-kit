@@ -36,6 +36,7 @@ import {
   SubmitPeerFeedbackDto,
   SubmitPulseResponseDto,
   SubmitSelfAssessmentDto,
+  TriggerProbationSeparationDto,
   UpdateDevelopmentActionDto,
   UpdateDevelopmentPlanDto,
   UpdateGoalDto,
@@ -45,6 +46,7 @@ import {
   UpdatePerformanceCycleDto,
   UpdatePulseSurveyDto,
 } from './dto/talent.dto';
+import { SeparationService } from './separation.service';
 import {
   DevelopmentPlanActionEntity,
   DevelopmentPlanEntity,
@@ -77,6 +79,7 @@ import {
   OneOnOneStatus,
   PerformanceCycleStatus,
   PerformanceCycleType,
+  ProbationOutcome,
   PulseSurveyStatus,
   ReviewStatus,
 } from './enums/performance.enum';
@@ -139,6 +142,7 @@ export class TalentService {
     private readonly workerRepository: Repository<WorkerEntity>,
     private readonly auditLogService: AuditLogService,
     private readonly rbacService: RbacService,
+    private readonly separationService: SeparationService,
   ) {}
 
   private async getContext(userId: string, tenantId = DIGITARO_TENANT_ID) {
@@ -1030,6 +1034,7 @@ export class TalentService {
     const { auth, actingWorkerId, tenantId } = await this.getContext(userId);
     const qb = this.reviewRepository
       .createQueryBuilder('review')
+      .leftJoinAndSelect('review.cycle', 'cycle')
       .where('review.tenantId = :tenantId', { tenantId });
 
     if (cycleId) {
@@ -1372,6 +1377,68 @@ export class TalentService {
       status: saved.status,
     });
     return saved;
+  }
+
+  /**
+   * US-TAL-004 AC2 — after probationOutcome=terminate, start separation clearance.
+   */
+  async triggerSeparationFromProbationReview(
+    reviewId: string,
+    dto: TriggerProbationSeparationDto,
+    actor: ActorContext,
+  ) {
+    const { tenantId } = await this.getContext(actor.userId, actor.tenantId);
+    const review = await this.reviewRepository.findOne({
+      where: { id: reviewId, tenantId },
+      relations: ['cycle'],
+    });
+    if (!review) {
+      throw new NotFoundException({
+        code: 'REVIEW_NOT_FOUND',
+        message: 'Review not found',
+      });
+    }
+    if (review.probationOutcome !== ProbationOutcome.TERMINATE) {
+      throw new BadRequestException({
+        code: 'PROBATION_NOT_TERMINATED',
+        message:
+          'Separation can only be triggered when probation outcome is terminate',
+      });
+    }
+    if (review.cycle?.cycleType !== PerformanceCycleType.PROBATION) {
+      throw new BadRequestException({
+        code: 'NOT_PROBATION_CYCLE',
+        message: 'Review is not part of a probation cycle',
+      });
+    }
+
+    const separation = await this.separationService.initiateFromProbationTerminate(
+      {
+        workerId: review.workerId,
+        lastWorkingDay: dto.lastWorkingDay,
+        reason: `Probation failed — review ${reviewId}`,
+      },
+      {
+        userId: actor.userId,
+        tenantId,
+        correlationId: actor.correlationId,
+        ipAddress: actor.ipAddress,
+      },
+      review.managerWorkerId,
+    );
+
+    await this.audit(
+      actor,
+      'review.probation_separation_trigger',
+      'performance_review',
+      reviewId,
+      {
+        separationCaseId: separation.id,
+        lastWorkingDay: dto.lastWorkingDay,
+      },
+    );
+
+    return separation;
   }
 
   // --- Development plans ---

@@ -102,7 +102,7 @@ Use new stable UUIDs in `a3100000-…` range for performance seed rows (do not c
 - Produces: feedback/recognition items may include `authorName` / `recipientName` strings when enrichment runs
 - Consumes: existing `getPerformanceDashboard` repositories + `WorkerEntity` lookups
 
-- [ ] **Step 1: Write failing util tests**
+- [x] **Step 1: Write failing util tests**
 
 ```typescript
 import { countReviewsAwaitingMe } from '../performance-dashboard.util';

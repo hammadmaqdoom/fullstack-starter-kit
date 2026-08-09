@@ -58,7 +58,7 @@ Org: Labs division; manager reports to divhead; employee, employee2, and contrac
 |---|---|---|
 | employee | `/employee/performance` | See seeded goals/feedback/1:1/OKRs; add goal; check-in; feedback via WorkerPicker; self-assessment; view manager feedback after manager submit; sign off; Hub `?reviewId=` / `?developmentActionId=`; pulse at `/employee/performance/pulse` |
 | manager | `/manager/performance` | See team board; submit manager review (incl. probation outcome on probation cycles); sign off; feedback via WorkerPicker; schedule/complete 1:1; Hub `?reviewId=` / `?developmentActionId=`; start separation after terminate |
-| people_ops | `/people-ops/performance` | Create cycle with calibration flag; OKRs at `/people-ops/performance/okrs`; pulse admin at `/people-ops/performance/pulse` |
+| people_ops | `/people-ops/performance` | Create cycle with calibration flag + questionnaires; OKRs at `/people-ops/performance/okrs`; pulse admin + view results (anonymity) at `/people-ops/performance/pulse` |
 | division_head | `/people-ops/performance/calibration` | Calibrate seeded `pending_calibration` review |
 
 Seed: `1783040700000-demo-performance.seed.ts` (runs with `pnpm seed:run`).

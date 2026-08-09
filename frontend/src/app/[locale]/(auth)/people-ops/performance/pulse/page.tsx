@@ -1,8 +1,9 @@
 'use client';
 
-import type { PulseSurvey } from '@/libs/api/talent';
+import type { PulseSurvey, PulseSurveyResults } from '@/libs/api/talent';
 import {
   createPulseSurvey,
+  getPulseResults,
   listPulseSurveys,
   updatePulseSurvey,
 } from '@/libs/api/talent';
@@ -29,6 +30,11 @@ export default function PeopleOpsPulsePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsSurvey, setResultsSurvey] = useState<PulseSurvey | null>(null);
+  const [results, setResults] = useState<PulseSurveyResults | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,6 +89,22 @@ export default function PeopleOpsPulsePage() {
     }
   };
 
+  const handleViewResults = async (survey: PulseSurvey) => {
+    setResultsSurvey(survey);
+    setResults(null);
+    setResultsOpen(true);
+    setResultsLoading(true);
+    try {
+      const { data } = await getPulseResults(survey.id);
+      setResults(data);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_results'));
+      setResultsOpen(false);
+    } finally {
+      setResultsLoading(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -125,13 +147,25 @@ export default function PeopleOpsPulsePage() {
           <Column field="anonymityThreshold" header={t('anonymity')} />
           <Column
             header={t('actions')}
-            body={(row: PulseSurvey) =>
-              row.status === 'draft' ? (
-                <Button type="button" size="small" onClick={() => void handleActivate(row.id)}>
-                  {t('activate')}
-                </Button>
-              ) : null
-            }
+            body={(row: PulseSurvey) => (
+              <div className="flex flex-wrap gap-2">
+                {row.status === 'draft' ? (
+                  <Button type="button" size="small" onClick={() => void handleActivate(row.id)}>
+                    {t('activate')}
+                  </Button>
+                ) : null}
+                {row.status !== 'draft' ? (
+                  <Button
+                    type="button"
+                    size="small"
+                    outlined
+                    onClick={() => void handleViewResults(row)}
+                  >
+                    {t('view_results')}
+                  </Button>
+                ) : null}
+              </div>
+            )}
           />
         </DataTable>
       </Card>
@@ -161,6 +195,45 @@ export default function PeopleOpsPulsePage() {
             {t('save')}
           </Button>
         </div>
+      </Dialog>
+
+      <Dialog
+        header={resultsSurvey ? t('results_title', { title: resultsSurvey.title }) : t('view_results')}
+        visible={resultsOpen}
+        onHide={() => setResultsOpen(false)}
+        modal
+        className="w-full max-w-lg"
+      >
+        {resultsLoading ? (
+          <p className="text-sm text-gray-500">{t('results_loading')}</p>
+        ) : results?.aggregates == null ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {t('anonymity_blocked', {
+              count: results?.responseCount ?? 0,
+              threshold: resultsSurvey?.anonymityThreshold ?? 0,
+            })}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              {t('response_count', { count: results.responseCount })}
+            </p>
+            {(resultsSurvey?.questions ?? []).map((q) => {
+              const agg = results.aggregates?.[q.id];
+              return (
+                <div key={q.id} className="rounded-md border border-gray-100 p-3">
+                  <p className="text-sm font-medium text-gray-900">{q.text}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {t('question_average', {
+                      average: agg ? agg.average.toFixed(2) : '—',
+                      count: agg?.count ?? 0,
+                    })}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </Dialog>
     </div>
   );

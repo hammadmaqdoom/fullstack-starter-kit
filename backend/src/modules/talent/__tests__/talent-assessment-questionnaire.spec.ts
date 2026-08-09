@@ -34,6 +34,7 @@ import {
   PulseSurveyResponseEntity,
 } from '../entities/pulse-survey.entity';
 import { ReviewOutcome, ReviewStatus } from '../enums/performance.enum';
+import { SeparationService } from '../separation.service';
 import { TalentService } from '../talent.service';
 
 function emptyRepository<T extends object>(): Pick<
@@ -179,6 +180,10 @@ describe('TalentService assessment questionnaires', () => {
         },
         { provide: AuditLogService, useValue: { append: jest.fn() } },
         { provide: RbacService, useValue: { getAuthContext } },
+        {
+          provide: SeparationService,
+          useValue: { initiateFromProbationTerminate: jest.fn() },
+        },
       ],
     }).compile();
 

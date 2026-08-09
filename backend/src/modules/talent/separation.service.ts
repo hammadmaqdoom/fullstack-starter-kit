@@ -103,7 +103,45 @@ export class SeparationService {
     const tenantId = actor.tenantId ?? DIGITARO_TENANT_ID;
     const auth = await this.rbacService.getAuthContext(actor.userId, tenantId);
     this.assertPeopleOpsAuth(auth);
+    return this.createOpenSeparation(dto, actor, tenantId, auth);
+  }
 
+  /**
+   * US-TAL-004 AC2 — manager (or People Ops) may start separation after a
+   * probation review is marked terminate.
+   */
+  async initiateFromProbationTerminate(
+    dto: InitiateSeparationDto,
+    actor: ActorContext,
+    allowedManagerWorkerId: string | null,
+  ): Promise<SeparationCaseEntity> {
+    const tenantId = actor.tenantId ?? DIGITARO_TENANT_ID;
+    const auth = await this.rbacService.getAuthContext(actor.userId, tenantId);
+    const actingWorkerId = await resolveActingWorkerId(
+      this.workerRepository,
+      actor.userId,
+      tenantId,
+    );
+    const allowed =
+      isPeopleOpsOrSuperAdmin(auth) ||
+      (allowedManagerWorkerId != null &&
+        actingWorkerId === allowedManagerWorkerId);
+    if (!allowed) {
+      throw new ForbiddenException({
+        code: 'SEPARATION_ACCESS_DENIED',
+        message:
+          'Only the review manager or People Ops can trigger separation from a failed probation',
+      });
+    }
+    return this.createOpenSeparation(dto, actor, tenantId, auth);
+  }
+
+  private async createOpenSeparation(
+    dto: InitiateSeparationDto,
+    actor: ActorContext,
+    tenantId: string,
+    auth: PolarisAuthContext,
+  ): Promise<SeparationCaseEntity> {
     const worker = await this.workerRepository.findOne({
       where: { id: dto.workerId, tenantId },
     });
@@ -175,7 +213,6 @@ export class SeparationService {
       correlationId: actor.correlationId,
       ipAddress: actor.ipAddress,
     });
-
     return this.getSeparationOrFail(saved.id, tenantId, auth);
   }
 

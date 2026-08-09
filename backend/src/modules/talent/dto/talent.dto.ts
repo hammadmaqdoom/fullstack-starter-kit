@@ -674,3 +674,9 @@ export class FinalizeCalibrationDto {
   @IsString()
   calibrationNotes?: string;
 }
+
+export class TriggerProbationSeparationDto {
+  @ApiProperty({ example: '2026-08-31' })
+  @IsDateString()
+  lastWorkingDay: string;
+}

@@ -33,6 +33,7 @@ import {
   CreateRecognitionDto,
   FinalizeCalibrationDto,
   SubmitManagerReviewDto,
+  TriggerProbationSeparationDto,
   SubmitPeerFeedbackDto,
   SubmitPulseResponseDto,
   SubmitSelfAssessmentDto,
@@ -469,6 +470,27 @@ export class TalentController {
       id,
       this.actor(session, correlationId, request),
       asManager === 'true',
+    );
+  }
+
+  @Post('reviews/:id/trigger-separation')
+  @Roles(
+    PolarisRoleCode.MANAGER,
+    PolarisRoleCode.DIVISION_HEAD,
+    PolarisRoleCode.PEOPLE_OPS,
+    PolarisRoleCode.SUPER_ADMIN,
+  )
+  triggerSeparationFromProbation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TriggerProbationSeparationDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.talentService.triggerSeparationFromProbationReview(
+      id,
+      dto,
+      this.actor(session, correlationId, request),
     );
   }
 

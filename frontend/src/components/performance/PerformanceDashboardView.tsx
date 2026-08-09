@@ -9,9 +9,11 @@ import {
   createRecognition,
   getPerformanceDashboard,
   getReview,
+  signOffReview,
   submitSelfAssessment,
 } from '@/libs/api/talent';
 import { ApiRequestError } from '@/libs/api/client';
+import { AssessmentAnswersReadOnly } from '@/components/performance/AssessmentAnswersReadOnly';
 import { AssessmentQuestionnaireForm } from '@/components/performance/AssessmentQuestionnaireForm';
 import { DevelopmentPlanPanel } from '@/components/performance/DevelopmentPlanPanel';
 import {
@@ -20,6 +22,10 @@ import {
   type AssessmentAnswers,
 } from '@/libs/performance/assessment-questionnaire';
 import { parsePerformanceSearchParams } from '@/libs/performance/performance-query';
+import {
+  canEmployeeSignOff,
+  canViewManagerFeedback,
+} from '@/libs/performance/review-visibility';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { StatusTracker, type TrackerStep } from '@/components/shared/StatusTracker';
 import { WorkerPicker } from '@/components/shared/WorkerPicker';
@@ -290,6 +296,25 @@ export function PerformanceDashboardView({
     }
   };
 
+  const handleEmployeeSignOff = async (reviewId: string) => {
+    setSubmitting(true);
+    try {
+      await signOffReview(reviewId, false);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_save'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const outcomeLabel = (outcome: string | null) => {
+    if (outcome === 'exceeds') return t('outcome_exceeds');
+    if (outcome === 'meets') return t('outcome_meets');
+    if (outcome === 'below') return t('outcome_below');
+    return outcome;
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -487,17 +512,46 @@ export function PerformanceDashboardView({
                   <p className="text-sm font-medium text-gray-900">{t('review_cycle')}</p>
                   <Tag value={review.status.replace(/_/g, ' ')} />
                 </div>
-                <StatusTracker steps={reviewTrackerSteps(review, t)} className="mt-3" />
-                {review.status === 'pending_self' && (
-                  <Button
-                    type="button"
-                    size="small"
-                    className="mt-3"
-                    onClick={() => void openSelfAssessment(review.id)}
-                  >
-                    {t('submit_self_assessment')}
-                  </Button>
+                <StatusTracker
+                  steps={reviewTrackerSteps(review, (key) => t(key as 'tracker_self'))}
+                  className="mt-3"
+                />
+                {canViewManagerFeedback(review.status) && (
+                  <div className="mt-3 space-y-2">
+                    {review.outcome && (
+                      <p className="text-sm text-gray-700">
+                        <span className="font-medium">{t('outcome')}:</span>
+                        {' '}
+                        {outcomeLabel(review.outcome)}
+                      </p>
+                    )}
+                    <AssessmentAnswersReadOnly
+                      payload={review.managerAssessmentPayload}
+                      fallbackText={review.managerAssessment}
+                    />
+                  </div>
                 )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {review.status === 'pending_self' && (
+                    <Button
+                      type="button"
+                      size="small"
+                      onClick={() => void openSelfAssessment(review.id)}
+                    >
+                      {t('submit_self_assessment')}
+                    </Button>
+                  )}
+                  {canEmployeeSignOff(review.status, review.employeeSignedOff ?? false) && (
+                    <Button
+                      type="button"
+                      size="small"
+                      disabled={submitting}
+                      onClick={() => void handleEmployeeSignOff(review.id)}
+                    >
+                      {t('sign_off')}
+                    </Button>
+                  )}
+                </div>
               </Card>
             ))
           )}

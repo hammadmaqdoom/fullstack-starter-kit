@@ -76,10 +76,13 @@ export type PerformanceReview = {
   managerWorkerId: string | null;
   status: string;
   outcome: string | null;
+  probationOutcome?: string | null;
   selfAssessment: string | null;
   managerAssessment: string | null;
   selfAssessmentPayload?: AssessmentPayload | null;
   managerAssessmentPayload?: AssessmentPayload | null;
+  employeeSignedOff?: boolean;
+  managerSignedOff?: boolean;
   cycle?: PerformanceCycle | null;
 };
 
@@ -363,6 +366,23 @@ export async function submitManagerReview(
   },
 ) {
   return apiRequest(`${BASE}/reviews/${reviewId}/manager-review`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function signOffReview(reviewId: string, asManager: boolean) {
+  return apiRequest<PerformanceReview>(`${BASE}/reviews/${reviewId}/sign-off`, {
+    method: 'POST',
+    params: { asManager: asManager ? 'true' : 'false' },
+  });
+}
+
+export async function triggerSeparationFromProbationReview(
+  reviewId: string,
+  input: { lastWorkingDay: string },
+) {
+  return apiRequest(`${BASE}/reviews/${reviewId}/trigger-separation`, {
     method: 'POST',
     body: input,
   });

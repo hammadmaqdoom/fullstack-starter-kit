@@ -38,6 +38,7 @@ import {
   PulseSurveyResponseEntity,
 } from '../entities/pulse-survey.entity';
 import { PerformanceCycleType, ReviewStatus } from '../enums/performance.enum';
+import { SeparationService } from '../separation.service';
 import { TalentService } from '../talent.service';
 
 function emptyRepository<T extends object>(): Pick<
@@ -197,6 +198,10 @@ describe('TalentService probation auto-cycle and calibration board', () => {
         },
         { provide: AuditLogService, useValue: auditLogService },
         { provide: RbacService, useValue: { getAuthContext } },
+        {
+          provide: SeparationService,
+          useValue: { initiateFromProbationTerminate: jest.fn() },
+        },
       ],
     }).compile();
 

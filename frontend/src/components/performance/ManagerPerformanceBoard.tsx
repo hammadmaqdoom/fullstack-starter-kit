@@ -5,26 +5,39 @@ import type {
   PerformanceReview,
   TeamPerformanceDashboard,
 } from '@/libs/api/talent';
+import type { DirectoryEntry } from '@/libs/api/org';
 import {
+  createFeedback,
   createOneOnOne,
   getReview,
   getTeamPerformanceDashboard,
+  listDevelopmentPlanActions,
+  listDevelopmentPlans,
+  signOffReview,
   submitManagerReview,
+  triggerSeparationFromProbationReview,
   updateOneOnOne,
 } from '@/libs/api/talent';
 import { ApiRequestError } from '@/libs/api/client';
 import { AssessmentAnswersReadOnly } from '@/components/performance/AssessmentAnswersReadOnly';
 import { AssessmentQuestionnaireForm } from '@/components/performance/AssessmentQuestionnaireForm';
+import { DevelopmentPlanPanel } from '@/components/performance/DevelopmentPlanPanel';
 import {
   hasRequiredGaps,
   isTemplateEmpty,
   type AssessmentAnswers,
 } from '@/libs/performance/assessment-questionnaire';
 import { parsePerformanceSearchParams } from '@/libs/performance/performance-query';
+import {
+  canManagerSignOff,
+  canTriggerProbationSeparation,
+} from '@/libs/performance/review-visibility';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { WorkerPicker } from '@/components/shared/WorkerPicker';
 import {
   Calendar,
   ClipboardList,
+  MessageSquare,
   RefreshCw,
   Target,
   Users,
@@ -54,11 +67,24 @@ export function ManagerPerformanceBoard() {
   const [managerTemplate, setManagerTemplate] = useState<AssessmentQuestion[]>([]);
   const [reviewDetailLoading, setReviewDetailLoading] = useState(false);
   const [outcome, setOutcome] = useState('meets');
+  const [probationOutcome, setProbationOutcome] = useState<string | null>(null);
 
   const [oneOnOneOpen, setOneOnOneOpen] = useState(false);
   const [oneOnOneWorkerId, setOneOnOneWorkerId] = useState<string | null>(null);
   const [oneOnOneAt, setOneOnOneAt] = useState('');
   const [oneOnOneAgenda, setOneOnOneAgenda] = useState('');
+
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackRecipient, setFeedbackRecipient] = useState<DirectoryEntry | null>(null);
+  const [feedbackType, setFeedbackType] = useState('praise');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+
+  const [separationOpen, setSeparationOpen] = useState(false);
+  const [separationReview, setSeparationReview] = useState<PerformanceReview | null>(null);
+  const [lastWorkingDay, setLastWorkingDay] = useState('');
+
+  const [developmentActionId, setDevelopmentActionId] = useState<string | null>(null);
+  const [idpWorkerId, setIdpWorkerId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +107,7 @@ export function ManagerPerformanceBoard() {
     setActiveReview(review);
     setManagerAnswers({});
     setOutcome('meets');
+    setProbationOutcome(null);
     setReviewDialogOpen(true);
     setReviewDetailLoading(true);
     try {
@@ -97,7 +124,11 @@ export function ManagerPerformanceBoard() {
 
   useEffect(() => {
     if (!data) return;
-    const { reviewId } = parsePerformanceSearchParams(window.location.search);
+    const { reviewId, developmentActionId: actionId } =
+      parsePerformanceSearchParams(window.location.search);
+    if (actionId) {
+      setDevelopmentActionId(actionId);
+    }
     if (!reviewId) return;
     for (const report of data.reports) {
       const review = report.reviews.find((r) => r.id === reviewId);
@@ -107,6 +138,30 @@ export function ManagerPerformanceBoard() {
       }
     }
   }, [data, openManagerReview]);
+
+  useEffect(() => {
+    if (!data || !developmentActionId) return;
+    let cancelled = false;
+    void (async () => {
+      for (const report of data.reports) {
+        try {
+          const { data: plans } = await listDevelopmentPlans(report.workerId);
+          for (const plan of plans) {
+            const { data: actions } = await listDevelopmentPlanActions(plan.id);
+            if (actions.some((a) => a.id === developmentActionId)) {
+              if (!cancelled) setIdpWorkerId(report.workerId);
+              return;
+            }
+          }
+        } catch {
+          // keep scanning other reports
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [data, developmentActionId]);
 
   const reportOptions = useMemo(
     () =>
@@ -123,19 +178,50 @@ export function ManagerPerformanceBoard() {
     { label: t('outcome_below'), value: 'below' },
   ];
 
+  const probationOptions = [
+    { label: t('probation_confirm'), value: 'confirm' },
+    { label: t('probation_extend'), value: 'extend' },
+    { label: t('probation_terminate'), value: 'terminate' },
+  ];
+
+  const feedbackTypeOptions = [
+    { label: t('feedback_type_praise'), value: 'praise' },
+    { label: t('feedback_type_constructive'), value: 'constructive' },
+    { label: t('feedback_type_coaching'), value: 'coaching' },
+  ];
+
+  const isProbationCycle = activeReview?.cycle?.cycleType === 'probation';
+
   const handleSubmitReview = async () => {
     if (!activeReview || isTemplateEmpty(managerTemplate)) return;
     if (hasRequiredGaps(managerTemplate, managerAnswers)) return;
+    if (isProbationCycle && !probationOutcome) return;
     setSubmitting(true);
     try {
       await submitManagerReview(activeReview.id, {
         answers: managerAnswers,
         outcome,
+        probationOutcome: isProbationCycle
+          ? (probationOutcome ?? undefined)
+          : undefined,
       });
       setReviewDialogOpen(false);
       setActiveReview(null);
       setManagerAnswers({});
       setManagerTemplate([]);
+      setProbationOutcome(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_save'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleManagerSignOff = async (reviewId: string) => {
+    setSubmitting(true);
+    try {
+      await signOffReview(reviewId, true);
       await load();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('error_save'));
@@ -177,6 +263,50 @@ export function ManagerPerformanceBoard() {
     }
   };
 
+  const handleFeedback = async () => {
+    if (!feedbackRecipient || !feedbackMessage.trim()) return;
+    setSubmitting(true);
+    try {
+      await createFeedback({
+        recipientWorkerId: feedbackRecipient.id,
+        feedbackType,
+        message: feedbackMessage.trim(),
+      });
+      setFeedbackOpen(false);
+      setFeedbackRecipient(null);
+      setFeedbackMessage('');
+      setFeedbackType('praise');
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_save'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openSeparation = (review: PerformanceReview) => {
+    setSeparationReview(review);
+    setLastWorkingDay('');
+    setSeparationOpen(true);
+  };
+
+  const handleTriggerSeparation = async () => {
+    if (!separationReview || !lastWorkingDay) return;
+    setSubmitting(true);
+    try {
+      await triggerSeparationFromProbationReview(separationReview.id, {
+        lastWorkingDay,
+      });
+      setSeparationOpen(false);
+      setSeparationReview(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_save'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -210,6 +340,15 @@ export function ManagerPerformanceBoard() {
           <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            className="gap-2"
+            onClick={() => setFeedbackOpen(true)}
+            disabled={reportOptions.length === 0}
+          >
+            <MessageSquare className="size-4" aria-hidden />
+            {t('give_feedback')}
+          </Button>
           <Button
             type="button"
             className="gap-2"
@@ -267,6 +406,12 @@ export function ManagerPerformanceBoard() {
             const pendingManager = report.reviews.filter(
               (r) => r.status === 'pending_manager',
             );
+            const pendingSignOff = report.reviews.filter((r) =>
+              canManagerSignOff(r.status, r.managerSignedOff ?? false),
+            );
+            const terminateReviews = report.reviews.filter((r) =>
+              canTriggerProbationSeparation(r.probationOutcome),
+            );
             return (
               <Card key={report.workerId} className="shadow-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -320,11 +465,65 @@ export function ManagerPerformanceBoard() {
                     ))}
                   </div>
                 )}
+
+                {pendingSignOff.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {pendingSignOff.map((review) => (
+                      <div
+                        key={review.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-blue-50 px-3 py-2"
+                      >
+                        <span className="text-sm text-blue-900">{t('sign_off_due')}</span>
+                        <Button
+                          type="button"
+                          size="small"
+                          disabled={submitting}
+                          onClick={() => void handleManagerSignOff(review.id)}
+                        >
+                          {t('sign_off')}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {terminateReviews.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {terminateReviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-red-50 px-3 py-2"
+                      >
+                        <span className="text-sm text-red-900">{t('probation_failed')}</span>
+                        <Button
+                          type="button"
+                          size="small"
+                          severity="danger"
+                          onClick={() => openSeparation(review)}
+                        >
+                          {t('start_separation')}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </Card>
             );
           })
         )}
       </section>
+
+      {idpWorkerId && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            {t('development_plans')}
+          </h2>
+          <DevelopmentPlanPanel
+            workerId={idpWorkerId}
+            highlightActionId={developmentActionId}
+          />
+        </section>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
@@ -387,6 +586,24 @@ export function ManagerPerformanceBoard() {
                   className="w-full"
                 />
               </div>
+              {isProbationCycle && (
+                <div>
+                  <label
+                    className="mb-1 block text-xs font-medium text-gray-600"
+                    htmlFor="mgr-probation"
+                  >
+                    {t('probation_outcome')}
+                  </label>
+                  <Dropdown
+                    inputId="mgr-probation"
+                    value={probationOutcome}
+                    options={probationOptions}
+                    onChange={(e) => setProbationOutcome(e.value as string)}
+                    placeholder={t('select_probation_outcome')}
+                    className="w-full"
+                  />
+                </div>
+              )}
               <AssessmentQuestionnaireForm
                 questions={managerTemplate}
                 value={managerAnswers}
@@ -398,9 +615,10 @@ export function ManagerPerformanceBoard() {
             type="button"
             loading={submitting}
             disabled={
-              reviewDetailLoading ||
-              isTemplateEmpty(managerTemplate) ||
-              hasRequiredGaps(managerTemplate, managerAnswers)
+              reviewDetailLoading
+              || isTemplateEmpty(managerTemplate)
+              || hasRequiredGaps(managerTemplate, managerAnswers)
+              || (isProbationCycle && !probationOutcome)
             }
             onClick={() => void handleSubmitReview()}
           >
@@ -418,11 +636,11 @@ export function ManagerPerformanceBoard() {
       >
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="ooo-worker">
+            <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="ooo-employee">
               {t('employee')}
             </label>
             <Dropdown
-              inputId="ooo-worker"
+              inputId="ooo-employee"
               value={oneOnOneWorkerId}
               options={reportOptions}
               onChange={(e) => setOneOnOneWorkerId(e.value as string)}
@@ -449,8 +667,83 @@ export function ManagerPerformanceBoard() {
             rows={3}
             className="w-full"
           />
-          <Button type="button" loading={submitting} onClick={() => void handleScheduleOneOnOne()}>
+          <Button
+            type="button"
+            loading={submitting}
+            disabled={!oneOnOneWorkerId || !oneOnOneAt}
+            onClick={() => void handleScheduleOneOnOne()}
+          >
             {t('save')}
+          </Button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        header={t('give_feedback')}
+        visible={feedbackOpen}
+        onHide={() => setFeedbackOpen(false)}
+        modal
+        className="w-full max-w-md"
+      >
+        <div className="space-y-4">
+          <WorkerPicker
+            value={feedbackRecipient}
+            onChange={setFeedbackRecipient}
+            placeholder={t('recipient_placeholder')}
+          />
+          <Dropdown
+            value={feedbackType}
+            options={feedbackTypeOptions}
+            onChange={(e) => setFeedbackType(e.value as string)}
+            className="w-full"
+          />
+          <InputTextarea
+            value={feedbackMessage}
+            onChange={(e) => setFeedbackMessage(e.target.value)}
+            placeholder={t('feedback_placeholder')}
+            rows={4}
+            className="w-full"
+          />
+          <Button
+            type="button"
+            loading={submitting}
+            disabled={!feedbackRecipient || !feedbackMessage.trim()}
+            onClick={() => void handleFeedback()}
+          >
+            {t('submit')}
+          </Button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        header={t('start_separation')}
+        visible={separationOpen}
+        onHide={() => setSeparationOpen(false)}
+        modal
+        className="w-full max-w-md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">{t('separation_hint')}</p>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600" htmlFor="lwd">
+              {t('last_working_day')}
+            </label>
+            <InputText
+              id="lwd"
+              type="date"
+              value={lastWorkingDay}
+              onChange={(e) => setLastWorkingDay(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <Button
+            type="button"
+            severity="danger"
+            loading={submitting}
+            disabled={!lastWorkingDay}
+            onClick={() => void handleTriggerSeparation()}
+          >
+            {t('confirm_separation')}
           </Button>
         </div>
       </Dialog>
