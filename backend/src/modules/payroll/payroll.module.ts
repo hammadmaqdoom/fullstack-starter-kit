@@ -59,6 +59,7 @@ import { ProviderCapabilityCatalogEntity } from './entities/provider-capability-
 import { RemittanceCorridorConfigEntity } from './entities/remittance-corridor-config.entity';
 import { RemittancePackDocumentEntity } from './entities/remittance-pack-document.entity';
 import { RemittancePackEntity } from './entities/remittance-pack.entity';
+import { PayoutRailResolverService } from './payout-rail-resolver.service';
 import { PayoutRailSeedService } from './payout-rail-seed.service';
 import {
   ContractorInvoiceRemittanceController,
@@ -133,6 +134,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunService,
     PayrollSeedService,
     PayoutRailSeedService,
+    PayoutRailResolverService,
     PayslipService,
     PayslipPdfService,
     PayslipBlobStorageService,
@@ -151,6 +153,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunService,
     PayrollSeedService,
     PayoutRailSeedService,
+    PayoutRailResolverService,
     PayslipService,
     ExportService,
     ContractorPaymentBatchService,
