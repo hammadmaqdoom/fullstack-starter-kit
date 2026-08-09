@@ -14,7 +14,7 @@ import { Tag } from 'primereact/tag';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiRequestError } from '@/libs/api/client';
 import { listWorkers } from '@/libs/api/workers';
-import { DIVISIONS } from '@/libs/constants/org';
+import { listDivisions, type Division } from '@/libs/api/org-admin';
 import { Link } from '@/libs/I18nNavigation';
 
 const COUNTRY_OPTIONS = [
@@ -49,17 +49,11 @@ function statusSeverity(
   }
 }
 
-function divisionName(divisionId: string | null): string {
-  if (!divisionId) {
-    return '—';
-  }
-  return DIVISIONS.find(d => d.id === divisionId)?.name ?? '—';
-}
-
 export function WorkerList() {
   const t = useTranslations('Workers');
 
   const [workers, setWorkers] = useState<Worker[]>([]);
+  const [divisions, setDivisions] = useState<Division[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [page, setPage] = useState(1);
   const [limit] = useState(25);
@@ -71,9 +65,23 @@ export function WorkerList() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    void listDivisions()
+      .then((res) => setDivisions(res.data))
+      .catch(() => setDivisions([]));
+  }, []);
+
+  const divisionName = useCallback(
+    (id: string | null) => {
+      if (!id) return '—';
+      return divisions.find((d) => d.id === id)?.name ?? '—';
+    },
+    [divisions],
+  );
+
   const divisionOptions = useMemo(
-    () => DIVISIONS.map(d => ({ label: d.name, value: d.id })),
-    [],
+    () => divisions.map((d) => ({ label: d.name, value: d.id })),
+    [divisions],
   );
 
   const loadWorkers = useCallback(async () => {

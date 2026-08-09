@@ -12,17 +12,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { ChangeRequestList } from '@/components/employee/ChangeRequestList';
 import { WorkerForm } from '@/components/workers/WorkerForm';
 import { ApiRequestError } from '@/libs/api/client';
-import { DIVISIONS } from '@/libs/constants/org';
+import { listDivisions } from '@/libs/api/org-admin';
 import { listProfileChangeRequests } from '@/libs/api/profile-change';
 import { getWorker } from '@/libs/api/workers';
 import { Link } from '@/libs/I18nNavigation';
-
-function divisionName(divisionId: string | null): string {
-  if (!divisionId) {
-    return '—';
-  }
-  return DIVISIONS.find(d => d.id === divisionId)?.name ?? '—';
-}
 
 export default function WorkerDetailPage() {
   const t = useTranslations('Workers');
@@ -31,6 +24,7 @@ export default function WorkerDetailPage() {
   const workerId = params.id;
 
   const [worker, setWorker] = useState<Worker | null>(null);
+  const [divisionLabel, setDivisionLabel] = useState('—');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [changeRequests, setChangeRequests] = useState<ProfileChangeRequest[]>([]);
@@ -41,8 +35,15 @@ export default function WorkerDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const { data } = await getWorker(workerId);
+      const [{ data }, divisionsRes] = await Promise.all([
+        getWorker(workerId),
+        listDivisions().catch(() => ({ data: [] as { id: string; name: string }[] })),
+      ]);
       setWorker(data);
+      const label = data.divisionId
+        ? divisionsRes.data.find(d => d.id === data.divisionId)?.name ?? '—'
+        : '—';
+      setDivisionLabel(label);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('error_load'));
     } finally {
@@ -123,7 +124,7 @@ export default function WorkerDetailPage() {
             {worker.employmentType?.displayName}
             {' '}
             ·
-            {divisionName(worker.divisionId)}
+            {divisionLabel}
             {' '}
             ·
             {' '}

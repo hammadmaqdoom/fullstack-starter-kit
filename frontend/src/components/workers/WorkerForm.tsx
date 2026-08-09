@@ -21,14 +21,17 @@ import {
   listEmploymentTypes,
 } from '@/libs/api/country-config';
 import {
+  listDivisions,
+  listLegalEntities,
+  type Division,
+  type LegalEntity,
+} from '@/libs/api/org-admin';
+import {
   createWorker,
   updateWorker,
-
 } from '@/libs/api/workers';
 import {
   CONTRACTOR_TYPE_CODES,
-  DIVISIONS,
-  LEGAL_ENTITIES,
   STATUTORY_FIELDS_BY_COUNTRY,
 } from '@/libs/constants/org';
 
@@ -121,6 +124,8 @@ export function WorkerForm({
   const [countries, setCountries] = useState<{ label: string; value: string }[]>(
     [],
   );
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  const [legalEntities, setLegalEntities] = useState<LegalEntity[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
@@ -128,11 +133,14 @@ export function WorkerForm({
   const loadConfig = useCallback(async () => {
     setConfigLoading(true);
     try {
-      const [typesRes, matrixRes, countriesRes] = await Promise.all([
-        listEmploymentTypes(),
-        listEmploymentTypeCountryConfigs(),
-        listCountries(),
-      ]);
+      const [typesRes, matrixRes, countriesRes, divisionsRes, legalRes]
+        = await Promise.all([
+          listEmploymentTypes(),
+          listEmploymentTypeCountryConfigs(),
+          listCountries(),
+          listDivisions(),
+          listLegalEntities(),
+        ]);
       setEmploymentTypes(typesRes.data);
       setCountryConfigs(matrixRes.data);
       setCountries(
@@ -141,6 +149,8 @@ export function WorkerForm({
           value: c.countryCode,
         })),
       );
+      setDivisions(divisionsRes.data);
+      setLegalEntities(legalRes.data);
     } catch {
       setSubmitError(t('error_config'));
     } finally {
@@ -230,14 +240,14 @@ export function WorkerForm({
     value: et.id,
   }));
 
-  const divisionOptions = DIVISIONS.map(d => ({
+  const divisionOptions = divisions.map(d => ({
     label: d.name,
     value: d.id,
   }));
 
-  const legalEntityOptions = LEGAL_ENTITIES.filter(
-    le => le.countryCode === watchedCountry,
-  ).map(le => ({ label: le.name, value: le.id }));
+  const legalEntityOptions = legalEntities
+    .filter(le => le.countryCode === watchedCountry)
+    .map(le => ({ label: le.registeredName, value: le.id }));
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);

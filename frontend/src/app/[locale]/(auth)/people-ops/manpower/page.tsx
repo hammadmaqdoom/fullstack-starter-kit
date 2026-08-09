@@ -28,7 +28,7 @@ import {
   listPlans,
   listPositions,
 } from '@/libs/api/manpower';
-import { DIVISIONS } from '@/libs/constants/org';
+import { listDivisions, type Division } from '@/libs/api/org-admin';
 
 const PLAN_STATUS_SEVERITY: Record<string, 'secondary' | 'success' | 'info'> = {
   draft: 'secondary',
@@ -44,6 +44,11 @@ const POSITION_STATUS_SEVERITY: Record<string, 'success' | 'secondary' | 'warnin
 
 export default function ManpowerPage() {
   const t = useTranslations('ManpowerAdmin');
+
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  useEffect(() => {
+    void listDivisions().then((r) => setDivisions(r.data)).catch(() => setDivisions([]));
+  }, []);
   const [plans, setPlans] = useState<ManpowerPlan[]>([]);
   const [positionsByPlan, setPositionsByPlan] = useState<Record<string, ManpowerPosition[]>>({});
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
@@ -149,7 +154,7 @@ export default function ManpowerPage() {
     }
   };
 
-  const divisionName = (divisionId: string | null) => DIVISIONS.find(d => d.id === divisionId)?.name ?? '—';
+  const divisionName = (divisionId: string | null) => divisions.find(d => d.id === divisionId)?.name ?? '—';
 
   if (isLoading) {
     return <PageSkeleton variant="list" rows={4} />;
@@ -251,7 +256,7 @@ export default function ManpowerPage() {
           <Dropdown
             value={planDivisionId}
             onChange={e => setPlanDivisionId(e.value)}
-            options={DIVISIONS.map(d => ({ label: d.name, value: d.id }))}
+            options={divisions.map(d => ({ label: d.name, value: d.id }))}
             placeholder={t('select_division')}
             className="w-full"
           />

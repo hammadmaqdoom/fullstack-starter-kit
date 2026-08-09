@@ -31,7 +31,7 @@ import {
   updateRequisition,
 } from '@/libs/api/recruitment';
 import { listWorkers } from '@/libs/api/workers';
-import { DIVISIONS } from '@/libs/constants/org';
+import { listDivisions, type Division } from '@/libs/api/org-admin';
 import { Link } from '@/libs/I18nNavigation';
 
 const STATUS_SEVERITY: Record<RequisitionStatus, 'secondary' | 'warning' | 'info' | 'success' | 'danger'> = {
@@ -51,6 +51,11 @@ const NEXT_STATUS: Partial<Record<RequisitionStatus, RequisitionStatus>> = {
 
 export default function RecruitmentPage() {
   const t = useTranslations('Recruitment');
+
+  const [divisions, setDivisions] = useState<Division[]>([]);
+  useEffect(() => {
+    void listDivisions().then((r) => setDivisions(r.data)).catch(() => setDivisions([]));
+  }, []);
   const [requisitions, setRequisitions] = useState<JobRequisition[]>([]);
   const [employmentTypes, setEmploymentTypes] = useState<EmploymentType[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -270,7 +275,7 @@ export default function RecruitmentPage() {
                 inputId="req-division"
                 value={divisionId}
                 onChange={e => setDivisionId(e.value)}
-                options={DIVISIONS.map(d => ({ label: d.name, value: d.id }))}
+                options={divisions.map(d => ({ label: d.name, value: d.id }))}
                 placeholder={t('select_division')}
                 className="w-full"
               />
