@@ -1800,6 +1800,21 @@ Per [iso-soc-framework.md](../compliance/iso-soc-framework.md) §5:
 
 **Archival:** `workers.status = archived` + `deleted_at` set; no hard delete of compliance records.
 
+### Payout rails (Aspire / Wise / manual)
+
+Spec: `docs/superpowers/specs/2026-08-10-payout-rails-aspire-wise-design.md`. Migration `1783041700000-PayoutRailsFoundation`.
+
+| Table | Keys | Notes |
+|---|---|---|
+| `funding_accounts` | tenant + legal_entity | `provider` aspire\|wise\|manual_bank; MCA or local bank; soft-delete |
+| `payout_rail_profiles` | unique (tenant, legal_entity) | primary / secondary / fallback rails |
+| `payout_corridor_overrides` | unique (tenant, payer_country, recipient_bank_country) | Model C overrides |
+| `provider_capability_catalogs` | tenant + kind + country/currency | Aspire incorporation/corridors; Wise blocked + currency rules |
+| `csv_export_profiles` | tenant + legal_entity | Field-picker column defs for manual bank CSV |
+| `expense_claims` | + `settlementMode`, `payRunLineItemId` | bundle_with_payroll \| standalone_payout \| export_only |
+
+Later migrations add `payout_batches`, `payout_batch_lines`, `bank_feed_transactions`, `corporate_cards`, `card_transactions`.
+
 ---
 
 ## 6. Migration strategy

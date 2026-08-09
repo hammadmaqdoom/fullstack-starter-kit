@@ -51,9 +51,15 @@ import { PayslipBlobStorageService } from './payslip-blob-storage.service';
 import { PayslipPdfService } from './payslip-pdf.service';
 import { PayslipController } from './payslip.controller';
 import { PayslipService } from './payslip.service';
+import { CsvExportProfileEntity } from './entities/csv-export-profile.entity';
+import { FundingAccountEntity } from './entities/funding-account.entity';
+import { PayoutCorridorOverrideEntity } from './entities/payout-corridor-override.entity';
+import { PayoutRailProfileEntity } from './entities/payout-rail-profile.entity';
+import { ProviderCapabilityCatalogEntity } from './entities/provider-capability-catalog.entity';
 import { RemittanceCorridorConfigEntity } from './entities/remittance-corridor-config.entity';
 import { RemittancePackDocumentEntity } from './entities/remittance-pack-document.entity';
 import { RemittancePackEntity } from './entities/remittance-pack.entity';
+import { PayoutRailSeedService } from './payout-rail-seed.service';
 import {
   ContractorInvoiceRemittanceController,
   ContractorPaymentLineRemittanceController,
@@ -87,6 +93,11 @@ import { StatutoryRateService } from './statutory-rate.service';
       RemittanceCorridorConfigEntity,
       RemittancePackEntity,
       RemittancePackDocumentEntity,
+      FundingAccountEntity,
+      PayoutRailProfileEntity,
+      PayoutCorridorOverrideEntity,
+      ProviderCapabilityCatalogEntity,
+      CsvExportProfileEntity,
       WorkerEntity,
       LegalEntityEntity,
     ]),
@@ -121,6 +132,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunCalculatorService,
     PayRunService,
     PayrollSeedService,
+    PayoutRailSeedService,
     PayslipService,
     PayslipPdfService,
     PayslipBlobStorageService,
@@ -138,6 +150,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayRunCalculatorService,
     PayRunService,
     PayrollSeedService,
+    PayoutRailSeedService,
     PayslipService,
     ExportService,
     ContractorPaymentBatchService,
