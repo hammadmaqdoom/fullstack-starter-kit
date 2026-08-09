@@ -1,10 +1,13 @@
 import { ComplianceModule } from '@/modules/compliance/compliance.module';
 import { CoreHrModule } from '@/modules/core-hr/core-hr.module';
 import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
+import { WorkerBankAccountEntity } from '@/modules/core-hr/entities/worker-bank-account.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { CountryConfigModule } from '@/modules/country-config/country-config.module';
 import { BenefitTypeEntity } from '@/modules/country-config/entities/benefit-type.entity';
+import { ExpenseClaimEntity } from '@/modules/operations/entities/expense-claim.entity';
 import { ContractorInvoiceEntity } from '@/modules/operations/entities/contractor-invoice.entity';
+import { OperationsModule } from '@/modules/operations/operations.module';
 import { AwsModule } from '@/services/aws/aws.module';
 import { AzureModule } from '@/services/azure/azure.module';
 import { LocalStorageService } from '@/services/local-storage.service';
@@ -56,6 +59,10 @@ import { FundingAccountEntity } from './entities/funding-account.entity';
 import { PayoutCorridorOverrideEntity } from './entities/payout-corridor-override.entity';
 import { PayoutRailProfileEntity } from './entities/payout-rail-profile.entity';
 import { ProviderCapabilityCatalogEntity } from './entities/provider-capability-catalog.entity';
+import { PayoutBatchLineEntity } from './entities/payout-batch-line.entity';
+import { PayoutBatchEntity } from './entities/payout-batch.entity';
+import { PayoutBatchController } from './payout-batch.controller';
+import { PayoutOrchestratorService } from './payout-orchestrator.service';
 import {
   CsvExportProfileController,
   FundingAccountController,
@@ -110,12 +117,17 @@ import { StatutoryRateService } from './statutory-rate.service';
       PayoutCorridorOverrideEntity,
       ProviderCapabilityCatalogEntity,
       CsvExportProfileEntity,
+      PayoutBatchEntity,
+      PayoutBatchLineEntity,
       WorkerEntity,
+      WorkerBankAccountEntity,
       LegalEntityEntity,
+      ExpenseClaimEntity,
     ]),
     ComplianceModule,
     CountryConfigModule,
     CoreHrModule,
+    OperationsModule,
     AwsModule,
     AzureModule,
   ],
@@ -140,6 +152,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayoutRailProfileController,
     PayoutCorridorController,
     CsvExportProfileController,
+    PayoutBatchController,
   ],
   providers: [
     BenefitService,
@@ -153,6 +166,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     FundingAccountService,
     PayoutRailProfileService,
     CsvExportProfileService,
+    PayoutOrchestratorService,
     PayslipService,
     PayslipPdfService,
     PayslipBlobStorageService,
