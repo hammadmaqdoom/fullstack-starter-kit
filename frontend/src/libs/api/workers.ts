@@ -34,6 +34,7 @@ export type Worker = {
   divisionId: string | null;
   departmentId: string | null;
   legalEntityId: string | null;
+  officeLocationId?: string | null;
   managerId: string | null;
   firstName: string;
   lastName: string;
@@ -43,9 +44,20 @@ export type Worker = {
   workMode: WorkMode | null;
   status: WorkerStatus;
   employeeNumber: string | null;
+  jobTitle?: string | null;
   startDate: string;
   endDate: string | null;
   dateOfBirth?: string | null;
+  probationEndDate?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelation?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateProvince?: string | null;
+  postalCode?: string | null;
+  addressCountryCode?: string | null;
   fteFraction: string;
   timezone: string | null;
   statutoryFields: Record<string, string> | null;
@@ -83,11 +95,23 @@ export type CreateWorkerInput = {
   workMode?: WorkMode;
   startDate: string;
   dateOfBirth?: string;
+  probationEndDate?: string;
   employeeNumber?: string;
+  jobTitle?: string;
   managerId?: string;
   divisionId?: string;
   departmentId?: string;
   legalEntityId?: string;
+  officeLocationId?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelation?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
+  addressCountryCode?: string;
   fteFraction?: number;
   timezone?: string;
   statutoryFields: Record<string, string>;
@@ -125,4 +149,8 @@ export async function createWorker(input: CreateWorkerInput) {
 
 export async function updateWorker(id: string, input: UpdateWorkerInput) {
   return apiRequest<Worker>(`${BASE}/${id}`, { method: 'PATCH', body: input });
+}
+
+export async function archiveWorker(id: string) {
+  return apiRequest<null>(`${BASE}/${id}`, { method: 'DELETE' });
 }

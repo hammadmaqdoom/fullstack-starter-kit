@@ -2,10 +2,11 @@
 
 import type { ProfileChangeRequest } from '@/libs/api/profile-change';
 import type { Worker } from '@/libs/api/workers';
-import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertCircle, Archive, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from 'primereact/button';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { Skeleton } from 'primereact/skeleton';
 import { Tag } from 'primereact/tag';
 import { useCallback, useEffect, useState } from 'react';
@@ -14,7 +15,7 @@ import { WorkerForm } from '@/components/workers/WorkerForm';
 import { ApiRequestError } from '@/libs/api/client';
 import { listDivisions } from '@/libs/api/org-admin';
 import { listProfileChangeRequests } from '@/libs/api/profile-change';
-import { getWorker } from '@/libs/api/workers';
+import { archiveWorker, getWorker } from '@/libs/api/workers';
 import { Link } from '@/libs/I18nNavigation';
 
 export default function WorkerDetailPage() {
@@ -30,6 +31,7 @@ export default function WorkerDetailPage() {
   const [changeRequests, setChangeRequests] = useState<ProfileChangeRequest[]>([]);
   const [changeRequestsLoading, setChangeRequestsLoading] = useState(true);
   const [changeRequestsError, setChangeRequestsError] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
   const loadWorker = useCallback(async () => {
     setIsLoading(true);
@@ -72,6 +74,31 @@ export default function WorkerDetailPage() {
     void loadChangeRequests();
   }, [loadWorker, loadChangeRequests]);
 
+  const handleArchive = () => {
+    confirmDialog({
+      message: t('archive_confirm'),
+      header: t('archive'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptClassName: 'p-button-danger',
+      accept: () => {
+        void (async () => {
+          setArchiving(true);
+          setError(null);
+          try {
+            await archiveWorker(workerId);
+            router.push('/people-ops/workers');
+          } catch (err) {
+            setError(
+              err instanceof ApiRequestError ? err.message : t('error_archive'),
+            );
+          } finally {
+            setArchiving(false);
+          }
+        })();
+      },
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-3xl space-y-4" aria-busy="true">
@@ -105,6 +132,7 @@ export default function WorkerDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <ConfirmDialog />
       <div>
         <Link
           href="/people-ops/workers"
@@ -130,6 +158,20 @@ export default function WorkerDetailPage() {
             {' '}
             {worker.countryCode}
           </span>
+          {worker.status !== 'archived' && (
+            <Button
+              type="button"
+              severity="danger"
+              outlined
+              size="small"
+              className="ml-auto gap-1"
+              loading={archiving}
+              onClick={handleArchive}
+            >
+              <Archive className="size-3.5" aria-hidden />
+              {archiving ? t('archiving') : t('archive')}
+            </Button>
+          )}
         </div>
       </div>
 

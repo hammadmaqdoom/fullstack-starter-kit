@@ -223,6 +223,26 @@ describe('WorkerService', () => {
     );
   });
 
+  it('persists jobTitle and departmentId for tenant on create', async () => {
+    await service.create(
+      {
+        ...pkWorkerDto,
+        jobTitle: 'Software Engineer',
+        departmentId: 'd0000000-0000-4000-8000-000000000001',
+      },
+      'actor-user-id',
+      DIGITARO_TENANT_ID,
+    );
+
+    expect(workerRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: DIGITARO_TENANT_ID,
+        jobTitle: 'Software Engineer',
+        departmentId: 'd0000000-0000-4000-8000-000000000001',
+      }),
+    );
+  });
+
   it('redacts dateOfBirth for non-self non-sensitive viewers', () => {
     const worker = {
       id: 'w1',

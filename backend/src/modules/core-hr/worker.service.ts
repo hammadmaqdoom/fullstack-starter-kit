@@ -102,6 +102,18 @@ export class WorkerService {
       divisionId: dto.divisionId ?? null,
       departmentId: dto.departmentId ?? null,
       legalEntityId: dto.legalEntityId ?? null,
+      officeLocationId: dto.officeLocationId ?? null,
+      jobTitle: dto.jobTitle ?? null,
+      probationEndDate: dto.probationEndDate ?? null,
+      emergencyContactName: dto.emergencyContactName ?? null,
+      emergencyContactPhone: dto.emergencyContactPhone ?? null,
+      emergencyContactRelation: dto.emergencyContactRelation ?? null,
+      addressLine1: dto.addressLine1 ?? null,
+      addressLine2: dto.addressLine2 ?? null,
+      city: dto.city ?? null,
+      stateProvince: dto.stateProvince ?? null,
+      postalCode: dto.postalCode ?? null,
+      addressCountryCode: dto.addressCountryCode ?? null,
       startDate: dto.startDate,
       dateOfBirth: dto.dateOfBirth ?? null,
       fteFraction: String(dto.fteFraction ?? 1),
@@ -348,6 +360,42 @@ export class WorkerService {
     }
     if (workerDto.legalEntityId !== undefined) {
       worker.legalEntityId = workerDto.legalEntityId;
+    }
+    if (workerDto.officeLocationId !== undefined) {
+      worker.officeLocationId = workerDto.officeLocationId;
+    }
+    if (workerDto.jobTitle !== undefined) {
+      worker.jobTitle = workerDto.jobTitle;
+    }
+    if (workerDto.probationEndDate !== undefined) {
+      worker.probationEndDate = workerDto.probationEndDate;
+    }
+    if (workerDto.emergencyContactName !== undefined) {
+      worker.emergencyContactName = workerDto.emergencyContactName;
+    }
+    if (workerDto.emergencyContactPhone !== undefined) {
+      worker.emergencyContactPhone = workerDto.emergencyContactPhone;
+    }
+    if (workerDto.emergencyContactRelation !== undefined) {
+      worker.emergencyContactRelation = workerDto.emergencyContactRelation;
+    }
+    if (workerDto.addressLine1 !== undefined) {
+      worker.addressLine1 = workerDto.addressLine1;
+    }
+    if (workerDto.addressLine2 !== undefined) {
+      worker.addressLine2 = workerDto.addressLine2;
+    }
+    if (workerDto.city !== undefined) {
+      worker.city = workerDto.city;
+    }
+    if (workerDto.stateProvince !== undefined) {
+      worker.stateProvince = workerDto.stateProvince;
+    }
+    if (workerDto.postalCode !== undefined) {
+      worker.postalCode = workerDto.postalCode;
+    }
+    if (workerDto.addressCountryCode !== undefined) {
+      worker.addressCountryCode = workerDto.addressCountryCode;
     }
     if (workerDto.countryCode !== undefined) {
       worker.countryCode = workerDto.countryCode;

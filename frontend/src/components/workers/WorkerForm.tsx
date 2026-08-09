@@ -21,14 +21,20 @@ import {
   listEmploymentTypes,
 } from '@/libs/api/country-config';
 import {
+  listDepartments,
   listDivisions,
   listLegalEntities,
+  listOfficeLocations,
+  type Department,
   type Division,
   type LegalEntity,
+  type OfficeLocation,
 } from '@/libs/api/org-admin';
 import {
   createWorker,
+  listWorkers,
   updateWorker,
+  type Worker as WorkerOption,
 } from '@/libs/api/workers';
 import {
   CONTRACTOR_TYPE_CODES,
@@ -65,9 +71,24 @@ function buildSchema(statutoryKeys: string[], isContractor: boolean) {
     phone: z.string().optional(),
     workMode: z.enum(['remote', 'hybrid', 'in_office']).optional(),
     startDate: z.date(),
+    dateOfBirth: z.date().optional().nullable(),
+    probationEndDate: z.date().optional().nullable(),
     employeeNumber: z.string().optional(),
+    jobTitle: z.string().optional(),
+    managerId: z.string().uuid().optional().or(z.literal('')),
     divisionId: z.string().uuid().optional().or(z.literal('')),
+    departmentId: z.string().uuid().optional().or(z.literal('')),
     legalEntityId: z.string().uuid().optional().or(z.literal('')),
+    officeLocationId: z.string().uuid().optional().or(z.literal('')),
+    emergencyContactName: z.string().optional(),
+    emergencyContactPhone: z.string().optional(),
+    emergencyContactRelation: z.string().optional(),
+    addressLine1: z.string().optional(),
+    addressLine2: z.string().optional(),
+    city: z.string().optional(),
+    stateProvince: z.string().optional(),
+    postalCode: z.string().optional(),
+    addressCountryCode: z.string().length(2).optional().or(z.literal('')),
     fteFraction: z.number().min(0.01).max(1).optional(),
     timezone: z.string().optional(),
     statutoryFields: z.object(statutoryShape),
@@ -125,7 +146,10 @@ export function WorkerForm({
     [],
   );
   const [divisions, setDivisions] = useState<Division[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [legalEntities, setLegalEntities] = useState<LegalEntity[]>([]);
+  const [offices, setOffices] = useState<OfficeLocation[]>([]);
+  const [managers, setManagers] = useState<WorkerOption[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [configLoading, setConfigLoading] = useState(true);
@@ -133,13 +157,16 @@ export function WorkerForm({
   const loadConfig = useCallback(async () => {
     setConfigLoading(true);
     try {
-      const [typesRes, matrixRes, countriesRes, divisionsRes, legalRes]
+      const [typesRes, matrixRes, countriesRes, divisionsRes, deptsRes, legalRes, officesRes, workersRes]
         = await Promise.all([
           listEmploymentTypes(),
           listEmploymentTypeCountryConfigs(),
           listCountries(),
           listDivisions(),
+          listDepartments(),
           listLegalEntities(),
+          listOfficeLocations(),
+          listWorkers({ status: 'active', limit: 200 }),
         ]);
       setEmploymentTypes(typesRes.data);
       setCountryConfigs(matrixRes.data);
@@ -150,7 +177,10 @@ export function WorkerForm({
         })),
       );
       setDivisions(divisionsRes.data);
+      setDepartments(deptsRes.data);
       setLegalEntities(legalRes.data);
+      setOffices(officesRes.data);
+      setManagers(workersRes.data ?? []);
     } catch {
       setSubmitError(t('error_config'));
     } finally {
@@ -200,9 +230,24 @@ export function WorkerForm({
       phone: worker?.phone ?? '',
       workMode: worker?.workMode ?? undefined,
       startDate: parseDate(worker?.startDate) ?? new Date(),
+      dateOfBirth: parseDate(worker?.dateOfBirth) ?? null,
+      probationEndDate: parseDate(worker?.probationEndDate) ?? null,
       employeeNumber: worker?.employeeNumber ?? '',
+      jobTitle: worker?.jobTitle ?? '',
+      managerId: worker?.managerId ?? '',
       divisionId: worker?.divisionId ?? '',
+      departmentId: worker?.departmentId ?? '',
       legalEntityId: worker?.legalEntityId ?? '',
+      officeLocationId: worker?.officeLocationId ?? '',
+      emergencyContactName: worker?.emergencyContactName ?? '',
+      emergencyContactPhone: worker?.emergencyContactPhone ?? '',
+      emergencyContactRelation: worker?.emergencyContactRelation ?? '',
+      addressLine1: worker?.addressLine1 ?? '',
+      addressLine2: worker?.addressLine2 ?? '',
+      city: worker?.city ?? '',
+      stateProvince: worker?.stateProvince ?? '',
+      postalCode: worker?.postalCode ?? '',
+      addressCountryCode: worker?.addressCountryCode ?? '',
       fteFraction: worker ? Number(worker.fteFraction) : 1,
       timezone: worker?.timezone ?? '',
       statutoryFields: Object.fromEntries(
@@ -245,6 +290,23 @@ export function WorkerForm({
     value: d.id,
   }));
 
+  const departmentOptions = departments.map(d => ({
+    label: d.name,
+    value: d.id,
+  }));
+
+  const officeOptions = offices.map(o => ({
+    label: o.name,
+    value: o.id,
+  }));
+
+  const managerOptions = managers
+    .filter(m => m.id !== worker?.id)
+    .map(m => ({
+      label: `${m.firstName} ${m.lastName}`.trim() || m.email,
+      value: m.id,
+    }));
+
   const legalEntityOptions = legalEntities
     .filter(le => le.countryCode === watchedCountry)
     .map(le => ({ label: le.registeredName, value: le.id }));
@@ -264,9 +326,26 @@ export function WorkerForm({
       phone: values.phone || undefined,
       workMode: values.workMode,
       startDate: toIsoDate(values.startDate),
+      dateOfBirth: values.dateOfBirth ? toIsoDate(values.dateOfBirth) : undefined,
+      probationEndDate: values.probationEndDate
+        ? toIsoDate(values.probationEndDate)
+        : undefined,
       employeeNumber: values.employeeNumber || undefined,
+      jobTitle: values.jobTitle || undefined,
+      managerId: values.managerId || undefined,
       divisionId: values.divisionId || undefined,
+      departmentId: values.departmentId || undefined,
       legalEntityId: values.legalEntityId || undefined,
+      officeLocationId: values.officeLocationId || undefined,
+      emergencyContactName: values.emergencyContactName || undefined,
+      emergencyContactPhone: values.emergencyContactPhone || undefined,
+      emergencyContactRelation: values.emergencyContactRelation || undefined,
+      addressLine1: values.addressLine1 || undefined,
+      addressLine2: values.addressLine2 || undefined,
+      city: values.city || undefined,
+      stateProvince: values.stateProvince || undefined,
+      postalCode: values.postalCode || undefined,
+      addressCountryCode: values.addressCountryCode || undefined,
       fteFraction: values.fteFraction,
       timezone: values.timezone || undefined,
       statutoryFields: values.statutoryFields,
@@ -381,6 +460,25 @@ export function WorkerForm({
               )}
             />
           </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_date_of_birth')}
+            </label>
+            <Controller
+              name="dateOfBirth"
+              control={control}
+              render={({ field }) => (
+                <Calendar
+                  value={field.value ?? null}
+                  onChange={e => field.onChange(e.value)}
+                  dateFormat="yy-mm-dd"
+                  className="w-full"
+                  showIcon
+                  showClear
+                />
+              )}
+            />
+          </div>
         </div>
       </fieldset>
 
@@ -454,6 +552,71 @@ export function WorkerForm({
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_department')}
+            </label>
+            <Controller
+              name="departmentId"
+              control={control}
+              render={({ field }) => (
+                <Dropdown
+                  {...field}
+                  options={departmentOptions}
+                  showClear
+                  className="w-full"
+                  filter
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_job_title')}
+            </label>
+            <Controller
+              name="jobTitle"
+              control={control}
+              render={({ field }) => (
+                <InputText {...field} className="w-full" />
+              )}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_manager')}
+            </label>
+            <Controller
+              name="managerId"
+              control={control}
+              render={({ field }) => (
+                <Dropdown
+                  {...field}
+                  options={managerOptions}
+                  showClear
+                  className="w-full"
+                  filter
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_office')}
+            </label>
+            <Controller
+              name="officeLocationId"
+              control={control}
+              render={({ field }) => (
+                <Dropdown
+                  {...field}
+                  options={officeOptions}
+                  showClear
+                  className="w-full"
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
               {t('field_legal_entity')}
             </label>
             <Controller
@@ -489,6 +652,25 @@ export function WorkerForm({
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_probation_end')}
+            </label>
+            <Controller
+              name="probationEndDate"
+              control={control}
+              render={({ field }) => (
+                <Calendar
+                  value={field.value ?? null}
+                  onChange={e => field.onChange(e.value)}
+                  dateFormat="yy-mm-dd"
+                  className="w-full"
+                  showIcon
+                  showClear
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
               {t('field_work_mode')}
             </label>
             <Controller
@@ -502,6 +684,119 @@ export function WorkerForm({
                   className="w-full"
                 />
               )}
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-4">
+        <legend className="text-sm font-semibold text-gray-900">
+          {t('section_address')}
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_address_line1')}
+            </label>
+            <Controller
+              name="addressLine1"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_address_line2')}
+            </label>
+            <Controller
+              name="addressLine2"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_city')}
+            </label>
+            <Controller
+              name="city"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_state')}
+            </label>
+            <Controller
+              name="stateProvince"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_postal')}
+            </label>
+            <Controller
+              name="postalCode"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_address_country')}
+            </label>
+            <Controller
+              name="addressCountryCode"
+              control={control}
+              render={({ field }) => (
+                <Dropdown
+                  {...field}
+                  options={countries}
+                  showClear
+                  className="w-full"
+                />
+              )}
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-4">
+        <legend className="text-sm font-semibold text-gray-900">
+          {t('section_emergency')}
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_emergency_name')}
+            </label>
+            <Controller
+              name="emergencyContactName"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_emergency_phone')}
+            </label>
+            <Controller
+              name="emergencyContactPhone"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              {t('field_emergency_relation')}
+            </label>
+            <Controller
+              name="emergencyContactRelation"
+              control={control}
+              render={({ field }) => <InputText {...field} className="w-full" />}
             />
           </div>
         </div>
