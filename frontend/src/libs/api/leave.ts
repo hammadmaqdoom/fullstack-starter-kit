@@ -12,7 +12,54 @@ export type LeaveType = {
   id: string;
   name: string;
   code: string;
-  unit: 'days' | 'hours';
+  countryCode?: string;
+  accrualMethod?: 'annual' | 'monthly' | string;
+  daysPerYear?: string | number;
+  carryForwardCap?: string | number;
+  unit?: 'days' | 'hours';
+};
+
+export type Holiday = {
+  id: string;
+  name: string;
+  holidayDate: string;
+  isCompanyClosure?: boolean;
+  isOptionalWorking?: boolean;
+  holidayCalendarId?: string;
+};
+
+export type HolidayCalendar = {
+  id: string;
+  name: string;
+  countryCode: string;
+  effectiveYear: number;
+  isActive: boolean;
+  holidays?: Holiday[];
+};
+
+export type CreateLeaveTypeInput = {
+  countryCode: string;
+  code: string;
+  name: string;
+  accrualMethod?: 'annual' | 'monthly';
+  daysPerYear?: number;
+  carryForwardCap?: number;
+};
+
+export type UpdateLeaveTypeInput = Partial<CreateLeaveTypeInput>;
+
+export type CreateHolidayCalendarInput = {
+  countryCode: string;
+  name: string;
+  effectiveYear: number;
+  isActive?: boolean;
+};
+
+export type CreateHolidayInput = {
+  name: string;
+  holidayDate: string;
+  isCompanyClosure?: boolean;
+  isOptionalWorking?: boolean;
 };
 
 export type LeaveBalance = {
@@ -108,6 +155,44 @@ export async function listLeaveTypes() {
     }
     throw err;
   }
+}
+
+const ADMIN_BASE = `${BASE}/admin`;
+
+export async function listAdminLeaveTypes() {
+  return apiRequest<LeaveType[]>(`${ADMIN_BASE}/types`);
+}
+
+export async function createLeaveType(input: CreateLeaveTypeInput) {
+  return apiRequest<LeaveType>(`${ADMIN_BASE}/types`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function updateLeaveType(id: string, input: UpdateLeaveTypeInput) {
+  return apiRequest<LeaveType>(`${ADMIN_BASE}/types/${id}`, {
+    method: 'PATCH',
+    body: input,
+  });
+}
+
+export async function listHolidayCalendars() {
+  return apiRequest<HolidayCalendar[]>(`${ADMIN_BASE}/holiday-calendars`);
+}
+
+export async function createHolidayCalendar(input: CreateHolidayCalendarInput) {
+  return apiRequest<HolidayCalendar>(`${ADMIN_BASE}/holiday-calendars`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export async function createHoliday(calendarId: string, input: CreateHolidayInput) {
+  return apiRequest<Holiday>(`${ADMIN_BASE}/holiday-calendars/${calendarId}/holidays`, {
+    method: 'POST',
+    body: input,
+  });
 }
 
 export async function listLeaveBalances(workerId?: string) {

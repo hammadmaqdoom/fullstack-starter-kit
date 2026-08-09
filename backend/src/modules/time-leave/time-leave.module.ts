@@ -6,6 +6,7 @@ import { ApprovalDelegationEntity } from '@/modules/core-hr/entities/approval-de
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { CountryConfigModule } from '@/modules/country-config/country-config.module';
 import { EmploymentTypeCountryConfigEntity } from '@/modules/country-config/entities/employment-type-country-config.entity';
+import { HolidayCalendarEntity } from '@/modules/country-config/entities/holiday-calendar.entity';
 import { HolidayEntity } from '@/modules/country-config/entities/holiday.entity';
 import { LeaveTypeEntity } from '@/modules/country-config/entities/leave-type.entity';
 import { Module } from '@nestjs/common';
@@ -28,6 +29,8 @@ import { ShiftRosterEntity } from './entities/shift-roster.entity';
 import { StaffCalendarDayEntity } from './entities/staff-calendar-day.entity';
 import { WorkWeekPatternEntity } from './entities/work-week-pattern.entity';
 import { LeaveAccrualService } from './leave-accrual.service';
+import { LeaveAdminController } from './leave-admin.controller';
+import { LeaveAdminService } from './leave-admin.service';
 import { LeaveController } from './leave.controller';
 import { LeaveService } from './leave.service';
 import { ShiftRosterController } from './shift-roster.controller';
@@ -42,6 +45,7 @@ import { ShiftRosterService } from './shift-roster.service';
       LeaveBalanceEntity,
       LeaveRequestEntity,
       LeaveTypeEntity,
+      HolidayCalendarEntity,
       HolidayEntity,
       WorkerEntity,
       ApprovalDelegationEntity,
@@ -62,6 +66,7 @@ import { ShiftRosterService } from './shift-roster.service';
   controllers: [
     AttendanceController,
     LeaveController,
+    LeaveAdminController,
     CalendarController,
     ShiftRosterController,
     CompOffController,
@@ -69,6 +74,7 @@ import { ShiftRosterService } from './shift-roster.service';
   providers: [
     AttendanceService,
     LeaveService,
+    LeaveAdminService,
     LeaveAccrualService,
     ShiftRosterService,
     CompOffService,
@@ -77,6 +83,7 @@ import { ShiftRosterService } from './shift-roster.service';
   exports: [
     AttendanceService,
     LeaveService,
+    LeaveAdminService,
     LeaveAccrualService,
     ShiftRosterService,
     CompOffService,
