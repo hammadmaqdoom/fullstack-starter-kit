@@ -151,11 +151,21 @@
   },
   "AuthenticatedShell": {
     "check_in": "Check in",
+    "check_out": "Check out",
     "checked_in_with_time": "Checked in · {time}",
     "checked_out": "Checked out",
     "search": "Search",
     "location_unavailable": "Location unavailable",
-    "retry_location": "Retry location"
+    "retry_location": "Retry location",
+    "attendance_modal_title": "Today's attendance",
+    "attendance_timeline": "Punches",
+    "attendance_no_punches": "No punches yet today.",
+    "attendance_punch_in": "Check-in",
+    "attendance_punch_out": "Check-out",
+    "attendance_total": "Total worked",
+    "attendance_in_progress": "(in progress)",
+    "attendance_done": "You're done for today.",
+    "punch_error": "Could not update attendance. Try again."
   },
   "CommonUi": {
     "offline_banner": "You're offline. Cached data may be shown; actions will sync when you're back online."

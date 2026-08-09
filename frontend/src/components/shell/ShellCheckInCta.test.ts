@@ -5,18 +5,6 @@ import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
 import { ShellCheckInCta } from './ShellCheckInCta';
 
-vi.mock('@/libs/I18nNavigation', () => ({
-  Link: ({
-    href,
-    children,
-    className,
-  }: {
-    href: string;
-    children: React.ReactNode;
-    className?: string;
-  }) => createElement('a', { href, className }, children),
-}));
-
 const messages = {
   AuthenticatedShell: {
     check_in: 'Check in',
@@ -25,12 +13,12 @@ const messages = {
   },
 };
 
-function renderCta(model: ShellCheckInCtaModel) {
+function renderCta(model: ShellCheckInCtaModel, onOpen = vi.fn()) {
   return renderToStaticMarkup(
     createElement(
       NextIntlClientProvider,
       { locale: 'en', messages, timeZone: 'UTC' },
-      createElement(ShellCheckInCta, { model }),
+      createElement(ShellCheckInCta, { model, onOpen }),
     ),
   );
 }
@@ -39,7 +27,7 @@ describe('ShellCheckInCta', () => {
   it('renders Check in when kind is check_in', () => {
     const html = renderCta({ kind: 'check_in' });
     expect(html).toContain('Check in');
-    expect(html).toContain('href="/employee/home#check-in"');
+    expect(html).toContain('type="button"');
   });
 
   it('renders checked-in time', () => {
