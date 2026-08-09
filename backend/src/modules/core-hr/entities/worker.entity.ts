@@ -132,6 +132,9 @@ export class WorkerEntity {
   startDate: string;
 
   @Column({ type: 'date', nullable: true })
+  dateOfBirth: string | null;
+
+  @Column({ type: 'date', nullable: true })
   endDate: string | null;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 1 })

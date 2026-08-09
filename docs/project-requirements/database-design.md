@@ -573,6 +573,7 @@ Worker (country_code + division_id)
 | entra_object_id | VARCHAR(255) | nullable |
 | probation_end_date | DATE | nullable |
 | start_date | DATE | |
+| date_of_birth / dateOfBirth | DATE | nullable — used for Home birthday card; PII (physical column camelCase `"dateOfBirth"`) |
 | end_date | DATE | nullable |
 | fte_fraction | DECIMAL(3,2) | default 1.00 |
 | timezone | VARCHAR(50) | IANA |
