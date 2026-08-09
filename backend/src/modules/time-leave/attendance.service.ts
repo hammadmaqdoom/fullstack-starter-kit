@@ -78,9 +78,9 @@ export class AttendanceService {
     });
 
     if (
-      existingSummary &&
-      (existingSummary.status === AttendanceDayStatus.IN ||
-        existingSummary.firstIn !== null)
+      existingSummary
+      && (existingSummary.status === AttendanceDayStatus.IN
+        || existingSummary.firstIn !== null)
     ) {
       const openCheckIn = await this.findOpenCheckIn(
         worker.id,
@@ -88,6 +88,7 @@ export class AttendanceService {
         timezone,
         tenantId,
       );
+      // Allow another check-in after a completed check-out (multi-session days).
       if (openCheckIn || existingSummary.status === AttendanceDayStatus.IN) {
         throw new BadRequestException({
           code: 'ALREADY_CHECKED_IN',

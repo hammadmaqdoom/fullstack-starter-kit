@@ -54,9 +54,9 @@ export function ShellAttendanceModal({
 
   const punches = today?.punches ?? [];
   const workedMinutes = computeDayWorkedMinutes(punches, now);
-  const canCheckIn = ctaKind === 'check_in';
+  const canCheckIn = ctaKind === 'check_in' || ctaKind === 'checked_out';
   const canCheckOut = ctaKind === 'checked_in';
-  const isDone = ctaKind === 'checked_out';
+  const wasCheckedOut = ctaKind === 'checked_out';
 
   const handlePunch = async (action: 'in' | 'out') => {
     setIsPunching(true);
@@ -145,7 +145,7 @@ export function ShellAttendanceModal({
             onClick={() => void handlePunch('in')}
           >
             <LogIn className="size-4" aria-hidden />
-            {t('check_in')}
+            {wasCheckedOut ? t('check_in_again') : t('check_in')}
           </Button>
         )}
 
@@ -162,8 +162,8 @@ export function ShellAttendanceModal({
           </Button>
         )}
 
-        {isDone && (
-          <p className="text-center text-sm text-gray-500">{t('attendance_done')}</p>
+        {wasCheckedOut && (
+          <p className="text-center text-sm text-gray-500">{t('attendance_can_resume')}</p>
         )}
       </div>
     </Dialog>

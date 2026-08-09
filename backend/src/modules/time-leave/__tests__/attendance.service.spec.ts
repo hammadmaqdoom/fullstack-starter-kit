@@ -150,6 +150,43 @@ describe('AttendanceService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('allows check-in again after a completed check-out', async () => {
+    daySummaryRepository.findOne.mockResolvedValue({
+      id: 'summary-1',
+      workerId,
+      workDate: new Date().toISOString().slice(0, 10),
+      status: AttendanceDayStatus.OUT,
+      firstIn: new Date('2026-08-10T04:00:00.000Z'),
+      lastOut: new Date('2026-08-10T08:00:00.000Z'),
+    });
+
+    punchRepository.createQueryBuilder.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue([
+        {
+          id: 'punch-in',
+          punchType: PunchType.CHECK_IN,
+          punchedAt: new Date('2026-08-10T04:00:00.000Z'),
+        },
+        {
+          id: 'punch-out',
+          punchType: PunchType.CHECK_OUT,
+          punchedAt: new Date('2026-08-10T08:00:00.000Z'),
+        },
+      ]),
+    });
+
+    const result = await service.checkIn(
+      { source: PunchSource.WEB, timezone: 'UTC' },
+      { userId, correlationId: 'corr-2' },
+    );
+
+    expect(result.punch.punchType).toBe(PunchType.CHECK_IN);
+    expect(result.daySummary.status).toBe(AttendanceDayStatus.IN);
+  });
+
   it('getToday uses client timezone so early-morning local dates match check-in', async () => {
     // 21:00 UTC Aug 9 == 02:00 Asia/Karachi Aug 10
     jest.useFakeTimers();

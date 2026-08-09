@@ -152,6 +152,7 @@
   "AuthenticatedShell": {
     "check_in": "Check in",
     "check_out": "Check out",
+    "check_in_again": "Check in again",
     "checked_in_with_time": "Checked in · {time}",
     "checked_out": "Checked out",
     "search": "Search",
@@ -165,6 +166,7 @@
     "attendance_total": "Total worked",
     "attendance_in_progress": "(in progress)",
     "attendance_done": "You're done for today.",
+    "attendance_can_resume": "Need more time? Check in again anytime today.",
     "punch_error": "Could not update attendance. Try again."
   },
   "CommonUi": {
@@ -1016,6 +1018,7 @@
     "leave_balances_title": "Leave balances",
     "request_leave": "Request leave",
     "check_in": "Check in",
+    "check_in_again": "Check in again",
     "check_out": "Check out",
     "punching": "Working…",
     "not_checked_in": "Ready when you are — one tap to check in.",
@@ -1029,7 +1032,7 @@
     "checked_in_title": "You're in",
     "checked_in_detail": "Checked in at {time}",
     "checked_out_title": "Nice work",
-    "checked_out_detail": "Checked out for today.",
+    "checked_out_detail": "Checked out. You can check in again if you still have work today.",
     "queued_title": "Will sync",
     "queued_detail": "Punch saved offline and will sync when you are back online.",
     "offline_banner": "You are offline. Check-in will queue until connection returns.",

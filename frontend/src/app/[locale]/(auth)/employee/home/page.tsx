@@ -291,7 +291,7 @@ export default function EmployeeHomePage() {
                   )}
 
                   <div className="flex flex-wrap gap-2">
-                    {!isCheckedIn && !isCheckedOut && (
+                    {!isCheckedIn && (
                       <Button
                         type="button"
                         className="gap-2"
@@ -300,7 +300,7 @@ export default function EmployeeHomePage() {
                         onClick={() => void handlePunch('in')}
                       >
                         <LogIn className="size-4" aria-hidden />
-                        {t('check_in')}
+                        {isCheckedOut ? t('check_in_again') : t('check_in')}
                       </Button>
                     )}
                     {isCheckedIn && (
