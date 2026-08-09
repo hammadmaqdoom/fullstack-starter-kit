@@ -97,6 +97,7 @@ export class WorkerService {
       departmentId: dto.departmentId ?? null,
       legalEntityId: dto.legalEntityId ?? null,
       startDate: dto.startDate,
+      dateOfBirth: dto.dateOfBirth ?? null,
       fteFraction: String(dto.fteFraction ?? 1),
       timezone: dto.timezone ?? null,
       statutoryFields: dto.statutoryFields,
@@ -304,6 +305,9 @@ export class WorkerService {
     }
     if (workerDto.startDate !== undefined) {
       worker.startDate = workerDto.startDate;
+    }
+    if (workerDto.dateOfBirth !== undefined) {
+      worker.dateOfBirth = workerDto.dateOfBirth;
     }
     if (workerDto.employeeNumber !== undefined) {
       worker.employeeNumber = workerDto.employeeNumber;

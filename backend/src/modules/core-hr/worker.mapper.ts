@@ -40,10 +40,15 @@ export function toWorkerResponse(
     COMPENSATION_ROLES.has(code),
   );
 
-  const { tenant, employmentType, deletedAt, ...rest } = worker;
+  const canViewDob =
+    (worker.userId != null && worker.userId === auth.userId) ||
+    [...roleCodes].some((code) => SENSITIVE_ROLES.has(code));
+
+  const { tenant, employmentType, deletedAt, dateOfBirth, ...rest } = worker;
 
   return {
     ...rest,
+    dateOfBirth: canViewDob ? dateOfBirth : null,
     statutoryFields: canViewStatutory ? worker.statutoryFields : null,
     compensationBand: canViewCompensation ? worker.compensationBand : null,
     contractorProfile: contractorProfile ?? null,

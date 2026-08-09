@@ -19,6 +19,7 @@ import {
   WorkerStatus,
 } from '@/modules/core-hr/enums/worker.enum';
 import { WorkerService } from '@/modules/core-hr/worker.service';
+import { toWorkerResponse } from '@/modules/core-hr/worker.mapper';
 
 const FULL_TIME_TYPE_ID = 'c0000000-0000-4000-8000-000000000001';
 
@@ -176,5 +177,54 @@ describe('WorkerService', () => {
 
     expect(result.compensationBand).toBeNull();
     expect(result.statutoryFields).toBeNull();
+  });
+
+  it('persists dateOfBirth on create', async () => {
+    await service.create(
+      { ...pkWorkerDto, dateOfBirth: '1995-08-10' },
+      'actor-user-id',
+    );
+
+    expect(workerRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ dateOfBirth: '1995-08-10' }),
+    );
+  });
+
+  it('redacts dateOfBirth for non-self non-sensitive viewers', () => {
+    const worker = {
+      id: 'w1',
+      tenantId: DIGITARO_TENANT_ID,
+      userId: 'owner-user',
+      dateOfBirth: '1995-08-10',
+      statutoryFields: {},
+      compensationBand: null,
+    } as WorkerEntity;
+    const auth = {
+      tenantId: DIGITARO_TENANT_ID,
+      userId: 'other-user',
+      roleCodes: [PolarisRoleCode.EMPLOYEE],
+      assignments: [],
+      broadestScope: ScopeType.OWN,
+    };
+    expect(toWorkerResponse(worker, auth).dateOfBirth).toBeNull();
+  });
+
+  it('includes dateOfBirth for self', () => {
+    const worker = {
+      id: 'w1',
+      tenantId: DIGITARO_TENANT_ID,
+      userId: 'owner-user',
+      dateOfBirth: '1995-08-10',
+      statutoryFields: {},
+      compensationBand: null,
+    } as WorkerEntity;
+    const auth = {
+      tenantId: DIGITARO_TENANT_ID,
+      userId: 'owner-user',
+      roleCodes: [PolarisRoleCode.EMPLOYEE],
+      assignments: [],
+      broadestScope: ScopeType.OWN,
+    };
+    expect(toWorkerResponse(worker, auth).dateOfBirth).toBe('1995-08-10');
   });
 });

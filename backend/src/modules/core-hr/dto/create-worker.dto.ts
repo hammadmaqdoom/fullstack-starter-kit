@@ -114,6 +114,11 @@ export class CreateWorkerDto {
   @IsDateString()
   startDate: string;
 
+  @ApiPropertyOptional({ example: '1995-08-10' })
+  @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
