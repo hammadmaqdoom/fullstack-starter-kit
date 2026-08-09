@@ -328,7 +328,13 @@
     "status_incomplete": "Incomplete",
     "status_holiday": "Holiday",
     "status_non_working": "Non-working",
-    "status_planned": "Planned"
+    "status_planned": "Planned",
+    "detail_check_in": "Check-in",
+    "detail_check_out": "Check-out",
+    "detail_total": "Total · {duration}",
+    "detail_in_progress": "In progress",
+    "detail_no_punches": "No punches this day",
+    "detail_punch_line": "{label} · {time}"
   },
   "NotificationPrefs": {
     "title": "Notification preferences",
@@ -1034,7 +1040,13 @@
     "status_incomplete": "Incomplete",
     "status_holiday": "Holiday",
     "status_non_working": "Non-working",
-    "status_planned": "Planned"
+    "status_planned": "Planned",
+    "detail_check_in": "Check-in",
+    "detail_check_out": "Check-out",
+    "detail_total": "Total · {duration}",
+    "detail_in_progress": "In progress",
+    "detail_no_punches": "No punches this day",
+    "detail_punch_line": "{label} · {time}"
   },
   "EmployeeExpenses": {
     "title": "Expenses",
@@ -1346,15 +1358,11 @@
     "unit_hours": "Hours"
   },
   "Welcome": {
-    "eyebrow": "Welcome to Digitaro",
-    "greeting": "Welcome aboard",
-    "greeting_named": "Welcome, {name}",
-    "message": "We're glad you're here. Take a moment to settle in — confirm your details, acknowledge key policies, and say hello to your team when you're ready.",
-    "step_profile": "Confirm your profile details",
-    "step_policies": "Acknowledge required policies",
-    "step_team": "Meet your team in the directory",
+    "title": "Welcome to Digitaro",
+    "subtitle": "Your onboarding checklist, policies, and documents are ready in Polaris.",
     "cta_home": "Go to Today",
-    "cta_policies": "View policies"
+    "cta_policies": "Review policies",
+    "cta_documents": "Sign documents"
   },
   "Separations": {
     "title": "Separations",
@@ -1402,13 +1410,6 @@
     "org_subtree": "Org chart",
     "org_empty": "No reports in scope for this person.",
     "retry": "Try again"
-  },
-  "Welcome": {
-    "title": "Welcome to Digitaro",
-    "subtitle": "Your onboarding checklist, policies, and documents are ready in Polaris.",
-    "cta_home": "Go to Today",
-    "cta_policies": "Review policies",
-    "cta_documents": "Sign documents"
   },
   "DocumentTemplates": {
     "title": "Templates & letters",
@@ -1655,7 +1656,6 @@
     "approve_confirm_title": "Approve pay run",
     "approve_confirm_body": "Approving locks the calculated line items for this period. This action cannot be undone. Continue?",
     "approve_confirm_action": "Approve pay run",
-    "cancel": "Cancel",
     "approve_success": "Pay run approved.",
     "error_approve": "Could not approve the pay run.",
     "release_success": "Payslips released.",

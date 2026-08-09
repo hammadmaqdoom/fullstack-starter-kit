@@ -10,6 +10,12 @@ export type CalendarCellStatus =
   | 'non_working'
   | 'planned';
 
+export type CalendarDayPunch = {
+  id: string;
+  punchType: 'check_in' | 'check_out';
+  punchedAt: string;
+};
+
 export type StaffCalendarResponse = {
   from: string;
   to: string;
@@ -21,6 +27,8 @@ export type StaffCalendarResponse = {
     holidayName?: string | null;
     firstIn?: string | null;
     lastOut?: string | null;
+    punches: CalendarDayPunch[];
+    workedMinutes: number;
   }>;
   leave: Array<{
     leaveRequestId: string;
@@ -51,8 +59,11 @@ export type TeamCalendarResponse = {
       date: string;
       status: CalendarCellStatus;
       leaveTypeName?: string | null;
+      holidayName?: string | null;
       firstIn?: string | null;
       lastOut?: string | null;
+      punches: CalendarDayPunch[];
+      workedMinutes: number;
     }>;
   }>;
 };
