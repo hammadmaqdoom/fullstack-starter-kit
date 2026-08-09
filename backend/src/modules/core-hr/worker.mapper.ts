@@ -31,6 +31,7 @@ export function toWorkerResponse(
   worker: WorkerEntity,
   auth: PolarisAuthContext,
   contractorProfile?: ContractorProfileEntity | null,
+  statutoryFields: Record<string, string> = {},
 ): WorkerResponse {
   const roleCodes = new Set(auth.roleCodes.map((code) => code.toLowerCase()));
   const canViewStatutory = [...roleCodes].some((code) =>
@@ -49,7 +50,7 @@ export function toWorkerResponse(
   return {
     ...rest,
     dateOfBirth: canViewDob ? dateOfBirth : null,
-    statutoryFields: canViewStatutory ? worker.statutoryFields : null,
+    statutoryFields: canViewStatutory ? statutoryFields : null,
     compensationBand: canViewCompensation ? worker.compensationBand : null,
     contractorProfile: contractorProfile ?? null,
   };

@@ -12,6 +12,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateWorkerDto } from '@/modules/core-hr/dto/create-worker.dto';
 import { ContractorProfileEntity } from '@/modules/core-hr/entities/contractor-profile.entity';
+import { WorkerStatutoryIdEntity } from '@/modules/core-hr/entities/worker-statutory-id.entity';
 import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import {
   EntraStatus,
@@ -33,6 +34,12 @@ describe('WorkerService', () => {
   >;
   let contractorProfileRepository: jest.Mocked<
     Pick<Repository<ContractorProfileEntity>, 'create' | 'save' | 'findOne'>
+  >;
+  let workerStatutoryIdRepository: jest.Mocked<
+    Pick<
+      Repository<WorkerStatutoryIdEntity>,
+      'create' | 'save' | 'find' | 'delete' | 'createQueryBuilder'
+    >
   >;
   let auditLogService: jest.Mocked<Pick<AuditLogService, 'append'>>;
   let countryConfigService: jest.Mocked<
@@ -81,6 +88,17 @@ describe('WorkerService', () => {
       save: jest.fn(),
       findOne: jest.fn(),
     } as unknown as typeof contractorProfileRepository;
+    workerStatutoryIdRepository = {
+      create: jest.fn((entity) => entity as WorkerStatutoryIdEntity),
+      save: jest.fn(async (rows) => rows),
+      find: jest.fn().mockResolvedValue([
+        { fieldKey: 'cnic', fieldValue: '35202-1234567-1' },
+        { fieldKey: 'ntn', fieldValue: '1234567-8' },
+        { fieldKey: 'eobi_number', fieldValue: 'EOBI-001' },
+      ]),
+      delete: jest.fn(),
+      createQueryBuilder: jest.fn(),
+    } as unknown as typeof workerStatutoryIdRepository;
     auditLogService = { append: jest.fn() };
     countryConfigService = {
       resolveEmploymentTypeCountryRules: jest.fn().mockResolvedValue({
@@ -118,6 +136,10 @@ describe('WorkerService', () => {
         {
           provide: getRepositoryToken(ContractorProfileEntity),
           useValue: contractorProfileRepository,
+        },
+        {
+          provide: getRepositoryToken(WorkerStatutoryIdEntity),
+          useValue: workerStatutoryIdRepository,
         },
         { provide: AuditLogService, useValue: auditLogService },
         { provide: CountryConfigService, useValue: countryConfigService },
@@ -196,9 +218,8 @@ describe('WorkerService', () => {
       tenantId: DIGITARO_TENANT_ID,
       userId: 'owner-user',
       dateOfBirth: '1995-08-10',
-      statutoryFields: {},
       compensationBand: null,
-    } as WorkerEntity;
+    } as unknown as WorkerEntity;
     const auth = {
       tenantId: DIGITARO_TENANT_ID,
       userId: 'other-user',
@@ -215,9 +236,8 @@ describe('WorkerService', () => {
       tenantId: DIGITARO_TENANT_ID,
       userId: 'owner-user',
       dateOfBirth: '1995-08-10',
-      statutoryFields: {},
       compensationBand: null,
-    } as WorkerEntity;
+    } as unknown as WorkerEntity;
     const auth = {
       tenantId: DIGITARO_TENANT_ID,
       userId: 'owner-user',

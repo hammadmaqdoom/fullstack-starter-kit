@@ -143,8 +143,38 @@ export class WorkerEntity {
   @Column({ type: 'varchar', length: 50, nullable: true })
   timezone: string | null;
 
-  @Column({ type: 'jsonb', default: {} })
-  statutoryFields: Record<string, string>;
+  @Column({ type: 'uuid', nullable: true })
+  officeLocationId: string | null;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  jobTitle: string | null;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  emergencyContactName: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  emergencyContactPhone: string | null;
+
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  emergencyContactRelation: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  addressLine1: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  addressLine2: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  city: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  stateProvince: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  postalCode: string | null;
+
+  @Column({ type: 'char', length: 2, nullable: true })
+  addressCountryCode: string | null;
 
   @Column({ type: 'jsonb', nullable: true })
   compensationBand: CompensationBand | null;

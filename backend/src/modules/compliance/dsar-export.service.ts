@@ -76,18 +76,37 @@ export class DsarExportService {
     actorId: string,
     tenantId: string = DIGITARO_TENANT_ID,
   ): Promise<DsarExportPackage> {
-    const profileRows = await this.dataSource.query<DsarWorkerProfileRow[]>(
+    const profileRows = await this.dataSource.query<
+      Omit<DsarWorkerProfileRow, 'statutoryFields'>[]
+    >(
       `SELECT id, "employeeNumber", "firstName", "lastName", email,
               "personalEmail", phone, "countryCode", status,
-              "startDate", "endDate", "statutoryFields"
+              "startDate", "endDate"
        FROM workers
        WHERE "tenantId" = $1 AND id = $2`,
       [tenantId, dto.workerId],
     );
-    const profile = profileRows[0];
-    if (!profile) {
+    const profileBase = profileRows[0];
+    if (!profileBase) {
       throw new NotFoundException('Worker not found for DSAR export');
     }
+
+    const statutoryRows = await this.dataSource.query<
+      { fieldKey: string; fieldValue: string }[]
+    >(
+      `SELECT "fieldKey", "fieldValue"
+       FROM worker_statutory_ids
+       WHERE "tenantId" = $1 AND "workerId" = $2`,
+      [tenantId, dto.workerId],
+    );
+    const statutoryFields: Record<string, string> = {};
+    for (const row of statutoryRows) {
+      statutoryFields[row.fieldKey] = row.fieldValue;
+    }
+    const profile: DsarWorkerProfileRow = {
+      ...profileBase,
+      statutoryFields,
+    };
 
     const documents = await this.dataSource.query<DsarDocumentRow[]>(
       `SELECT id, status, "documentNumber", "blobUrl", "issuedAt", "createdAt"

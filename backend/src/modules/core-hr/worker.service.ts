@@ -23,6 +23,7 @@ import { CreateWorkerDto } from './dto/create-worker.dto';
 import { QueryWorkersDto } from './dto/query-workers.dto';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
 import { ContractorProfileEntity } from './entities/contractor-profile.entity';
+import { WorkerStatutoryIdEntity } from './entities/worker-statutory-id.entity';
 import { WorkerEntity } from './entities/worker.entity';
 import { EntraStatus, WorkerStatus } from './enums/worker.enum';
 import { toWorkerResponse, WorkerResponse } from './worker.mapper';
@@ -30,6 +31,10 @@ import {
   applyWorkerScopeFilter,
   resolveActingWorkerId,
 } from './worker-scope.util';
+import {
+  statutoryMapFromRows,
+  statutoryRowsFromMap,
+} from './worker-statutory.util';
 
 @Injectable()
 export class WorkerService {
@@ -38,6 +43,8 @@ export class WorkerService {
     private readonly workerRepository: Repository<WorkerEntity>,
     @InjectRepository(ContractorProfileEntity)
     private readonly contractorProfileRepository: Repository<ContractorProfileEntity>,
+    @InjectRepository(WorkerStatutoryIdEntity)
+    private readonly workerStatutoryIdRepository: Repository<WorkerStatutoryIdEntity>,
     private readonly countryConfigService: CountryConfigService,
     private readonly auditLogService: AuditLogService,
     private readonly rbacService: RbacService,
@@ -100,12 +107,17 @@ export class WorkerService {
       dateOfBirth: dto.dateOfBirth ?? null,
       fteFraction: String(dto.fteFraction ?? 1),
       timezone: dto.timezone ?? null,
-      statutoryFields: dto.statutoryFields,
       compensationBand: dto.compensationBand ?? null,
       entraStatus,
     });
 
     const saved = await this.workerRepository.save(worker);
+    await this.replaceStatutoryFields(
+      tenantId,
+      saved.id,
+      saved.countryCode,
+      dto.statutoryFields,
+    );
 
     let contractorProfile: ContractorProfileEntity | null = null;
     if (isContractor && dto.contractorProfile) {
@@ -141,7 +153,8 @@ export class WorkerService {
     });
 
     const auth = await this.rbacService.getAuthContext(actorId, tenantId);
-    return toWorkerResponse(saved, auth, contractorProfile);
+    const statutoryFields = await this.loadStatutoryMap(tenantId, saved.id);
+    return toWorkerResponse(saved, auth, contractorProfile, statutoryFields);
   }
 
   async findAll(
@@ -199,7 +212,18 @@ export class WorkerService {
       .take(limit)
       .getMany();
 
-    const items = workers.map((worker) => toWorkerResponse(worker, auth));
+    const statutoryByWorker = await this.loadStatutoryMapsForWorkers(
+      tenantId,
+      workers.map((w) => w.id),
+    );
+    const items = workers.map((worker) =>
+      toWorkerResponse(
+        worker,
+        auth,
+        null,
+        statutoryByWorker.get(worker.id) ?? {},
+      ),
+    );
 
     return {
       items,
@@ -225,7 +249,8 @@ export class WorkerService {
       where: { tenantId, workerId: worker.id },
     });
 
-    return toWorkerResponse(worker, auth, contractorProfile);
+    const statutoryFields = await this.loadStatutoryMap(tenantId, worker.id);
+    return toWorkerResponse(worker, auth, contractorProfile, statutoryFields);
   }
 
   /** Resolve the worker profile linked to the current session (Me/Profile screen). */
@@ -252,7 +277,8 @@ export class WorkerService {
       where: { tenantId, workerId: worker.id },
     });
 
-    return toWorkerResponse(worker, auth, contractorProfile);
+    const statutoryFields = await this.loadStatutoryMap(tenantId, worker.id);
+    return toWorkerResponse(worker, auth, contractorProfile, statutoryFields);
   }
 
   async update(
@@ -336,14 +362,20 @@ export class WorkerService {
     if (workerDto.timezone !== undefined) {
       worker.timezone = workerDto.timezone;
     }
-    if (workerDto.statutoryFields !== undefined) {
-      worker.statutoryFields = workerDto.statutoryFields;
-    }
     if (workerDto.compensationBand !== undefined) {
       worker.compensationBand = workerDto.compensationBand;
     }
 
     const saved = await this.workerRepository.save(worker);
+
+    if (dto.statutoryFields !== undefined) {
+      await this.replaceStatutoryFields(
+        tenantId,
+        saved.id,
+        saved.countryCode,
+        dto.statutoryFields,
+      );
+    }
 
     await this.auditLogService.append({
       tenantId,
@@ -365,7 +397,8 @@ export class WorkerService {
       where: { tenantId, workerId: saved.id },
     });
 
-    return toWorkerResponse(saved, auth, contractorProfile);
+    const statutoryFields = await this.loadStatutoryMap(tenantId, saved.id);
+    return toWorkerResponse(saved, auth, contractorProfile, statutoryFields);
   }
 
   async archive(
@@ -417,6 +450,56 @@ export class WorkerService {
         })),
       });
     }
+  }
+
+  private async replaceStatutoryFields(
+    tenantId: string,
+    workerId: string,
+    countryCode: string,
+    fields: Record<string, string>,
+  ): Promise<void> {
+    await this.workerStatutoryIdRepository.delete({ tenantId, workerId });
+    const rows = statutoryRowsFromMap(tenantId, workerId, countryCode, fields);
+    if (rows.length === 0) {
+      return;
+    }
+    await this.workerStatutoryIdRepository.save(
+      rows.map((row) => this.workerStatutoryIdRepository.create(row)),
+    );
+  }
+
+  private async loadStatutoryMap(
+    tenantId: string,
+    workerId: string,
+  ): Promise<Record<string, string>> {
+    const rows = await this.workerStatutoryIdRepository.find({
+      where: { tenantId, workerId },
+    });
+    return statutoryMapFromRows(rows);
+  }
+
+  private async loadStatutoryMapsForWorkers(
+    tenantId: string,
+    workerIds: string[],
+  ): Promise<Map<string, Record<string, string>>> {
+    const result = new Map<string, Record<string, string>>();
+    if (workerIds.length === 0) {
+      return result;
+    }
+    const rows = await this.workerStatutoryIdRepository
+      .createQueryBuilder('s')
+      .where('s.tenantId = :tenantId', { tenantId })
+      .andWhere('s.workerId IN (:...workerIds)', { workerIds })
+      .getMany();
+    for (const id of workerIds) {
+      result.set(id, {});
+    }
+    for (const row of rows) {
+      const map = result.get(row.workerId) ?? {};
+      map[row.fieldKey] = row.fieldValue;
+      result.set(row.workerId, map);
+    }
+    return result;
   }
 
   private async getWorkerOrThrow(

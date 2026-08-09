@@ -23,9 +23,14 @@ import {
 } from './entities/legal-entity-division-mapping.entity';
 import { LegalEntitySignatoryEntity } from './entities/legal-entity-signatory.entity';
 import { ManagerRelationshipEntity } from './entities/manager-relationship.entity';
+import { OfficeLocationEntity } from './entities/office-location.entity';
 import { ProfileChangeRequestEntity } from './entities/profile-change-request.entity';
 import { ProjectAssignmentEntity } from './entities/project-assignment.entity';
+import { WorkerBankAccountEntity } from './entities/worker-bank-account.entity';
 import { WorkerImportBatchEntity } from './entities/worker-import-batch.entity';
+import { WorkerStatutoryIdEntity } from './entities/worker-statutory-id.entity';
+import { EmployeeSkillEntity } from './entities/employee-skill.entity';
+import { EmploymentRecordEntity } from './entities/employment-record.entity';
 import { WorkerEntity } from './entities/worker.entity';
 import { LeadershipAnalyticsController } from './leadership-analytics.controller';
 import { LeadershipAnalyticsService } from './leadership-analytics.service';
@@ -54,6 +59,11 @@ import { WorkerService } from './worker.service';
       LegalEntityDivisionMappingEntity,
       LegalEntityCurrencyEntity,
       LegalEntitySignatoryEntity,
+      OfficeLocationEntity,
+      WorkerStatutoryIdEntity,
+      WorkerBankAccountEntity,
+      EmployeeSkillEntity,
+      EmploymentRecordEntity,
       ManagerRelationshipEntity,
       ProfileChangeRequestEntity,
       ApprovalDelegationEntity,

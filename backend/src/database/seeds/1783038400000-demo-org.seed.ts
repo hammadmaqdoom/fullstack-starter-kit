@@ -231,7 +231,6 @@ export class DemoOrgSeed1783038400000 implements Seeder {
             endDate: null,
             fteFraction: persona.employmentTypeCode === 'CONTRACTOR' ? '0.5' : '1',
             timezone: null,
-            statutoryFields: {},
             compensationBand: null,
           }),
         );
