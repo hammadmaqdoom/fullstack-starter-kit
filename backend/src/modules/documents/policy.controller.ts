@@ -2,6 +2,7 @@ import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import {
   Body,
   Controller,
@@ -48,7 +49,10 @@ export class PolicyController {
     summary: 'List pending policy acknowledgements for current worker',
   })
   getPending(@CurrentUserSession() session: CurrentUserSession) {
-    return this.policyService.getPendingAcknowledgements(session.user.id);
+    return this.policyService.getPendingAcknowledgements(
+      session.user.id,
+      resolveTenantId(session),
+    );
   }
 
   @Get('compliance-dashboard')
@@ -56,15 +60,15 @@ export class PolicyController {
   @ApiOperation({
     summary: 'Policy acknowledgement compliance dashboard (People Ops)',
   })
-  getComplianceDashboard() {
-    return this.policyService.getComplianceDashboard();
+  getComplianceDashboard(@CurrentUserSession() session: CurrentUserSession) {
+    return this.policyService.getComplianceDashboard(resolveTenantId(session));
   }
 
   @Get()
   @Roles(...PEOPLE_OPS_ROLES)
   @ApiOperation({ summary: 'List policies' })
-  list() {
-    return this.policyService.list();
+  list(@CurrentUserSession() session: CurrentUserSession) {
+    return this.policyService.list(resolveTenantId(session));
   }
 
   @Post()
@@ -81,6 +85,7 @@ export class PolicyController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -100,6 +105,7 @@ export class PolicyController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -121,6 +127,7 @@ export class PolicyController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -138,6 +145,7 @@ export class PolicyController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 }

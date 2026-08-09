@@ -66,7 +66,7 @@ export class LeaveService {
 
   async listTypes(
     actorUserId: string,
-    tenantId: string = DIGITARO_TENANT_ID,
+    tenantId: string,
   ): Promise<LeaveTypeEntity[]> {
     const worker = await this.findActingWorker(actorUserId, tenantId);
     const qb = this.leaveTypeRepository

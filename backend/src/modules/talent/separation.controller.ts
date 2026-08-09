@@ -1,8 +1,8 @@
 import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
-import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.constants';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import {
   Body,
   Controller,
@@ -51,7 +51,7 @@ export class SeparationController {
   ) {
     return {
       userId: session.user.id,
-      tenantId: DIGITARO_TENANT_ID,
+      tenantId: resolveTenantId(session),
       correlationId,
       ipAddress: request?.ip,
     };
