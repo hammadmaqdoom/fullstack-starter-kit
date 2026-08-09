@@ -76,6 +76,16 @@
 - [x] Seed: holidays, leave types, document templates — `benefit_types` seeded (not separate pack entities)
 - [x] Progress tracking and skip logic
 
+### 0.6 Admin UX + CRUD coverage (W0 / W0b)
+
+- [x] Thin UI specs — `docs/design-specs/ui-specifications/{shared-components,people-ops,manager,admin-setup,finance}.md`
+- [x] Coverage matrix — `docs/superpowers/specs/2026-08-10-admin-coverage-matrix.md`
+- [x] Design — `docs/superpowers/specs/2026-08-10-admin-ux-crud-coverage-design.md`
+- [x] Tenant seam — `resolveTenantId` / `assertSameTenant`; workers/org/audit/leave/policy/pre-boarding/separation controllers
+- [x] `PageHeader` + people-ops `RequireRole` layout
+- [x] Tenant query sweep notes — `docs/superpowers/specs/2026-08-10-tenant-query-sweep.md`
+- [ ] W1 People Ops CRUD/UX — see `docs/superpowers/plans/2026-08-10-admin-ux-crud-w1-people-ops.md`
+
 ---
 
 ## Phase 1 — MVP (daily-value core)
