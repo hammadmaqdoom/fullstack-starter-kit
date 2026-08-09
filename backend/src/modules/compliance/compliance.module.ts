@@ -1,5 +1,6 @@
 import { UserEntity } from '@/auth/entities/user.entity';
 import { ComplianceAlertEntity } from '@/modules/automation/entities/compliance-alert.entity';
+import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { DocumentsModule } from '@/modules/documents/documents.module';
 import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -34,6 +35,11 @@ import { TenantEntity } from './entities/tenant.entity';
 import { UserRoleAssignmentEntity } from './entities/user-role-assignment.entity';
 import { EvidenceController } from './evidence.controller';
 import { RbacService } from './rbac.service';
+import {
+  RolesController,
+  UserRolesController,
+} from './role-assignment.controller';
+import { RoleAssignmentService } from './role-assignment.service';
 
 @Module({
   imports: [
@@ -43,6 +49,7 @@ import { RbacService } from './rbac.service';
       RoleEntity,
       UserRoleAssignmentEntity,
       UserEntity,
+      WorkerEntity,
       AccessReviewCycleEntity,
       AccessReviewItemEntity,
       ComplianceProgrammeEntity,
@@ -59,10 +66,13 @@ import { RbacService } from './rbac.service';
     AccessReviewController,
     EvidenceController,
     ComplianceControlController,
+    RolesController,
+    UserRolesController,
   ],
   providers: [
     AuditLogService,
     RbacService,
+    RoleAssignmentService,
     AccessReviewService,
     DsarExportService,
     ComplianceControlSeedService,
@@ -80,6 +90,7 @@ import { RbacService } from './rbac.service';
   exports: [
     AuditLogService,
     RbacService,
+    RoleAssignmentService,
     TypeOrmModule,
     ComplianceControlSeedService,
     ControlTestRunnerService,

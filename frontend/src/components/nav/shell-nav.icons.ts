@@ -38,6 +38,7 @@ const ICONS: Record<string, LucideIcon> = {
   policies: ClipboardList,
   compliance: ShieldCheck,
   audit: ScrollText,
+  roles: Shield,
   documents: FileSignature,
   directory: Search,
   performance: Target,

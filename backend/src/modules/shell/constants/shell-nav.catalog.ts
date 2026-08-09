@@ -43,6 +43,7 @@ const PEOPLE_OPS_MODULES: ShellModuleItem[] = [
   { id: 'policies', href: '/people-ops/policies', group: 'people_ops', labelKey: 'policies_link' },
   { id: 'compliance', href: '/people-ops/compliance', group: 'people_ops', labelKey: 'compliance_link' },
   { id: 'audit', href: '/people-ops/audit', group: 'people_ops', labelKey: 'audit_link' },
+  { id: 'roles', href: '/people-ops/roles', group: 'people_ops', labelKey: 'roles_link' },
   { id: 'leave_admin', href: '/people-ops/leave', group: 'people_ops', labelKey: 'leave_admin_link' },
   { id: 'documents_register', href: '/people-ops/documents/register', group: 'people_ops', labelKey: 'document_register_link' },
   { id: 'templates', href: '/people-ops/templates', group: 'people_ops', labelKey: 'templates_link' },
