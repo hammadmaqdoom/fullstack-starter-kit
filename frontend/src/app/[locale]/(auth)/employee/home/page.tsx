@@ -1,16 +1,21 @@
 'use client';
 
 import type { TodayAttendance } from '@/libs/api/attendance';
+import type { WeekStripDay } from '@/libs/datetime/week-strip-days';
+import { WeekAttendanceStrip } from '@/components/calendar/WeekAttendanceStrip';
+import { OfflineBanner, useOnlineStatus } from '@/components/ui/OfflineBanner';
+import { ApiRequestError } from '@/libs/api/client';
+import { checkIn, checkOut, getTodayAttendance } from '@/libs/api/attendance';
+import { getMyCalendar } from '@/libs/api/calendars';
+import { weekRange } from '@/libs/datetime/calendar-range';
+import { buildWeekStripDays } from '@/libs/datetime/week-strip-days';
+import { notifyAttendanceUpdated } from '@/libs/shell/attendance-events';
 import { AlertCircle, LogIn, LogOut, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { Skeleton } from 'primereact/skeleton';
 import { useCallback, useEffect, useState } from 'react';
-import { OfflineBanner, useOnlineStatus } from '@/components/ui/OfflineBanner';
-import { ApiRequestError } from '@/libs/api/client';
-import { checkIn, checkOut, getTodayAttendance } from '@/libs/api/attendance';
-import { notifyAttendanceUpdated } from '@/libs/shell/attendance-events';
 
 function formatPunchTime(iso: string | null | undefined): string {
   if (!iso) {
@@ -36,6 +41,12 @@ export default function EmployeeHomePage() {
   const [error, setError] = useState<string | null>(null);
   const [punchError, setPunchError] = useState<string | null>(null);
 
+  const [weekDays, setWeekDays] = useState<WeekStripDay[]>([]);
+  const [weekTimezone, setWeekTimezone] = useState('UTC');
+  const [weekToday, setWeekToday] = useState(() => new Date().toISOString().slice(0, 10));
+  const [weekLoading, setWeekLoading] = useState(true);
+  const [weekError, setWeekError] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -50,9 +61,45 @@ export default function EmployeeHomePage() {
     }
   }, [t]);
 
+  const loadWeek = useCallback(async () => {
+    setWeekLoading(true);
+    setWeekError(null);
+    try {
+      const range = weekRange(new Date());
+      const { data } = await getMyCalendar(range);
+      setWeekDays(buildWeekStripDays(data.from, data.to, data.days));
+      setWeekTimezone(data.timezone);
+      try {
+        setWeekToday(
+          new Intl.DateTimeFormat('en-CA', {
+            timeZone: data.timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }).format(new Date()),
+        );
+      } catch {
+        setWeekToday(new Date().toISOString().slice(0, 10));
+      }
+    } catch (err) {
+      setWeekDays([]);
+      setWeekError(err instanceof ApiRequestError ? err.message : t('week_error'));
+    } finally {
+      setWeekLoading(false);
+    }
+  }, [t]);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([load(), loadWeek()]);
+  }, [load, loadWeek]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadWeek();
+  }, [loadWeek]);
 
   const status = today?.daySummary?.status ?? null;
   const isCheckedIn = status === 'in';
@@ -83,6 +130,7 @@ export default function EmployeeHomePage() {
             },
       );
       notifyAttendanceUpdated();
+      void loadWeek();
     } catch (err) {
       const alreadyIn
         = err instanceof ApiRequestError
@@ -91,6 +139,7 @@ export default function EmployeeHomePage() {
       if (alreadyIn) {
         await load();
         notifyAttendanceUpdated();
+        void loadWeek();
         setPunchError(null);
       } else {
         setPunchError(err instanceof ApiRequestError ? err.message : t('error_punch'));
@@ -114,8 +163,8 @@ export default function EmployeeHomePage() {
           severity="secondary"
           outlined
           className="gap-2"
-          onClick={() => void load()}
-          disabled={isLoading || !isOnline}
+          onClick={() => void refreshAll()}
+          disabled={isLoading || weekLoading || !isOnline}
         >
           <RefreshCw className="size-4" aria-hidden />
           {t('retry')}
@@ -232,6 +281,20 @@ export default function EmployeeHomePage() {
               )}
         </section>
       )}
+
+      <section
+        className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+        aria-label={t('week_title')}
+      >
+        <WeekAttendanceStrip
+          days={weekDays}
+          timezone={weekTimezone}
+          today={weekToday}
+          loading={weekLoading}
+          error={weekError}
+          onRetry={() => void loadWeek()}
+        />
+      </section>
 
       <section className="rounded-xl border border-gray-200 bg-gray-50 p-5">
         <h2 className="text-sm font-semibold text-gray-900">{t('leave_balances_section')}</h2>
