@@ -1,10 +1,10 @@
 # IPMS End-to-End Completion — Design
 
 **Date:** 2026-08-09  
-**Status:** Draft — awaiting user review  
+**Status:** Approved  
 **Product:** Polaris (Digitaro HRMS)  
-**Related:** US-TAL-004, FR-TAL-005 (SRS), `backend/src/modules/talent/`, Hub performance item types in `operations/hub.service.ts`, demo accounts `2026-08-08-demo-accounts.md`  
-**Plan:** Create `docs/superpowers/plans/2026-08-09-ipms-end-to-end.md` after this spec is approved
+**Related:** US-TAL-004, FR-TAL-005 (SRS), FLW-TAL-004 (calibration — cited in `talent.service.ts`), Hub performance item types in `operations/hub.service.ts`, demo accounts `2026-08-08-demo-accounts.md`  
+**Plan:** [../plans/2026-08-09-ipms-end-to-end.md](../plans/2026-08-09-ipms-end-to-end.md)
 
 ## Problem
 
