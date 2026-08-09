@@ -45,6 +45,30 @@ export type OneOnOneMeeting = {
   agenda: string | null;
 };
 
+export type AssessmentQuestionType =
+  | 'short_text'
+  | 'long_text'
+  | 'rating'
+  | 'yes_no'
+  | 'single_choice'
+  | 'multi_choice';
+
+export type AssessmentQuestion = {
+  id: string;
+  type: AssessmentQuestionType;
+  label: string;
+  required: boolean;
+  helpText?: string;
+  scaleMin?: number;
+  scaleMax?: number;
+  options?: { id: string; label: string }[];
+};
+
+export type AssessmentPayload = {
+  questionsSnapshot: AssessmentQuestion[];
+  answers: Record<string, string | number | boolean | string[]>;
+};
+
 export type PerformanceReview = {
   id: string;
   cycleId: string;
@@ -54,6 +78,9 @@ export type PerformanceReview = {
   outcome: string | null;
   selfAssessment: string | null;
   managerAssessment: string | null;
+  selfAssessmentPayload?: AssessmentPayload | null;
+  managerAssessmentPayload?: AssessmentPayload | null;
+  cycle?: PerformanceCycle | null;
 };
 
 export type DevelopmentPlan = {
@@ -129,6 +156,8 @@ export type PerformanceCycle = {
   periodEnd: string;
   peerFeedbackEnabled: boolean;
   calibrationEnabled?: boolean;
+  selfAssessmentTemplate?: AssessmentQuestion[];
+  managerAssessmentTemplate?: AssessmentQuestion[];
 };
 
 export type CalibrationReview = PerformanceReview & {
@@ -276,8 +305,26 @@ export async function createCycle(input: {
   periodEnd: string;
   peerFeedbackEnabled?: boolean;
   calibrationEnabled?: boolean;
+  selfAssessmentTemplate?: AssessmentQuestion[];
+  managerAssessmentTemplate?: AssessmentQuestion[];
 }) {
   return apiRequest<PerformanceCycle>(`${BASE}/performance-cycles`, { method: 'POST', body: input });
+}
+
+export async function updateCycle(
+  id: string,
+  input: {
+    status?: string;
+    name?: string;
+    peerFeedbackEnabled?: boolean;
+    selfAssessmentTemplate?: AssessmentQuestion[];
+    managerAssessmentTemplate?: AssessmentQuestion[];
+  },
+) {
+  return apiRequest<PerformanceCycle>(`${BASE}/performance-cycles/${id}`, {
+    method: 'PATCH',
+    body: input,
+  });
 }
 
 export async function activateCycle(id: string) {
@@ -285,6 +332,10 @@ export async function activateCycle(id: string) {
     method: 'PATCH',
     body: { status: 'active' },
   });
+}
+
+export async function getReview(id: string) {
+  return apiRequest<PerformanceReview>(`${BASE}/reviews/${id}`);
 }
 
 export async function listReviews(cycleId?: string) {
@@ -295,7 +346,7 @@ export async function listReviews(cycleId?: string) {
 
 export async function submitSelfAssessment(
   reviewId: string,
-  input: { selfAssessment: string },
+  input: { answers: Record<string, string | number | boolean | string[]> },
 ) {
   return apiRequest(`${BASE}/reviews/${reviewId}/self-assessment`, {
     method: 'POST',
@@ -305,7 +356,11 @@ export async function submitSelfAssessment(
 
 export async function submitManagerReview(
   reviewId: string,
-  input: { managerAssessment: string; outcome: string },
+  input: {
+    answers: Record<string, string | number | boolean | string[]>;
+    outcome: string;
+    probationOutcome?: string;
+  },
 ) {
   return apiRequest(`${BASE}/reviews/${reviewId}/manager-review`, {
     method: 'POST',
