@@ -61,8 +61,11 @@ import { PayoutRailProfileEntity } from './entities/payout-rail-profile.entity';
 import { ProviderCapabilityCatalogEntity } from './entities/provider-capability-catalog.entity';
 import { PayoutBatchLineEntity } from './entities/payout-batch-line.entity';
 import { PayoutBatchEntity } from './entities/payout-batch.entity';
+import { AspirePayoutAdapter } from './integrations/aspire/aspire-payout.adapter';
+import { WisePayoutAdapter } from './integrations/wise/wise-payout.adapter';
 import { PayoutBatchController } from './payout-batch.controller';
 import { PayoutOrchestratorService } from './payout-orchestrator.service';
+import { PayoutWebhookController } from './webhooks/payout-webhook.controller';
 import {
   CsvExportProfileController,
   FundingAccountController,
@@ -153,6 +156,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayoutCorridorController,
     CsvExportProfileController,
     PayoutBatchController,
+    PayoutWebhookController,
   ],
   providers: [
     BenefitService,
@@ -167,6 +171,8 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayoutRailProfileService,
     CsvExportProfileService,
     PayoutOrchestratorService,
+    AspirePayoutAdapter,
+    WisePayoutAdapter,
     PayslipService,
     PayslipPdfService,
     PayslipBlobStorageService,

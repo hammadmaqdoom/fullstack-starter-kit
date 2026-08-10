@@ -21,6 +21,8 @@ import {
   PayoutRail,
 } from '../enums/payout.enum';
 import { PayRunStatus } from '../enums/payroll.enum';
+import { AspirePayoutAdapter } from '../integrations/aspire/aspire-payout.adapter';
+import { WisePayoutAdapter } from '../integrations/wise/wise-payout.adapter';
 import { PayoutOrchestratorService } from '../payout-orchestrator.service';
 import { PayoutRailResolverService } from '../payout-rail-resolver.service';
 
@@ -121,6 +123,14 @@ describe('PayoutOrchestratorService', () => {
         {
           provide: ExpenseSettlementService,
           useValue: { markPaidFromPayout: jest.fn() },
+        },
+        {
+          provide: AspirePayoutAdapter,
+          useValue: { submitBatch: jest.fn() },
+        },
+        {
+          provide: WisePayoutAdapter,
+          useValue: { submitBatch: jest.fn() },
         },
         { provide: AuditLogService, useValue: { append: jest.fn() } },
       ],

@@ -41,6 +41,12 @@ import {
   DEFAULT_CSV_COLUMNS,
   ManualCsvLine,
 } from './manual-csv.exporter';
+import { AspirePayoutAdapter } from './integrations/aspire/aspire-payout.adapter';
+import {
+  AspireNotConfiguredError,
+  WiseNotConfiguredError,
+} from './integrations/payout-adapter.types';
+import { WisePayoutAdapter } from './integrations/wise/wise-payout.adapter';
 import {
   PayoutRailResolverService,
   ResolvePayoutRailResult,
@@ -89,6 +95,8 @@ export class PayoutOrchestratorService {
     private readonly csvProfileRepository: Repository<CsvExportProfileEntity>,
     private readonly railResolver: PayoutRailResolverService,
     private readonly expenseSettlementService: ExpenseSettlementService,
+    private readonly aspirePayoutAdapter: AspirePayoutAdapter,
+    private readonly wisePayoutAdapter: WisePayoutAdapter,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -389,6 +397,114 @@ export class PayoutOrchestratorService {
     tenantId: string,
   ): Promise<PayoutBatchEntity> {
     return this.requireBatch(tenantId, batchId, true);
+  }
+
+  async executeProvider(
+    batchId: string,
+    actor: ActorContext,
+  ): Promise<PayoutBatchEntity> {
+    const batch = await this.requireBatch(actor.tenantId, batchId, true);
+    if (
+      batch.rail !== PayoutRail.ASPIRE &&
+      batch.rail !== PayoutRail.WISE
+    ) {
+      throw new BadRequestException(
+        'executeProvider only for aspire or wise rails — use executeManual',
+      );
+    }
+    if (!batch.fundingAccountId) {
+      throw new BadRequestException('Funding account required');
+    }
+    const funding = await this.fundingRepository.findOne({
+      where: {
+        id: batch.fundingAccountId,
+        tenantId: actor.tenantId,
+        deletedAt: IsNull(),
+      },
+    });
+    if (!funding) {
+      throw new NotFoundException('Funding account not found');
+    }
+
+    const lines = await this.lineRepository.find({
+      where: {
+        tenantId: actor.tenantId,
+        batchId: batch.id,
+        status: PayoutLineStatus.PENDING,
+      },
+    });
+
+    batch.status = PayoutBatchStatus.SUBMITTED;
+    await this.batchRepository.save(batch);
+
+    try {
+      const adapter =
+        batch.rail === PayoutRail.ASPIRE
+          ? this.aspirePayoutAdapter
+          : this.wisePayoutAdapter;
+      const result = await adapter.submitBatch(batch, lines, funding);
+      batch.providerBatchId = result.providerBatchId;
+      batch.status = PayoutBatchStatus.PROCESSING;
+      await this.batchRepository.save(batch);
+
+      for (const line of lines) {
+        const externalId = result.lineExternalIds[line.id];
+        if (externalId) {
+          line.providerTransferId = externalId;
+          line.status = PayoutLineStatus.SUBMITTED;
+          await this.lineRepository.save(line);
+        }
+      }
+    } catch (err) {
+      batch.status = PayoutBatchStatus.FAILED;
+      const reason =
+        err instanceof AspireNotConfiguredError ||
+        err instanceof WiseNotConfiguredError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Provider submit failed';
+      batch.reasonCodes = [...(batch.reasonCodes ?? []), reason];
+      await this.batchRepository.save(batch);
+      throw err;
+    }
+
+    await this.auditLogService.append({
+      tenantId: actor.tenantId,
+      actorId: actor.userId,
+      action: 'payout_batch.execute_provider',
+      entityType: 'payout_batch',
+      entityId: batch.id,
+      changes: {
+        rail: { old: null, new: batch.rail },
+        providerBatchId: { old: null, new: batch.providerBatchId },
+      },
+      correlationId: actor.correlationId,
+      ipAddress: actor.ipAddress,
+    });
+
+    return this.requireBatch(actor.tenantId, batch.id, true);
+  }
+
+  async retryWithSecondary(
+    batchId: string,
+    actor: ActorContext,
+  ): Promise<PayoutBatchEntity> {
+    const batch = await this.requireBatch(actor.tenantId, batchId);
+    if (batch.status !== PayoutBatchStatus.FAILED) {
+      throw new BadRequestException('Only failed batches can retry secondary');
+    }
+    if (batch.rail !== PayoutRail.ASPIRE) {
+      throw new BadRequestException('Secondary retry only from Aspire primary');
+    }
+    batch.rail = PayoutRail.WISE;
+    batch.status = PayoutBatchStatus.PREVIEWED;
+    batch.reasonCodes = [
+      ...(batch.reasonCodes ?? []),
+      'RETRY_WITH_SECONDARY_WISE',
+    ];
+    await this.batchRepository.save(batch);
+    return this.executeProvider(batchId, actor);
   }
 
   private async requireBatch(

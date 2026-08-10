@@ -111,6 +111,36 @@ export class PayoutBatchController {
       .send(result.csv);
   }
 
+  @Post(':id/execute-provider')
+  @Roles(PolarisRoleCode.FINANCE, PolarisRoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Submit batch to Aspire or Wise' })
+  executeProvider(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.payoutOrchestratorService.executeProvider(
+      id,
+      this.actor(session, correlationId, request),
+    );
+  }
+
+  @Post(':id/retry-with-secondary')
+  @Roles(PolarisRoleCode.FINANCE, PolarisRoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Retry a failed Aspire batch on Wise' })
+  retryWithSecondary(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.payoutOrchestratorService.retryWithSecondary(
+      id,
+      this.actor(session, correlationId, request),
+    );
+  }
+
   @Post(':id/confirm-manual-paid')
   @Roles(PolarisRoleCode.FINANCE, PolarisRoleCode.SUPER_ADMIN)
   @ApiOperation({ summary: 'Confirm manual bank payments with references' })
