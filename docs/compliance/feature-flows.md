@@ -14,8 +14,33 @@
 | FLW-HR-001 | Worker CRUD with field redaction | core-hr | `audit_log` |
 | FLW-TAL-002 | Day-1 onboarding gates | talent | onboarding checklist |
 | FLW-TAL-006 | Pre-boarding packet | talent | pre-boarding |
+| FLW-PAY-010 | Payout batch execution (Aspire / Wise / manual) | payroll | `payout_batches` + provider webhooks + remittance refs |
+| FLW-OPS-002 | Expense settlement mode selection | operations | `expense_claims.settlementMode` + double-pay guard |
 
 Other module FLW-* entries continue to live in PRD / implementation plans; add them here when rewritten.
+
+---
+
+## FLW-PAY-010 — Payout batch execution
+
+1. Authenticate Finance / Super Admin.  
+2. Authorise tenant + finance role.  
+3. Preview lines from pay run / standalone expenses / contractor batch; resolve rail via Model C (entity default + corridor override + capability catalog).  
+4. Select funding account matching chosen rail (`aspire` | `wise` | `manual_bank`).  
+5. Create draft batch; execute provider (API) or manual CSV; confirm paid with references.  
+6. On line paid: stamp remittance pack `paymentReference` / proof docs; mark expense paid when applicable.  
+7. Audit `payout_batch.*` mutations; webhooks update line/batch status idempotently.
+
+Control: payout rail catalogs — never hard-code country branches.
+
+---
+
+## FLW-OPS-002 — Expense settlement modes
+
+1. Finance sets `settlementMode` on approve: `bundle_with_payroll` | `standalone_payout` | `export_only`.  
+2. Bundle attaches to pay-run line; standalone eligible for expense reimbursement payout batch; export-only never paid via payout rails.  
+3. Card-funded claims (`cardTransactionId`) are forced `export_only` and cannot switch to `standalone_payout` (`CARD_FUNDED`).  
+4. Double-pay guard: claim already attached to pay run cannot enter standalone payout.
 
 ---
 

@@ -213,6 +213,10 @@
 - [x] `payslips` + employee self-service
 - [x] `pay_run_export_batches` (PDF + Excel)
 - [x] Finance export column mappings per country/entity
+- [x] Payout rails (Aspire primary / Wise secondary / manual bank CSV) — funding accounts, Model C corridor resolver, payout batches, webhooks, remittance ref linkage
+- [x] Expense settlement modes (`bundle_with_payroll` | `standalone_payout` | `export_only`) with double-pay guard
+- [x] Aspire bank feed sync + match API + Finance UI
+- [x] Corporate cards (Aspire/Wise) + allocate to draft `export_only` expense
 
 ### 2.3 Contractor portal
 
