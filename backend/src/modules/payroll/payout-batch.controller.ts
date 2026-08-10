@@ -6,14 +6,19 @@ import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.en
 import {
   Body,
   Controller,
+  Get,
   Headers,
+  Param,
+  ParseUUIDPipe,
   Post,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
+  ConfirmManualPaidDto,
   CreatePayoutBatchDto,
   PreviewPayoutBatchDto,
 } from './dto/payout-batch.dto';
@@ -64,6 +69,60 @@ export class PayoutBatchController {
     @Req() request?: FastifyRequest,
   ) {
     return this.payoutOrchestratorService.createDraft(
+      dto,
+      this.actor(session, correlationId, request),
+    );
+  }
+
+  @Get(':id')
+  @Roles(
+    PolarisRoleCode.FINANCE,
+    PolarisRoleCode.SUPER_ADMIN,
+    PolarisRoleCode.PEOPLE_OPS,
+  )
+  @ApiOperation({ summary: 'Get payout batch detail' })
+  get(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.payoutOrchestratorService.getBatch(id, DIGITARO_TENANT_ID);
+  }
+
+  @Post(':id/execute-manual')
+  @Roles(PolarisRoleCode.FINANCE, PolarisRoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Generate manual bank CSV and mark batch submitted' })
+  async executeManual(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ) {
+    const result = await this.payoutOrchestratorService.executeManual(
+      id,
+      this.actor(session, correlationId, request),
+    );
+    reply
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header(
+        'Content-Disposition',
+        `attachment; filename="${result.fileName}"`,
+      )
+      .send(result.csv);
+  }
+
+  @Post(':id/confirm-manual-paid')
+  @Roles(PolarisRoleCode.FINANCE, PolarisRoleCode.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Confirm manual bank payments with references' })
+  confirmManualPaid(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ConfirmManualPaidDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.payoutOrchestratorService.confirmManualPaid(
+      id,
       dto,
       this.actor(session, correlationId, request),
     );

@@ -2,11 +2,14 @@ import { AuditLogService } from '@/modules/compliance/audit-log.service';
 import { DIGITARO_TENANT_ID } from '@/modules/compliance/constants/tenant.constants';
 import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
 import { WorkerBankAccountEntity } from '@/modules/core-hr/entities/worker-bank-account.entity';
+import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { ExpenseClaimEntity } from '@/modules/operations/entities/expense-claim.entity';
+import { ExpenseSettlementService } from '@/modules/operations/expense-settlement.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ContractorPaymentLineEntity } from '../entities/contractor-payment-line.entity';
+import { CsvExportProfileEntity } from '../entities/csv-export-profile.entity';
 import { FundingAccountEntity } from '../entities/funding-account.entity';
 import { PayRunLineItemEntity } from '../entities/pay-run-line-item.entity';
 import { PayRunEntity } from '../entities/pay-run.entity';
@@ -63,6 +66,7 @@ describe('PayoutOrchestratorService', () => {
           useValue: {
             save: batchSave,
             create: (r: unknown) => r,
+            findOne: jest.fn(),
             findOneOrFail: jest.fn(async () => ({
               id: 'batch-1',
               lines: [],
@@ -71,7 +75,11 @@ describe('PayoutOrchestratorService', () => {
         },
         {
           provide: getRepositoryToken(PayoutBatchLineEntity),
-          useValue: { save: lineSave, create: (r: unknown) => r },
+          useValue: {
+            save: lineSave,
+            create: (r: unknown) => r,
+            find: jest.fn().mockResolvedValue([]),
+          },
         },
         {
           provide: getRepositoryToken(PayRunEntity),
@@ -101,7 +109,19 @@ describe('PayoutOrchestratorService', () => {
           provide: getRepositoryToken(WorkerBankAccountEntity),
           useValue: { findOne: bankFindOne },
         },
+        {
+          provide: getRepositoryToken(WorkerEntity),
+          useValue: { findOne: jest.fn() },
+        },
+        {
+          provide: getRepositoryToken(CsvExportProfileEntity),
+          useValue: { findOne: jest.fn() },
+        },
         { provide: PayoutRailResolverService, useValue: { resolve } },
+        {
+          provide: ExpenseSettlementService,
+          useValue: { markPaidFromPayout: jest.fn() },
+        },
         { provide: AuditLogService, useValue: { append: jest.fn() } },
       ],
     }).compile();
@@ -166,5 +186,22 @@ describe('PayoutOrchestratorService', () => {
     );
 
     expect(preview.lines[0].issues).toContain('MISSING_BANK');
+  });
+
+  it('rejects executeManual when rail is not manual_bank', async () => {
+    const batchRepo = (
+      service as unknown as {
+        batchRepository: { findOne: jest.Mock };
+      }
+    ).batchRepository;
+    batchRepo.findOne = jest.fn().mockResolvedValue({
+      id: 'batch-1',
+      rail: PayoutRail.ASPIRE,
+      tenantId: DIGITARO_TENANT_ID,
+    });
+
+    await expect(
+      service.executeManual('batch-1', actor),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

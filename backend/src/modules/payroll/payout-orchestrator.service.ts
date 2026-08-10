@@ -1,11 +1,13 @@
 import { AuditLogService } from '@/modules/compliance/audit-log.service';
 import { WorkerBankAccountEntity } from '@/modules/core-hr/entities/worker-bank-account.entity';
 import { LegalEntityEntity } from '@/modules/core-hr/entities/legal-entity.entity';
+import { WorkerEntity } from '@/modules/core-hr/entities/worker.entity';
 import { ExpenseClaimEntity } from '@/modules/operations/entities/expense-claim.entity';
 import {
   ExpenseClaimStatus,
   ExpenseSettlementMode,
 } from '@/modules/operations/enums/expense.enum';
+import { ExpenseSettlementService } from '@/modules/operations/expense-settlement.service';
 import {
   BadRequestException,
   Injectable,
@@ -14,9 +16,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Repository } from 'typeorm';
 import {
+  ConfirmManualPaidDto,
   CreatePayoutBatchDto,
   PreviewPayoutBatchDto,
 } from './dto/payout-batch.dto';
+import { CsvExportProfileEntity } from './entities/csv-export-profile.entity';
 import { FundingAccountEntity } from './entities/funding-account.entity';
 import { PayRunLineItemEntity } from './entities/pay-run-line-item.entity';
 import { PayRunEntity } from './entities/pay-run.entity';
@@ -32,6 +36,11 @@ import {
   PayoutSourceType,
 } from './enums/payout.enum';
 import { PayRunStatus } from './enums/payroll.enum';
+import {
+  buildManualCsv,
+  DEFAULT_CSV_COLUMNS,
+  ManualCsvLine,
+} from './manual-csv.exporter';
 import {
   PayoutRailResolverService,
   ResolvePayoutRailResult,
@@ -74,7 +83,12 @@ export class PayoutOrchestratorService {
     private readonly legalEntityRepository: Repository<LegalEntityEntity>,
     @InjectRepository(WorkerBankAccountEntity)
     private readonly bankRepository: Repository<WorkerBankAccountEntity>,
+    @InjectRepository(WorkerEntity)
+    private readonly workerRepository: Repository<WorkerEntity>,
+    @InjectRepository(CsvExportProfileEntity)
+    private readonly csvProfileRepository: Repository<CsvExportProfileEntity>,
     private readonly railResolver: PayoutRailResolverService,
+    private readonly expenseSettlementService: ExpenseSettlementService,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -207,6 +221,189 @@ export class PayoutOrchestratorService {
       where: { id: batch.id },
       relations: ['lines'],
     });
+  }
+
+  async executeManual(
+    batchId: string,
+    actor: ActorContext,
+  ): Promise<{ csv: Buffer; fileName: string; batchId: string }> {
+    const batch = await this.requireBatch(actor.tenantId, batchId);
+    if (batch.rail !== PayoutRail.MANUAL_BANK) {
+      throw new BadRequestException('executeManual only allowed for manual_bank rail');
+    }
+
+    const lines = await this.lineRepository.find({
+      where: {
+        tenantId: actor.tenantId,
+        batchId: batch.id,
+        status: In([PayoutLineStatus.PENDING, PayoutLineStatus.SKIPPED]),
+      },
+    });
+
+    let profile: CsvExportProfileEntity | null = null;
+    if (batch.csvExportProfileId) {
+      profile = await this.csvProfileRepository.findOne({
+        where: { id: batch.csvExportProfileId, tenantId: actor.tenantId },
+      });
+    }
+    if (!profile) {
+      profile = await this.csvProfileRepository.findOne({
+        where: {
+          tenantId: actor.tenantId,
+          legalEntityId: batch.legalEntityId,
+          isDefault: true,
+        },
+      });
+    }
+
+    const csvProfile = profile ?? {
+      columns: DEFAULT_CSV_COLUMNS,
+      includePayerFromFundingAccount: true,
+    };
+
+    const funding = batch.fundingAccountId
+      ? await this.fundingRepository.findOne({
+          where: { id: batch.fundingAccountId, tenantId: actor.tenantId },
+        })
+      : null;
+
+    const csvLines: ManualCsvLine[] = [];
+    for (const line of lines) {
+      if (line.status === PayoutLineStatus.SKIPPED) continue;
+      const worker = await this.workerRepository.findOne({
+        where: { id: line.workerId, tenantId: actor.tenantId },
+      });
+      const bank = await this.bankRepository.findOne({
+        where: {
+          tenantId: actor.tenantId,
+          workerId: line.workerId,
+          isPrimary: true,
+        },
+      });
+      csvLines.push({
+        workerEmployeeId: worker?.employeeNumber ?? line.workerId,
+        workerName: worker
+          ? `${worker.firstName ?? ''} ${worker.lastName ?? ''}`.trim()
+          : line.workerId,
+        accountNumber: '',
+        iban: '',
+        bankCode: bank?.swiftBic ?? '',
+        amount: line.amount,
+        currency: line.currency,
+        narration: `Polaris payout ${batch.id.slice(0, 8)}`,
+      });
+    }
+
+    const csv = buildManualCsv(csvProfile, csvLines, funding);
+    batch.status = PayoutBatchStatus.SUBMITTED;
+    await this.batchRepository.save(batch);
+
+    await this.auditLogService.append({
+      tenantId: actor.tenantId,
+      actorId: actor.userId,
+      action: 'payout_batch.execute_manual',
+      entityType: 'payout_batch',
+      entityId: batch.id,
+      changes: {
+        status: { old: PayoutBatchStatus.PREVIEWED, new: batch.status },
+        lineCount: { old: null, new: csvLines.length },
+      },
+      correlationId: actor.correlationId,
+      ipAddress: actor.ipAddress,
+    });
+
+    return {
+      csv,
+      fileName: `payout-${batch.id.slice(0, 8)}.csv`,
+      batchId: batch.id,
+    };
+  }
+
+  async confirmManualPaid(
+    batchId: string,
+    dto: ConfirmManualPaidDto,
+    actor: ActorContext,
+  ): Promise<PayoutBatchEntity> {
+    const batch = await this.requireBatch(actor.tenantId, batchId);
+    if (batch.rail !== PayoutRail.MANUAL_BANK) {
+      throw new BadRequestException('confirmManualPaid only for manual_bank');
+    }
+
+    const refByLine = new Map(
+      dto.refs.map((r) => [r.lineId, r.paymentReference]),
+    );
+    const lines = await this.lineRepository.find({
+      where: { tenantId: actor.tenantId, batchId: batch.id },
+    });
+
+    let paidCount = 0;
+    for (const line of lines) {
+      const ref = refByLine.get(line.id);
+      if (!ref) continue;
+      line.paymentReference = ref;
+      line.status = PayoutLineStatus.PAID;
+      await this.lineRepository.save(line);
+      paidCount += 1;
+
+      if (line.sourceType === PayoutSourceType.EXPENSE_CLAIM) {
+        await this.expenseSettlementService.markPaidFromPayout(
+          actor.tenantId,
+          line.sourceId,
+        );
+      }
+    }
+
+    const refreshed = await this.lineRepository.find({
+      where: { tenantId: actor.tenantId, batchId: batch.id },
+    });
+    const pendingLeft = refreshed.some(
+      (l) => l.status === PayoutLineStatus.PENDING,
+    );
+    batch.status = pendingLeft
+      ? PayoutBatchStatus.PARTIALLY_PAID
+      : PayoutBatchStatus.PAID;
+    await this.batchRepository.save(batch);
+
+    await this.auditLogService.append({
+      tenantId: actor.tenantId,
+      actorId: actor.userId,
+      action: 'payout_batch.confirm_manual_paid',
+      entityType: 'payout_batch',
+      entityId: batch.id,
+      changes: {
+        status: { old: null, new: batch.status },
+        paidCount: { old: null, new: paidCount },
+      },
+      correlationId: actor.correlationId,
+      ipAddress: actor.ipAddress,
+    });
+
+    return this.batchRepository.findOneOrFail({
+      where: { id: batch.id },
+      relations: ['lines'],
+    });
+  }
+
+  async getBatch(
+    batchId: string,
+    tenantId: string,
+  ): Promise<PayoutBatchEntity> {
+    return this.requireBatch(tenantId, batchId, true);
+  }
+
+  private async requireBatch(
+    tenantId: string,
+    batchId: string,
+    withLines = false,
+  ): Promise<PayoutBatchEntity> {
+    const batch = await this.batchRepository.findOne({
+      where: { id: batchId, tenantId },
+      relations: withLines ? ['lines'] : undefined,
+    });
+    if (!batch) {
+      throw new NotFoundException('Payout batch not found');
+    }
+    return batch;
   }
 
   private async buildPreviewLines(
