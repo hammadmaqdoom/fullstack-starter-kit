@@ -51,6 +51,8 @@ import {
   PayoutRailResolverService,
   ResolvePayoutRailResult,
 } from './payout-rail-resolver.service';
+import { RemittancePaymentSourceType } from './enums/remittance.enum';
+import { RemittanceService } from './remittance.service';
 
 type ActorContext = {
   userId: string;
@@ -95,10 +97,76 @@ export class PayoutOrchestratorService {
     private readonly csvProfileRepository: Repository<CsvExportProfileEntity>,
     private readonly railResolver: PayoutRailResolverService,
     private readonly expenseSettlementService: ExpenseSettlementService,
+    private readonly remittanceService: RemittanceService,
     private readonly aspirePayoutAdapter: AspirePayoutAdapter,
     private readonly wisePayoutAdapter: WisePayoutAdapter,
     private readonly auditLogService: AuditLogService,
   ) {}
+
+  /**
+   * Shared post-paid hooks: expense settlement + remittance pack refs +
+   * source-line paymentReference stamp.
+   */
+  async onLinePaid(
+    line: PayoutBatchLineEntity,
+    actor: ActorContext,
+  ): Promise<void> {
+    const paymentReference =
+      line.paymentReference?.trim() ||
+      line.providerTransferId?.trim() ||
+      '';
+    if (!paymentReference) {
+      return;
+    }
+
+    if (line.sourceType === PayoutSourceType.EXPENSE_CLAIM) {
+      await this.expenseSettlementService.markPaidFromPayout(
+        actor.tenantId,
+        line.sourceId,
+      );
+      return;
+    }
+
+    if (line.sourceType === PayoutSourceType.PAY_RUN_LINE) {
+      const payLine = await this.payRunLineRepository.findOne({
+        where: { id: line.sourceId, tenantId: actor.tenantId },
+      });
+      if (payLine) {
+        payLine.paymentReference = paymentReference;
+        await this.payRunLineRepository.save(payLine);
+      }
+      await this.remittanceService.applyPayoutPaymentReference({
+        tenantId: actor.tenantId,
+        paymentSourceType: RemittancePaymentSourceType.PAY_RUN_LINE,
+        paymentSourceId: line.sourceId,
+        paymentReference,
+        providerTransferId: line.providerTransferId,
+        actor,
+      });
+      return;
+    }
+
+    if (line.sourceType === PayoutSourceType.CONTRACTOR_PAYMENT_LINE) {
+      const contractorLine = await this.contractorLineRepository.findOne({
+        where: { id: line.sourceId, tenantId: actor.tenantId },
+      });
+      if (contractorLine) {
+        contractorLine.paymentReference = paymentReference;
+        if (!contractorLine.paidAt) {
+          contractorLine.paidAt = new Date();
+        }
+        await this.contractorLineRepository.save(contractorLine);
+      }
+      await this.remittanceService.applyPayoutPaymentReference({
+        tenantId: actor.tenantId,
+        paymentSourceType: RemittancePaymentSourceType.CONTRACTOR_PAYMENT_LINE,
+        paymentSourceId: line.sourceId,
+        paymentReference,
+        providerTransferId: line.providerTransferId,
+        actor,
+      });
+    }
+  }
 
   async preview(
     dto: PreviewPayoutBatchDto,
@@ -352,13 +420,7 @@ export class PayoutOrchestratorService {
       line.status = PayoutLineStatus.PAID;
       await this.lineRepository.save(line);
       paidCount += 1;
-
-      if (line.sourceType === PayoutSourceType.EXPENSE_CLAIM) {
-        await this.expenseSettlementService.markPaidFromPayout(
-          actor.tenantId,
-          line.sourceId,
-        );
-      }
+      await this.onLinePaid(line, actor);
     }
 
     const refreshed = await this.lineRepository.find({

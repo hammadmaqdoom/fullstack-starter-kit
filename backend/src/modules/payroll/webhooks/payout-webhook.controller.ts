@@ -15,6 +15,7 @@ import { Repository } from 'typeorm';
 import { PayoutBatchLineEntity } from '../entities/payout-batch-line.entity';
 import { PayoutBatchEntity } from '../entities/payout-batch.entity';
 import { PayoutBatchStatus, PayoutLineStatus } from '../enums/payout.enum';
+import { PayoutOrchestratorService } from '../payout-orchestrator.service';
 
 @ApiExcludeController()
 @Controller({ path: 'webhooks', version: '1' })
@@ -25,6 +26,7 @@ export class PayoutWebhookController {
     private readonly lineRepository: Repository<PayoutBatchLineEntity>,
     @InjectRepository(PayoutBatchEntity)
     private readonly batchRepository: Repository<PayoutBatchEntity>,
+    private readonly payoutOrchestrator: PayoutOrchestratorService,
   ) {}
 
   @Post('aspire/payouts')
@@ -116,12 +118,22 @@ export class PayoutWebhookController {
 
     if (paidStates.some((s) => rawStatus.includes(s))) {
       line.status = PayoutLineStatus.PAID;
+      if (!line.paymentReference && line.providerTransferId) {
+        line.paymentReference = line.providerTransferId;
+      }
     } else if (failedStates.some((s) => rawStatus.includes(s))) {
       line.status = PayoutLineStatus.FAILED;
     } else {
       line.status = PayoutLineStatus.SUBMITTED;
     }
     await this.lineRepository.save(line);
+
+    if (line.status === PayoutLineStatus.PAID) {
+      await this.payoutOrchestrator.onLinePaid(line, {
+        userId: 'system-webhook',
+        tenantId: line.tenantId,
+      });
+    }
 
     const siblings = await this.lineRepository.find({
       where: { batchId: line.batchId, tenantId: line.tenantId },

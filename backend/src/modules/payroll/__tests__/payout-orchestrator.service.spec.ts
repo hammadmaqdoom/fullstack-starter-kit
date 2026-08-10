@@ -25,6 +25,7 @@ import { AspirePayoutAdapter } from '../integrations/aspire/aspire-payout.adapte
 import { WisePayoutAdapter } from '../integrations/wise/wise-payout.adapter';
 import { PayoutOrchestratorService } from '../payout-orchestrator.service';
 import { PayoutRailResolverService } from '../payout-rail-resolver.service';
+import { RemittanceService } from '../remittance.service';
 
 describe('PayoutOrchestratorService', () => {
   let service: PayoutOrchestratorService;
@@ -89,7 +90,7 @@ describe('PayoutOrchestratorService', () => {
         },
         {
           provide: getRepositoryToken(PayRunLineItemEntity),
-          useValue: { find: payRunLineFind },
+          useValue: { find: payRunLineFind, findOne: jest.fn(), save: jest.fn() },
         },
         {
           provide: getRepositoryToken(ExpenseClaimEntity),
@@ -97,7 +98,11 @@ describe('PayoutOrchestratorService', () => {
         },
         {
           provide: getRepositoryToken(ContractorPaymentLineEntity),
-          useValue: { find: jest.fn().mockResolvedValue([]) },
+          useValue: {
+            find: jest.fn().mockResolvedValue([]),
+            findOne: jest.fn(),
+            save: jest.fn(),
+          },
         },
         {
           provide: getRepositoryToken(FundingAccountEntity),
@@ -123,6 +128,10 @@ describe('PayoutOrchestratorService', () => {
         {
           provide: ExpenseSettlementService,
           useValue: { markPaidFromPayout: jest.fn() },
+        },
+        {
+          provide: RemittanceService,
+          useValue: { applyPayoutPaymentReference: jest.fn() },
         },
         {
           provide: AspirePayoutAdapter,

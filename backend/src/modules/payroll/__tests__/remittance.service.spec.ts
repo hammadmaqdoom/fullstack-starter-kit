@@ -577,6 +577,90 @@ describe('RemittanceService', () => {
     });
   });
 
+  describe('applyPayoutPaymentReference', () => {
+    it('stamps payment reference and completes payment-proof checklist items', async () => {
+      const pack = buildPack({ paymentReference: null });
+      packRepository.findOne.mockResolvedValue(pack);
+      documentRepository.find.mockResolvedValue([
+        {
+          id: 'doc-swift',
+          documentType: RemittanceDocumentType.SWIFT_COPY,
+          status: RemittanceDocumentStatus.PENDING,
+        },
+        {
+          id: 'doc-payslip',
+          documentType: RemittanceDocumentType.PAYSLIP_PDF,
+          status: RemittanceDocumentStatus.PENDING,
+        },
+      ]);
+      documentRepository.save.mockImplementation(async (row) => row);
+      documentRepository.find
+        .mockResolvedValueOnce([
+          {
+            id: 'doc-swift',
+            documentType: RemittanceDocumentType.SWIFT_COPY,
+            status: RemittanceDocumentStatus.PENDING,
+          },
+          {
+            id: 'doc-payslip',
+            documentType: RemittanceDocumentType.PAYSLIP_PDF,
+            status: RemittanceDocumentStatus.PENDING,
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            id: 'doc-swift',
+            status: RemittanceDocumentStatus.AVAILABLE,
+          },
+          {
+            id: 'doc-payslip',
+            status: RemittanceDocumentStatus.PENDING,
+          },
+        ]);
+
+      const result = await service.applyPayoutPaymentReference({
+        tenantId: DIGITARO_TENANT_ID,
+        paymentSourceType: RemittancePaymentSourceType.PAY_RUN_LINE,
+        paymentSourceId: lineId,
+        paymentReference: 'ASPIRE-TXN-9',
+        providerTransferId: 'asp_123',
+        actor: { userId },
+      });
+
+      expect(result?.paymentReference).toBe('ASPIRE-TXN-9');
+      expect(documentRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'doc-swift',
+          status: RemittanceDocumentStatus.AVAILABLE,
+          blobUrl: 'polaris://payout-ref/asp_123',
+        }),
+      );
+      expect(auditLogService.append).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'payroll.remittance_pack.apply_payout_reference',
+        }),
+      );
+      expect(packRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: RemittancePackStatus.PARTIAL }),
+      );
+    });
+
+    it('returns null when no remittance pack exists for the source', async () => {
+      packRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.applyPayoutPaymentReference({
+        tenantId: DIGITARO_TENANT_ID,
+        paymentSourceType: RemittancePaymentSourceType.PAY_RUN_LINE,
+        paymentSourceId: lineId,
+        paymentReference: 'REF',
+        actor: { userId },
+      });
+
+      expect(result).toBeNull();
+      expect(documentRepository.find).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getPackForPayRunLine', () => {
     it('returns the pack with its documents for a payroll admin', async () => {
       const pack = buildPack();

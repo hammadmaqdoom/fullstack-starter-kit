@@ -416,6 +416,82 @@ export class RemittanceService {
   }
 
   /**
+   * Hook from payout execution (manual confirm / provider webhook). When a
+   * remittance pack already exists for the payment source, stamp the payout
+   * reference and auto-complete payment-proof checklist items that only need
+   * a provider transfer id / bank reference (SWIFT / wire / bank proof).
+   */
+  async applyPayoutPaymentReference(input: {
+    tenantId: string;
+    paymentSourceType: RemittancePaymentSourceType;
+    paymentSourceId: string;
+    paymentReference: string;
+    providerTransferId?: string | null;
+    actor: ActorContext;
+  }): Promise<RemittancePackEntity | null> {
+    const pack = await this.packRepository.findOne({
+      where: {
+        tenantId: input.tenantId,
+        paymentSourceType: input.paymentSourceType,
+        paymentSourceId: input.paymentSourceId,
+      },
+    });
+    if (!pack) {
+      return null;
+    }
+
+    const previousRef = pack.paymentReference;
+    pack.paymentReference = input.paymentReference;
+    await this.packRepository.save(pack);
+
+    const proofTypes = new Set<RemittanceDocumentType>([
+      RemittanceDocumentType.SWIFT_COPY,
+      RemittanceDocumentType.BANK_PAYMENT_PROOF,
+      RemittanceDocumentType.WIRE_CONFIRMATION,
+    ]);
+    const documents = await this.documentRepository.find({
+      where: { tenantId: input.tenantId, packId: pack.id },
+    });
+    const proofRef =
+      input.providerTransferId?.trim() || input.paymentReference.trim();
+    const now = new Date();
+    for (const document of documents) {
+      if (
+        !proofTypes.has(document.documentType) ||
+        document.status === RemittanceDocumentStatus.AVAILABLE
+      ) {
+        continue;
+      }
+      document.status = RemittanceDocumentStatus.AVAILABLE;
+      document.source = RemittanceDocumentSource.AUTO;
+      document.blobUrl = `polaris://payout-ref/${proofRef}`;
+      document.uploadedBy = input.actor.userId;
+      document.uploadedAt = now;
+      await this.documentRepository.save(document);
+    }
+
+    await this.auditLogService.append({
+      tenantId: input.tenantId,
+      actorId: input.actor.userId,
+      action: 'payroll.remittance_pack.apply_payout_reference',
+      entityType: 'remittance_pack',
+      entityId: pack.id,
+      changes: {
+        paymentReference: { old: previousRef, new: pack.paymentReference },
+        providerTransferId: {
+          old: null,
+          new: input.providerTransferId ?? null,
+        },
+      },
+      correlationId: input.actor.correlationId,
+      ipAddress: input.actor.ipAddress,
+    });
+
+    await this.recomputePackStatus(pack, input.actor);
+    return pack;
+  }
+
+  /**
    * Picks the most specific active corridor: legal-entity-specific over
    * tenant-wide, `appliesTo`-specific over `all`, then most recent
    * `effectiveFrom`.
