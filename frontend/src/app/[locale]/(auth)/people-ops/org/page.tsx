@@ -3,7 +3,9 @@
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { PageSkeleton } from '@/components/shared/PageSkeleton';
+import { LegalEntityDetailDialog } from '@/components/org/LegalEntityDetailDialog';
 import { ApiRequestError } from '@/libs/api/client';
+import { listCountries } from '@/libs/api/country-config';
 import {
   createDepartment,
   createDivision,
@@ -37,6 +39,10 @@ export default function PeopleOpsOrgPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [legalEntities, setLegalEntities] = useState<LegalEntity[]>([]);
   const [offices, setOffices] = useState<OfficeLocation[]>([]);
+  const [countryOptions, setCountryOptions] = useState<
+    Array<{ label: string; value: string }>
+  >([]);
+  const [selectedLe, setSelectedLe] = useState<LegalEntity | null>(null);
   const [createOpen, setCreateOpen] = useState<
     null | 'division' | 'department' | 'legal' | 'office'
   >(null);
@@ -50,16 +56,26 @@ export default function PeopleOpsOrgPage() {
     setLoading(true);
     setError(null);
     try {
-      const [d, dept, le, o] = await Promise.all([
+      const [d, dept, le, o, countries] = await Promise.all([
         listDivisions(),
         listDepartments(),
         listLegalEntities(),
         listOfficeLocations(),
+        listCountries().catch(() => ({ data: [] as { countryCode: string; isActive: boolean }[] })),
       ]);
       setDivisions(d.data);
       setDepartments(dept.data);
       setLegalEntities(le.data);
       setOffices(o.data);
+      const options = (countries.data ?? [])
+        .filter(c => c.isActive)
+        .map(c => ({ label: c.countryCode, value: c.countryCode }));
+      setCountryOptions(options);
+      if (options[0]) {
+        setCountryCode(prev =>
+          options.some(opt => opt.value === prev) ? prev : options[0]!.value,
+        );
+      }
     } catch (err) {
       setError(
         err instanceof ApiRequestError ? err.message : t('error_load'),
@@ -215,6 +231,18 @@ export default function PeopleOpsOrgPage() {
                     <Column field="registeredName" header={t('col_name')} />
                     <Column field="countryCode" header={t('col_country')} />
                     <Column field="status" header={t('col_status')} />
+                    <Column
+                      header=""
+                      body={(row: LegalEntity) => (
+                        <Button
+                          type="button"
+                          text
+                          size="small"
+                          onClick={() => setSelectedLe(row)}
+                          label={t('manage_le')}
+                        />
+                      )}
+                    />
                   </DataTable>
                 </>
               )}
@@ -295,6 +323,13 @@ export default function PeopleOpsOrgPage() {
           />
         </div>
       </Dialog>
+
+      <LegalEntityDetailDialog
+        legalEntity={selectedLe}
+        divisions={divisions}
+        countryOptions={countryOptions}
+        onHide={() => setSelectedLe(null)}
+      />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -118,3 +120,136 @@ export class CreateOfficeLocationDto {
 export class UpdateOfficeLocationDto extends PartialType(
   CreateOfficeLocationDto,
 ) {}
+
+export class CreateLegalEntityDivisionMappingDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  divisionId?: string | null;
+
+  @ApiProperty({ example: 'PK' })
+  @IsString()
+  @Length(2, 2)
+  countryCode!: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+
+  @ApiPropertyOptional({ default: 100 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  priority?: number;
+
+  @ApiProperty()
+  @IsDateString()
+  effectiveFrom!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: string | null;
+}
+
+export class CreateLegalEntityCurrencyDto {
+  @ApiProperty({ example: 'PKR' })
+  @IsString()
+  @Length(3, 3)
+  currencyCode!: string;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class UpdateLegalEntityCurrencyDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class CreateLegalEntitySignatoryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  workerId?: string | null;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(255)
+  name!: string;
+
+  @ApiProperty()
+  @IsString()
+  @MaxLength(100)
+  title!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  email?: string | null;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+
+  @ApiProperty()
+  @IsDateString()
+  effectiveFrom!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: string | null;
+}
+
+export class UpdateLegalEntitySignatoryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  title?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  email?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: string | null;
+}

@@ -28,9 +28,9 @@
 | `departments` | §6.2 | Y | Y | No CRUD | N | — | `orphan` | W1 |
 | `legal_entities` | §6.2 | Y | Y | GET/PATCH partial | Letterheads partial | PO/SA | `partial` | W1 full CRUD |
 | `legal_entity_statutory_ids` | DB | Y | Y | Seed / merge | Register merge | — | `partial` | W1 LE editor |
-| `legal_entity_division_mappings` | Schema gap | Y | Y | N | N | — | `orphan` | W1 |
-| `legal_entity_currencies` | Schema gap | Y | Y | N | N | — | `orphan` | W1 |
-| `legal_entity_signatories` | Schema gap | Y | Y | N | N | — | `orphan` | W1 |
+| `legal_entity_division_mappings` | Schema gap | Y | Y | Nested under LE | Org LE manage dialog | PO/SA | `ok` | W1 Task 11 |
+| `legal_entity_currencies` | Schema gap | Y | Y | Nested under LE | Org LE manage dialog | PO/SA | `ok` | W1 Task 11 |
+| `legal_entity_signatories` | Schema gap | Y | Y | Nested under LE | Org LE manage dialog | PO/SA | `ok` | W1 Task 11 |
 | `office_locations` | Schema gap | Y | Y | N | N | — | `orphan` | W1 |
 | `letterhead_configs` | §6.8 | Y | Y | Y | `/people-ops/letterheads` | PO | `ok` | Verify tenant filter W0b |
 | `signing_certificates` | Schema gap | Y | Y | N | N | — | `orphan` | Defer or W1 esign admin |
@@ -66,7 +66,7 @@
 | `exchange_rates` | US-CFG-002 | Y | Y | FX APIs | `/finance/fx` | Finance | `ok` | W0b verify |
 | `holiday_calendars` / `holidays` | §6.6.1 | Y | Y | Calendar APIs | Employee/mgr calendars; admin thin | — | `partial` | W1 leave admin |
 | `leave_types` | §6.5 | Y | Y | List | Leave admin stub | PO | `partial` | W1 full CRUD |
-| `setup_wizard_progress` | tasks 0.5 | Y | Y | Wizard APIs | `/admin/setup` thin | SA/PO | `partial` | W1 editors |
+| `setup_wizard_progress` | tasks 0.5 | Y | Y | Wizard APIs | `/admin/setup` editors | SA/PO | `ok` | W1 Task 10 |
 
 ## RBAC & audit
 

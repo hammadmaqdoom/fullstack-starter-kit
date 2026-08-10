@@ -20,11 +20,16 @@ import type { FastifyRequest } from 'fastify';
 import {
   CreateDepartmentDto,
   CreateDivisionDto,
+  CreateLegalEntityCurrencyDto,
+  CreateLegalEntityDivisionMappingDto,
   CreateLegalEntityDto,
+  CreateLegalEntitySignatoryDto,
   CreateOfficeLocationDto,
   UpdateDepartmentDto,
   UpdateDivisionDto,
+  UpdateLegalEntityCurrencyDto,
   UpdateLegalEntityDto,
+  UpdateLegalEntitySignatoryDto,
   UpdateOfficeLocationDto,
 } from './dto/org-admin.dto';
 import { OrgAdminService } from './org-admin.service';
@@ -164,6 +169,149 @@ export class OrgAdminController {
   ) {
     return this.orgAdminService.updateLegalEntity(
       id,
+      dto,
+      session.user.id,
+      resolveTenantId(session),
+      correlationId,
+      request?.ip,
+    );
+  }
+
+  @Get('legal-entities/:id/division-mappings')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'List legal entity division mappings' })
+  listLegalEntityMappings(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.orgAdminService.listLegalEntityMappings(
+      id,
+      resolveTenantId(session),
+    );
+  }
+
+  @Post('legal-entities/:id/division-mappings')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Create legal entity division mapping' })
+  createLegalEntityMapping(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateLegalEntityDivisionMappingDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.orgAdminService.createLegalEntityMapping(
+      id,
+      dto,
+      session.user.id,
+      resolveTenantId(session),
+      correlationId,
+      request?.ip,
+    );
+  }
+
+  @Get('legal-entities/:id/currencies')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'List legal entity currencies' })
+  listLegalEntityCurrencies(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.orgAdminService.listLegalEntityCurrencies(
+      id,
+      resolveTenantId(session),
+    );
+  }
+
+  @Post('legal-entities/:id/currencies')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Add legal entity currency' })
+  createLegalEntityCurrency(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateLegalEntityCurrencyDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.orgAdminService.createLegalEntityCurrency(
+      id,
+      dto,
+      session.user.id,
+      resolveTenantId(session),
+      correlationId,
+      request?.ip,
+    );
+  }
+
+  @Patch('legal-entities/:id/currencies/:currencyId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Update legal entity currency' })
+  updateLegalEntityCurrency(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('currencyId', ParseUUIDPipe) currencyId: string,
+    @Body() dto: UpdateLegalEntityCurrencyDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.orgAdminService.updateLegalEntityCurrency(
+      id,
+      currencyId,
+      dto,
+      session.user.id,
+      resolveTenantId(session),
+      correlationId,
+      request?.ip,
+    );
+  }
+
+  @Get('legal-entities/:id/signatories')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'List legal entity signatories' })
+  listLegalEntitySignatories(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.orgAdminService.listLegalEntitySignatories(
+      id,
+      resolveTenantId(session),
+    );
+  }
+
+  @Post('legal-entities/:id/signatories')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Create legal entity signatory' })
+  createLegalEntitySignatory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateLegalEntitySignatoryDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.orgAdminService.createLegalEntitySignatory(
+      id,
+      dto,
+      session.user.id,
+      resolveTenantId(session),
+      correlationId,
+      request?.ip,
+    );
+  }
+
+  @Patch('legal-entities/:id/signatories/:signatoryId')
+  @Roles(...ADMIN_ROLES)
+  @ApiOperation({ summary: 'Update legal entity signatory' })
+  updateLegalEntitySignatory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('signatoryId', ParseUUIDPipe) signatoryId: string,
+    @Body() dto: UpdateLegalEntitySignatoryDto,
+    @CurrentUserSession() session: CurrentUserSession,
+    @Headers('x-correlation-id') correlationId?: string,
+    @Req() request?: FastifyRequest,
+  ) {
+    return this.orgAdminService.updateLegalEntitySignatory(
+      id,
+      signatoryId,
       dto,
       session.user.id,
       resolveTenantId(session),

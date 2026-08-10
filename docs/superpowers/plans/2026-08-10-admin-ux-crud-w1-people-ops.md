@@ -174,7 +174,7 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 
 - [x] **Step 3: Tenant isolation tests** only if services still default tenant — align to `resolveTenantId`
 
-- [ ] **Step 4: Commit** `feat(frontend): wire org relationship and worker import admin UIs`
+- [x] **Step 4: Commit** `feat(frontend): wire org relationship and worker import admin UIs`
 
 - [x] **Step 5: Matrix** — mark those API orphans → `ok`/`partial`
 
@@ -294,9 +294,9 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 - Backend setup-wizard already saves — ensure holiday/leave/employment-matrix steps have real editors calling country-config / leave-type-admin / org APIs
 - `en.json` setup strings
 
-- [ ] **Step 1: Inventory steps** that are display-only
+- [x] **Step 1: Inventory steps** that are display-only
 
-- [ ] **Step 2: For holidays, leave types, employment×country** — embed editors reusing Task 5 / config APIs
+- [x] **Step 2: For holidays, leave types, employment×country** — embed editors reusing Task 5 / config APIs
 
 - [ ] **Step 3: Commit** `feat(frontend): deepen setup wizard country and leave edit steps`
 
@@ -309,13 +309,13 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 - UI: on Legal entity detail drawer/page — tabs for mappings, currencies, signatories
 - Tests: tenant denormalised on children; parent LE must same tenant
 
-- [ ] **Step 1: APIs + tests**
+- [x] **Step 1: APIs + tests**
 
-- [ ] **Step 2: UI tabs**
+- [x] **Step 2: UI tabs**
 
 - [ ] **Step 3: Commit** `feat(core-hr): legal entity mappings currencies and signatories admin`
 
-- [ ] **Step 4: Matrix** update schema-gap LE rows → `ok`
+- [x] **Step 4: Matrix** update schema-gap LE rows → `ok`
 
 ---
 

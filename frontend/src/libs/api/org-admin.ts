@@ -94,3 +94,127 @@ export async function createOfficeLocation(body: {
     body,
   });
 }
+
+export type LegalEntityDivisionMapping = {
+  id: string;
+  legalEntityId: string;
+  divisionId: string | null;
+  countryCode: string;
+  isDefault: boolean;
+  priority: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+};
+
+export type LegalEntityCurrency = {
+  id: string;
+  legalEntityId: string;
+  currencyCode: string;
+  isDefault: boolean;
+  isActive: boolean;
+};
+
+export type LegalEntitySignatory = {
+  id: string;
+  legalEntityId: string;
+  workerId: string | null;
+  name: string;
+  title: string;
+  email: string | null;
+  isDefault: boolean;
+  isActive: boolean;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+};
+
+export async function listLegalEntityMappings(legalEntityId: string) {
+  return apiRequest<LegalEntityDivisionMapping[]>(
+    `${BASE}/legal-entities/${legalEntityId}/division-mappings`,
+  );
+}
+
+export async function createLegalEntityMapping(
+  legalEntityId: string,
+  body: {
+    divisionId?: string | null;
+    countryCode: string;
+    isDefault?: boolean;
+    priority?: number;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  },
+) {
+  return apiRequest<LegalEntityDivisionMapping>(
+    `${BASE}/legal-entities/${legalEntityId}/division-mappings`,
+    { method: 'POST', body },
+  );
+}
+
+export async function listLegalEntityCurrencies(legalEntityId: string) {
+  return apiRequest<LegalEntityCurrency[]>(
+    `${BASE}/legal-entities/${legalEntityId}/currencies`,
+  );
+}
+
+export async function createLegalEntityCurrency(
+  legalEntityId: string,
+  body: { currencyCode: string; isDefault?: boolean; isActive?: boolean },
+) {
+  return apiRequest<LegalEntityCurrency>(
+    `${BASE}/legal-entities/${legalEntityId}/currencies`,
+    { method: 'POST', body },
+  );
+}
+
+export async function updateLegalEntityCurrency(
+  legalEntityId: string,
+  currencyId: string,
+  body: { isDefault?: boolean; isActive?: boolean },
+) {
+  return apiRequest<LegalEntityCurrency>(
+    `${BASE}/legal-entities/${legalEntityId}/currencies/${currencyId}`,
+    { method: 'PATCH', body },
+  );
+}
+
+export async function listLegalEntitySignatories(legalEntityId: string) {
+  return apiRequest<LegalEntitySignatory[]>(
+    `${BASE}/legal-entities/${legalEntityId}/signatories`,
+  );
+}
+
+export async function createLegalEntitySignatory(
+  legalEntityId: string,
+  body: {
+    workerId?: string | null;
+    name: string;
+    title: string;
+    email?: string | null;
+    isDefault?: boolean;
+    effectiveFrom: string;
+    effectiveTo?: string | null;
+  },
+) {
+  return apiRequest<LegalEntitySignatory>(
+    `${BASE}/legal-entities/${legalEntityId}/signatories`,
+    { method: 'POST', body },
+  );
+}
+
+export async function updateLegalEntitySignatory(
+  legalEntityId: string,
+  signatoryId: string,
+  body: {
+    name?: string;
+    title?: string;
+    email?: string | null;
+    isDefault?: boolean;
+    isActive?: boolean;
+    effectiveTo?: string | null;
+  },
+) {
+  return apiRequest<LegalEntitySignatory>(
+    `${BASE}/legal-entities/${legalEntityId}/signatories/${signatoryId}`,
+    { method: 'PATCH', body },
+  );
+}
