@@ -330,7 +330,7 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 
 - [x] **Step 2: Smoke** People Ops: create worker (full fields), create leave type, publish policy, create pre-boarding, initiate separation, view audit export, assign role, edit org — checklist accepted via matrix closure (manual smoke deferred to operator)
 
-- [ ] **Step 3: Commit** `docs(admin): close W1 coverage matrix and story gate notes`
+- [x] **Step 3: Commit** `docs(admin): close W1 coverage matrix and story gate notes`
 
 ---
 
