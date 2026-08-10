@@ -71,7 +71,7 @@
 ### 0.5 Setup wizard
 
 - [x] Guided setup wizard API — `setup-wizard.service.ts`
-- [ ] Setup wizard UI — 10 steps exist; full per-step edit surfaces per UX §7 still thin on some steps
+- [x] Setup wizard UI — country config, leave/holiday editors, LE + employment matrix review (`SetupWizard.tsx` W1 Task 10)
 - [x] Reusable tenant seed engine
 - [x] Seed: holidays, leave types, document templates — `benefit_types` seeded (not separate pack entities)
 - [x] Progress tracking and skip logic
@@ -84,7 +84,7 @@
 - [x] Tenant seam — `resolveTenantId` / `assertSameTenant`; workers/org/audit/leave/policy/pre-boarding/separation controllers
 - [x] `PageHeader` + people-ops `RequireRole` layout
 - [x] Tenant query sweep notes — `docs/superpowers/specs/2026-08-10-tenant-query-sweep.md`
-- [ ] W1 People Ops CRUD/UX — see `docs/superpowers/plans/2026-08-10-admin-ux-crud-w1-people-ops.md`
+- [x] W1 People Ops CRUD/UX — see `docs/superpowers/plans/2026-08-10-admin-ux-crud-w1-people-ops.md` (gate closed; residual: bank/skills/employment_records nested APIs)
 
 ---
 

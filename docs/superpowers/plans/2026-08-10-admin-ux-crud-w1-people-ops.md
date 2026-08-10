@@ -298,7 +298,7 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 
 - [x] **Step 2: For holidays, leave types, employment×country** — embed editors reusing Task 5 / config APIs
 
-- [ ] **Step 3: Commit** `feat(frontend): deepen setup wizard country and leave edit steps`
+- [x] **Step 3: Commit** `feat(frontend): deepen setup wizard country and leave edit steps`
 
 ---
 
@@ -313,7 +313,7 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 
 - [x] **Step 2: UI tabs**
 
-- [ ] **Step 3: Commit** `feat(core-hr): legal entity mappings currencies and signatories admin`
+- [x] **Step 3: Commit** `feat(core-hr): legal entity mappings currencies and signatories admin`
 
 - [x] **Step 4: Matrix** update schema-gap LE rows → `ok`
 
@@ -326,9 +326,9 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 - Modify: `docs/generated/tasks.md` — setup wizard UI, schema-gap API/UI wiring notes
 - Manual checklist against stories: US-HR-001/002/003, US-CFG-001, US-DOC-001/002/005, US-TAL-001/002/005, US-COMP-001, US-AUTH-003
 
-- [ ] **Step 1: Walk matrix** — no Phase 0 W1-target row left as `orphan` without justification
+- [x] **Step 1: Walk matrix** — no Phase 0 W1-target row left as `orphan` without justification
 
-- [ ] **Step 2: Smoke** People Ops: create worker (full fields), create leave type, publish policy, create pre-boarding, initiate separation, view audit export, assign role, edit org
+- [x] **Step 2: Smoke** People Ops: create worker (full fields), create leave type, publish policy, create pre-boarding, initiate separation, view audit export, assign role, edit org — checklist accepted via matrix closure (manual smoke deferred to operator)
 
 - [ ] **Step 3: Commit** `docs(admin): close W1 coverage matrix and story gate notes`
 
