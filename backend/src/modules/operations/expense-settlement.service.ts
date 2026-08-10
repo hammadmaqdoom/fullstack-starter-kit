@@ -24,6 +24,16 @@ export class ExpenseSettlementService {
     mode: ExpenseSettlementMode,
   ): Promise<ExpenseClaimEntity> {
     const claim = await this.requireClaim(tenantId, claimId);
+    if (
+      claim.cardTransactionId &&
+      mode === ExpenseSettlementMode.STANDALONE_PAYOUT
+    ) {
+      throw new ConflictException({
+        code: 'CARD_FUNDED',
+        message:
+          'Card-funded claims cannot use standalone_payout — company already paid',
+      });
+    }
     claim.settlementMode = mode;
     if (mode !== ExpenseSettlementMode.BUNDLE_WITH_PAYROLL) {
       claim.payRunLineItemId = null;

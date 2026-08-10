@@ -132,6 +132,10 @@ export class ExpenseClaimEntity {
   @Column({ type: 'uuid', nullable: true })
   payRunLineItemId: string | null;
 
+  /** Set when claim is created from a corporate card allocation (company-paid). */
+  @Column({ type: 'uuid', nullable: true })
+  cardTransactionId: string | null;
+
   /** Inverse side — string relation name avoids circular import with expense-claim-line.entity. */
   @OneToMany('ExpenseClaimLineEntity', 'claim')
   lines?: ExpenseClaimLineEntity[];
