@@ -6,7 +6,10 @@ import { useTranslations } from 'next-intl';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { Checkbox } from 'primereact/checkbox';
+import { Column } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { Skeleton } from 'primereact/skeleton';
@@ -15,17 +18,25 @@ import { ToggleButton } from 'primereact/togglebutton';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiRequestError } from '@/libs/api/client';
 import {
+  listCountries,
+  listEmploymentTypeCountryConfigs,
+  type EmploymentTypeCountryConfig,
+} from '@/libs/api/country-config';
+import {
+  createHolidayCalendar,
+  createLeaveType,
+  listAdminLeaveTypes,
+  listHolidayCalendars,
+  type HolidayCalendar,
+  type LeaveType,
+} from '@/libs/api/leave';
+import { listLegalEntities, type LegalEntity } from '@/libs/api/org-admin';
+import {
   applySetupWizardSeeds,
   getSetupWizardState,
   saveSetupWizardStep,
-
 } from '@/libs/api/setup-wizard';
-
-const COUNTRY_OPTIONS = [
-  { label: 'Pakistan', value: 'PK' },
-  { label: 'UAE', value: 'AE' },
-  { label: 'Singapore', value: 'SG' },
-];
+import { Link } from '@/libs/I18nNavigation';
 
 const CURRENCY_OPTIONS = [
   { label: 'PKR', value: 'PKR' },
@@ -54,7 +65,10 @@ export function SetupWizard() {
 
   const [organisationName, setOrganisationName] = useState('Digitaro');
   const [reportingCurrency, setReportingCurrency] = useState('PKR');
-  const [activeCountries, setActiveCountries] = useState<string[]>(['PK', 'AE', 'SG']);
+  const [activeCountries, setActiveCountries] = useState<string[]>([]);
+  const [countryOptions, setCountryOptions] = useState<
+    Array<{ label: string; value: string }>
+  >([]);
   const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>([
     'PKR',
     'AED',
@@ -64,6 +78,55 @@ export function SetupWizard() {
   const [fxSource, setFxSource] = useState('frankfurter');
   const [emailApprovals, setEmailApprovals] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
+
+  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [calendars, setCalendars] = useState<HolidayCalendar[]>([]);
+  const [legalEntities, setLegalEntities] = useState<LegalEntity[]>([]);
+  const [matrix, setMatrix] = useState<EmploymentTypeCountryConfig[]>([]);
+
+  const [quickLeaveCode, setQuickLeaveCode] = useState('');
+  const [quickLeaveName, setQuickLeaveName] = useState('');
+  const [quickLeaveCountry, setQuickLeaveCountry] = useState('');
+  const [quickLeaveDays, setQuickLeaveDays] = useState<number | null>(20);
+  const [quickCalName, setQuickCalName] = useState('');
+  const [quickCalCountry, setQuickCalCountry] = useState('');
+  const [quickCalYear, setQuickCalYear] = useState<number | null>(
+    new Date().getFullYear(),
+  );
+  const [quickSaving, setQuickSaving] = useState(false);
+
+  const loadCatalog = useCallback(async () => {
+    try {
+      const [countriesRes, leaveRes, calRes, leRes, matrixRes] = await Promise.all([
+        listCountries(),
+        listAdminLeaveTypes().catch(() => ({ data: [] as LeaveType[] })),
+        listHolidayCalendars().catch(() => ({ data: [] as HolidayCalendar[] })),
+        listLegalEntities().catch(() => ({ data: [] as LegalEntity[] })),
+        listEmploymentTypeCountryConfigs().catch(() => ({
+          data: [] as EmploymentTypeCountryConfig[],
+        })),
+      ]);
+      const options = (countriesRes.data ?? [])
+        .filter(c => c.isActive)
+        .map(c => ({ label: c.countryCode, value: c.countryCode }));
+      setCountryOptions(options);
+      setActiveCountries((prev) => {
+        if (prev.length > 0) {
+          return prev.filter(code => options.some(o => o.value === code));
+        }
+        return options.map(o => o.value);
+      });
+      const defaultCountry = options[0]?.value ?? '';
+      setQuickLeaveCountry(c => c || defaultCountry);
+      setQuickCalCountry(c => c || defaultCountry);
+      setLeaveTypes(leaveRes.data ?? []);
+      setCalendars(calRes.data ?? []);
+      setLegalEntities(leRes.data ?? []);
+      setMatrix(matrixRes.data ?? []);
+    } catch {
+      // Catalog is best-effort; wizard state still loads separately.
+    }
+  }, []);
 
   const loadState = useCallback(async () => {
     setIsLoading(true);
@@ -115,12 +178,14 @@ export function SetupWizard() {
         setEmailApprovals(notifData.emailApprovals ?? true);
         setPushNotifications(notifData.pushActionRequired ?? true);
       }
+
+      await loadCatalog();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('error_load'));
     } finally {
       setIsLoading(false);
     }
-  }, [t]);
+  }, [t, loadCatalog]);
 
   useEffect(() => {
     void loadState();
@@ -141,7 +206,7 @@ export function SetupWizard() {
       case 'organisation':
         return { organisationName, reportingCurrency };
       case 'legal_entities':
-        return { acknowledged: true };
+        return { acknowledged: true, legalEntityCount: legalEntities.length };
       case 'countries':
         return { activeCountries };
       case 'currencies':
@@ -190,6 +255,7 @@ export function SetupWizard() {
         skip,
       });
       setState(data);
+      await loadCatalog();
 
       if (data.progress.isComplete) {
         return;
@@ -214,6 +280,46 @@ export function SetupWizard() {
     setEnabledCurrencies(prev =>
       checked ? [...new Set([...prev, code])] : prev.filter(c => c !== code),
     );
+  };
+
+  const handleQuickLeave = async () => {
+    setQuickSaving(true);
+    setError(null);
+    try {
+      await createLeaveType({
+        countryCode: quickLeaveCountry,
+        code: quickLeaveCode.trim(),
+        name: quickLeaveName.trim(),
+        accrualMethod: 'annual',
+        daysPerYear: quickLeaveDays ?? 0,
+        carryForwardCap: 0,
+      });
+      setQuickLeaveCode('');
+      setQuickLeaveName('');
+      await loadCatalog();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_quick_leave'));
+    } finally {
+      setQuickSaving(false);
+    }
+  };
+
+  const handleQuickCalendar = async () => {
+    setQuickSaving(true);
+    setError(null);
+    try {
+      await createHolidayCalendar({
+        countryCode: quickCalCountry,
+        name: quickCalName.trim(),
+        effectiveYear: quickCalYear ?? new Date().getFullYear(),
+      });
+      setQuickCalName('');
+      await loadCatalog();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error_quick_calendar'));
+    } finally {
+      setQuickSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -297,17 +403,30 @@ export function SetupWizard() {
         )}
 
         {currentStep === 'legal_entities' && (
-          <Message
-            severity="info"
-            text={t('legal_entities_hint', { count: state?.summary.legalEntityCount ?? 0 })}
-            className="w-full"
-          />
+          <div className="space-y-3">
+            <Message
+              severity="info"
+              text={t('legal_entities_hint', { count: legalEntities.length })}
+              className="w-full"
+            />
+            <DataTable value={legalEntities} size="small" emptyMessage={t('empty_legal')}>
+              <Column field="code" header={t('col_code')} />
+              <Column field="registeredName" header={t('col_name')} />
+              <Column field="countryCode" header={t('col_country')} />
+            </DataTable>
+            <Link
+              href="/people-ops/org"
+              className="text-sm text-blue-600 hover:underline"
+            >
+              {t('open_org_admin')}
+            </Link>
+          </div>
         )}
 
         {currentStep === 'countries' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <p className="text-sm text-gray-600">{t('countries_hint')}</p>
-            {COUNTRY_OPTIONS.map(country => (
+            {countryOptions.map(country => (
               <label key={country.value} className="flex items-center gap-2 text-sm">
                 <Checkbox
                   inputId={`country-${country.value}`}
@@ -317,6 +436,27 @@ export function SetupWizard() {
                 {country.label}
               </label>
             ))}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-gray-900">{t('matrix_title')}</h3>
+              <DataTable value={matrix} size="small" emptyMessage={t('empty_matrix')}>
+                <Column
+                  header={t('col_employment_type')}
+                  body={(row: EmploymentTypeCountryConfig) =>
+                    row.employmentType?.displayName ?? row.employmentTypeId}
+                />
+                <Column field="countryCode" header={t('col_country')} />
+                <Column
+                  header={t('col_leave')}
+                  body={(row: EmploymentTypeCountryConfig) =>
+                    row.leaveEnabled ? t('yes') : t('no')}
+                />
+                <Column
+                  header={t('col_check_in')}
+                  body={(row: EmploymentTypeCountryConfig) =>
+                    row.checkInRequired ? t('yes') : t('no')}
+                />
+              </DataTable>
+            </div>
           </div>
         )}
 
@@ -349,14 +489,103 @@ export function SetupWizard() {
           </div>
         )}
 
-        {(currentStep === 'leave_types' || currentStep === 'holiday_calendars') && (
+        {currentStep === 'leave_types' && (
           <div className="space-y-3">
-            <Message severity="info" text={t(`${currentStep}_hint`)} className="w-full" />
-            <p className="text-sm text-gray-600">
-              {currentStep === 'leave_types'
-                ? t('seeded_leave_count', { count: state?.summary.leaveTypeCount ?? 0 })
-                : t('seeded_holiday_count', { count: state?.summary.holidayCount ?? 0 })}
-            </p>
+            <Message severity="info" text={t('leave_types_hint')} className="w-full" />
+            <DataTable value={leaveTypes} size="small" emptyMessage={t('empty_leave')}>
+              <Column field="countryCode" header={t('col_country')} />
+              <Column field="code" header={t('col_code')} />
+              <Column field="name" header={t('col_name')} />
+              <Column field="daysPerYear" header={t('col_days')} />
+            </DataTable>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <Dropdown
+                value={quickLeaveCountry}
+                options={countryOptions}
+                onChange={e => setQuickLeaveCountry(e.value)}
+                className="w-full"
+              />
+              <InputText
+                value={quickLeaveCode}
+                onChange={e => setQuickLeaveCode(e.target.value)}
+                placeholder={t('field_leave_code')}
+                className="w-full"
+              />
+              <InputText
+                value={quickLeaveName}
+                onChange={e => setQuickLeaveName(e.target.value)}
+                placeholder={t('field_leave_name')}
+                className="w-full"
+              />
+              <InputNumber
+                value={quickLeaveDays}
+                onValueChange={e => setQuickLeaveDays(e.value ?? null)}
+                className="w-full"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                outlined
+                loading={quickSaving}
+                disabled={!quickLeaveCode.trim() || !quickLeaveName.trim() || !quickLeaveCountry}
+                onClick={() => void handleQuickLeave()}
+                label={t('add_leave_type')}
+              />
+              <Link
+                href="/people-ops/leave"
+                className="self-center text-sm text-blue-600 hover:underline"
+              >
+                {t('open_leave_admin')}
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'holiday_calendars' && (
+          <div className="space-y-3">
+            <Message severity="info" text={t('holiday_calendars_hint')} className="w-full" />
+            <DataTable value={calendars} size="small" emptyMessage={t('empty_calendars')}>
+              <Column field="countryCode" header={t('col_country')} />
+              <Column field="name" header={t('col_name')} />
+              <Column field="effectiveYear" header={t('col_year')} />
+            </DataTable>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Dropdown
+                value={quickCalCountry}
+                options={countryOptions}
+                onChange={e => setQuickCalCountry(e.value)}
+                className="w-full"
+              />
+              <InputText
+                value={quickCalName}
+                onChange={e => setQuickCalName(e.target.value)}
+                placeholder={t('field_calendar_name')}
+                className="w-full"
+              />
+              <InputNumber
+                value={quickCalYear}
+                onValueChange={e => setQuickCalYear(e.value ?? null)}
+                useGrouping={false}
+                className="w-full"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                outlined
+                loading={quickSaving}
+                disabled={!quickCalName.trim() || !quickCalCountry || !quickCalYear}
+                onClick={() => void handleQuickCalendar()}
+                label={t('add_calendar')}
+              />
+              <Link
+                href="/people-ops/leave"
+                className="self-center text-sm text-blue-600 hover:underline"
+              >
+                {t('open_leave_admin')}
+              </Link>
+            </div>
           </div>
         )}
 
