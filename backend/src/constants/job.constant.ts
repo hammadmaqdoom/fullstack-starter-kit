@@ -8,6 +8,7 @@ export const Queue = {
   Automation: 'automation',
   Talent: 'talent',
   CoreHr: 'core-hr',
+  BankFeed: 'bank-feed',
 } as const;
 
 export const Job = {
@@ -47,5 +48,8 @@ export const Job = {
   },
   CoreHr: {
     ImportWorkers: 'import-workers',
+  },
+  BankFeed: {
+    SyncAspireFeeds: 'sync-aspire-feeds',
   },
 } as const satisfies Record<keyof typeof Queue, Record<string, string>>;

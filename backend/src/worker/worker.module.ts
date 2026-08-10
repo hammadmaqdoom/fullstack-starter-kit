@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AutomationQueueModule } from './queues/automation/automation.module';
+import { BankFeedQueueModule } from './queues/bank-feed/bank-feed.module';
 import { ComplianceQueueModule } from './queues/compliance/compliance.module';
 import { CoreHrQueueModule } from './queues/core-hr/core-hr.module';
 import { EmailQueueModule } from './queues/email/email.module';
@@ -20,6 +21,7 @@ import { TalentQueueModule } from './queues/talent/talent.module';
     TalentQueueModule,
     ReportsQueueModule,
     CoreHrQueueModule,
+    BankFeedQueueModule,
   ],
 })
 export class WorkerModule {}

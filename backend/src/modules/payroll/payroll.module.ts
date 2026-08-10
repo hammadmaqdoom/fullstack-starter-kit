@@ -82,6 +82,16 @@ import {
   PayoutRailProfileService,
 } from './payout-rail-profile.service';
 import { PayoutRailSeedService } from './payout-rail-seed.service';
+import { BankFeedTransactionEntity } from './entities/bank-feed-transaction.entity';
+import { CardTransactionEntity } from './entities/card-transaction.entity';
+import { CorporateCardEntity } from './entities/corporate-card.entity';
+import { BankFeedController } from './bank-feed.controller';
+import { BankFeedSyncService } from './bank-feed-sync.service';
+import { CorporateCardController } from './corporate-card.controller';
+import { CorporateCardService } from './corporate-card.service';
+import { AspireBankFeedClient } from './integrations/aspire/aspire-bank-feed.client';
+import { AspireCardsClient } from './integrations/aspire/aspire-cards.client';
+import { WiseCardsClient } from './integrations/wise/wise-cards.client';
 import {
   ContractorInvoiceRemittanceController,
   ContractorPaymentLineRemittanceController,
@@ -122,6 +132,9 @@ import { StatutoryRateService } from './statutory-rate.service';
       CsvExportProfileEntity,
       PayoutBatchEntity,
       PayoutBatchLineEntity,
+      BankFeedTransactionEntity,
+      CorporateCardEntity,
+      CardTransactionEntity,
       WorkerEntity,
       WorkerBankAccountEntity,
       LegalEntityEntity,
@@ -157,6 +170,8 @@ import { StatutoryRateService } from './statutory-rate.service';
     CsvExportProfileController,
     PayoutBatchController,
     PayoutWebhookController,
+    BankFeedController,
+    CorporateCardController,
   ],
   providers: [
     BenefitService,
@@ -173,6 +188,11 @@ import { StatutoryRateService } from './statutory-rate.service';
     PayoutOrchestratorService,
     AspirePayoutAdapter,
     WisePayoutAdapter,
+    AspireBankFeedClient,
+    AspireCardsClient,
+    WiseCardsClient,
+    BankFeedSyncService,
+    CorporateCardService,
     PayslipService,
     PayslipPdfService,
     PayslipBlobStorageService,
@@ -197,6 +217,7 @@ import { StatutoryRateService } from './statutory-rate.service';
     ContractorPaymentBatchService,
     RemittanceService,
     PayrollReportService,
+    BankFeedSyncService,
     TypeOrmModule,
   ],
 })
