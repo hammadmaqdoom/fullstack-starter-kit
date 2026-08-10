@@ -56,6 +56,12 @@ const PEOPLE_OPS_MODULES: ShellModuleItem[] = [
 
 const FINANCE_MODULES: ShellModuleItem[] = [
   { id: 'pay_runs', href: '/finance/pay-runs', group: 'finance', labelKey: 'finance_pay_runs_link' },
+  { id: 'payouts', href: '/finance/payouts', group: 'finance', labelKey: 'finance_payouts_link' },
+  { id: 'funding_accounts', href: '/finance/funding-accounts', group: 'finance', labelKey: 'finance_funding_accounts_link' },
+  { id: 'payout_rails', href: '/finance/payout-rails', group: 'finance', labelKey: 'finance_payout_rails_link' },
+  { id: 'csv_export_profiles', href: '/finance/csv-export-profiles', group: 'finance', labelKey: 'finance_csv_profiles_link' },
+  { id: 'bank_feeds', href: '/finance/bank-feeds', group: 'finance', labelKey: 'finance_bank_feeds_link' },
+  { id: 'corporate_cards', href: '/finance/cards', group: 'finance', labelKey: 'finance_cards_link' },
   { id: 'benefits', href: '/finance/benefits', group: 'finance', labelKey: 'finance_benefits_link' },
   { id: 'statutory_rates', href: '/finance/statutory-rates', group: 'finance', labelKey: 'finance_statutory_rates_link' },
   { id: 'contractor_payments', href: '/finance/contractor-payments', group: 'finance', labelKey: 'finance_contractor_payments_link' },

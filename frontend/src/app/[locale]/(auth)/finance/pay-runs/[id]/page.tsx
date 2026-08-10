@@ -17,6 +17,7 @@ import {
   Download,
   RefreshCw,
   Send,
+  Wallet,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
@@ -350,6 +351,16 @@ export default function FinancePayRunDetailPage() {
             {t('action_export')}
           </Button>
         </div>
+        {canExport && (
+          <Link
+            href={`/finance/payouts/generate?batchType=payroll&legalEntityId=${payRun.legalEntityId}&sourceId=${payRun.id}`}
+          >
+            <Button type="button" outlined className="gap-2">
+              <Wallet className="size-4" aria-hidden />
+              {t('action_generate_payout')}
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div>
