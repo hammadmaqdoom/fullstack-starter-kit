@@ -12,6 +12,7 @@ import { Tag } from 'primereact/tag';
 import { useCallback, useEffect, useState } from 'react';
 import { ChangeRequestList } from '@/components/employee/ChangeRequestList';
 import { WorkerForm } from '@/components/workers/WorkerForm';
+import { WorkerOrgPanel } from '@/components/workers/WorkerOrgPanel';
 import { ApiRequestError } from '@/libs/api/client';
 import { listDivisions } from '@/libs/api/org-admin';
 import { listProfileChangeRequests } from '@/libs/api/profile-change';
@@ -184,6 +185,10 @@ export default function WorkerDetailPage() {
             router.refresh();
           }}
         />
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <WorkerOrgPanel workerId={worker.id} />
       </div>
 
       <div className="space-y-3">

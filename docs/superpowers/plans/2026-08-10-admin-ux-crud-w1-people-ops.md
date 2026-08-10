@@ -168,15 +168,15 @@ cd backend && pnpm exec jest src/modules/core-hr/__tests__/org-admin.service.spe
 - Create: import dialog on workers list using existing import APIs
 - Modify: shell nav + `en.json`
 
-- [ ] **Step 1: Confirm backend routes** with `rg "manager-relationships|project-assignments|approval-delegations|workers/import" backend/src`
+- [x] **Step 1: Confirm backend routes** with `rg "manager-relationships|project-assignments|approval-delegations|workers/import" backend/src`
 
-- [ ] **Step 2: Clients + UI** with PageHeader, EmptyState CTAs, tenant-implicit APIs
+- [x] **Step 2: Clients + UI** with PageHeader, EmptyState CTAs, tenant-implicit APIs
 
-- [ ] **Step 3: Tenant isolation tests** only if services still default tenant — align to `resolveTenantId`
+- [x] **Step 3: Tenant isolation tests** only if services still default tenant — align to `resolveTenantId`
 
 - [ ] **Step 4: Commit** `feat(frontend): wire org relationship and worker import admin UIs`
 
-- [ ] **Step 5: Matrix** — mark those API orphans → `ok`/`partial`
+- [x] **Step 5: Matrix** — mark those API orphans → `ok`/`partial`
 
 ---
 

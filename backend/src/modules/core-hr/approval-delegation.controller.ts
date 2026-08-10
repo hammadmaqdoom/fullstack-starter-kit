@@ -1,9 +1,8 @@
 import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
-import { POLARIS_AUTH_CONTEXT_KEY } from '@/constants/rbac.constant';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
-import { PolarisAuthContext } from '@/modules/compliance/types/rbac.type';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import {
   Body,
   Controller,
@@ -28,10 +27,6 @@ import {
   UpdateApprovalDelegationDto,
 } from './dto/approval-delegation.dto';
 
-type DelegationRequest = FastifyRequest & {
-  [POLARIS_AUTH_CONTEXT_KEY]?: PolarisAuthContext;
-};
-
 @ApiTags('org')
 @Controller({ path: 'org/approval-delegations', version: '1' })
 @UseGuards(AuthGuard)
@@ -55,6 +50,7 @@ export class ApprovalDelegationController {
     return this.approvalDelegationService.list(
       session.user.id,
       delegatorWorkerId,
+      resolveTenantId(session),
     );
   }
 
@@ -69,13 +65,14 @@ export class ApprovalDelegationController {
     @Body() dto: CreateApprovalDelegationDto,
     @CurrentUserSession() session: CurrentUserSession,
     @Headers('x-correlation-id') correlationId?: string,
-    @Req() request?: DelegationRequest,
+    @Req() request?: FastifyRequest,
   ) {
     return this.approvalDelegationService.create(
       dto,
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -91,7 +88,7 @@ export class ApprovalDelegationController {
     @Body() dto: UpdateApprovalDelegationDto,
     @CurrentUserSession() session: CurrentUserSession,
     @Headers('x-correlation-id') correlationId?: string,
-    @Req() request?: DelegationRequest,
+    @Req() request?: FastifyRequest,
   ) {
     return this.approvalDelegationService.update(
       id,
@@ -99,6 +96,7 @@ export class ApprovalDelegationController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -114,13 +112,14 @@ export class ApprovalDelegationController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserSession() session: CurrentUserSession,
     @Headers('x-correlation-id') correlationId?: string,
-    @Req() request?: DelegationRequest,
+    @Req() request?: FastifyRequest,
   ) {
     await this.approvalDelegationService.remove(
       id,
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 }

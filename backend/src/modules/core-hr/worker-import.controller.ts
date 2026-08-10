@@ -2,6 +2,7 @@ import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import {
   Body,
   Controller,
@@ -24,8 +25,11 @@ export class WorkerImportController {
 
   @Post('preview')
   @ApiOperation({ summary: 'Validate a worker CSV import without persisting rows' })
-  async preview(@Body() dto: ImportWorkersCsvDto) {
-    return this.workerImportService.preview(dto.csv);
+  async preview(
+    @Body() dto: ImportWorkersCsvDto,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.workerImportService.preview(dto.csv, resolveTenantId(session));
   }
 
   @Post()
@@ -38,18 +42,22 @@ export class WorkerImportController {
       dto.csv,
       session.user.id,
       dto.fileName,
+      resolveTenantId(session),
     );
   }
 
   @Get()
   @ApiOperation({ summary: 'List recent worker import batches' })
-  async list() {
-    return this.workerImportService.listBatches();
+  async list(@CurrentUserSession() session: CurrentUserSession) {
+    return this.workerImportService.listBatches(resolveTenantId(session));
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a worker import batch status and row results' })
-  async getBatch(@Param('id', ParseUUIDPipe) id: string) {
-    return this.workerImportService.getBatch(id);
+  async getBatch(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserSession() session: CurrentUserSession,
+  ) {
+    return this.workerImportService.getBatch(id, resolveTenantId(session));
   }
 }

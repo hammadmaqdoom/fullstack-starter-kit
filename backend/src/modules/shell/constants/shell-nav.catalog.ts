@@ -37,6 +37,7 @@ const PEOPLE_OPS_MODULES: ShellModuleItem[] = [
   { id: 'hr_dashboard', href: '/people-ops/dashboard', group: 'people_ops', labelKey: 'hr_dashboard_link' },
   { id: 'workers', href: '/people-ops/workers', group: 'people_ops', labelKey: 'workers_link' },
   { id: 'org', href: '/people-ops/org', group: 'people_ops', labelKey: 'org_link' },
+  { id: 'approvals_config', href: '/people-ops/approvals-config', group: 'people_ops', labelKey: 'approvals_config_link' },
   { id: 'pre_boarding', href: '/people-ops/pre-boarding', group: 'people_ops', labelKey: 'pre_boarding_link' },
   { id: 'onboarding', href: '/people-ops/onboarding', group: 'people_ops', labelKey: 'onboarding_link' },
   { id: 'separations', href: '/people-ops/separations', group: 'people_ops', labelKey: 'separations_link' },

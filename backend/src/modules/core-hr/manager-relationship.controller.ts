@@ -2,6 +2,7 @@ import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import {
   Body,
   Controller,
@@ -48,7 +49,11 @@ export class ManagerRelationshipController {
     @Query('workerId') workerId: string | undefined,
     @CurrentUserSession() session: CurrentUserSession,
   ) {
-    return this.managerRelationshipService.list(session.user.id, workerId);
+    return this.managerRelationshipService.list(
+      session.user.id,
+      workerId,
+      resolveTenantId(session),
+    );
   }
 
   @Post()
@@ -65,6 +70,7 @@ export class ManagerRelationshipController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -84,6 +90,7 @@ export class ManagerRelationshipController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -102,6 +109,7 @@ export class ManagerRelationshipController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 }

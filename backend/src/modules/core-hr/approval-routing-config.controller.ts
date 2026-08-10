@@ -2,6 +2,7 @@ import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import {
   Body,
   Controller,
@@ -43,8 +44,14 @@ export class ApprovalRoutingConfigController {
     PolarisRoleCode.SUPER_ADMIN,
   )
   @ApiOperation({ summary: 'List approval routing config tiers' })
-  async list(@Query('workflowType') workflowType?: ApprovalWorkflowType) {
-    return this.approvalRoutingConfigService.list(workflowType);
+  async list(
+    @CurrentUserSession() session: CurrentUserSession,
+    @Query('workflowType') workflowType?: ApprovalWorkflowType,
+  ) {
+    return this.approvalRoutingConfigService.list(
+      workflowType,
+      resolveTenantId(session),
+    );
   }
 
   @Post()
@@ -61,6 +68,7 @@ export class ApprovalRoutingConfigController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -80,6 +88,7 @@ export class ApprovalRoutingConfigController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -98,6 +107,7 @@ export class ApprovalRoutingConfigController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 }

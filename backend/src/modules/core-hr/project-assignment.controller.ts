@@ -2,6 +2,7 @@ import { AuthGuard } from '@/auth/auth.guard';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { CurrentUserSession } from '@/decorators/auth/current-user-session.decorator';
 import { PolarisRoleCode } from '@/modules/compliance/enums/polaris-role-code.enum';
+import { resolveTenantId } from '@/modules/compliance/tenant-context.util';
 import {
   Body,
   Controller,
@@ -51,7 +52,11 @@ export class ProjectAssignmentController {
     @Query() query: QueryProjectAssignmentsDto,
     @CurrentUserSession() session: CurrentUserSession,
   ) {
-    return this.projectAssignmentService.list(query, session.user.id);
+    return this.projectAssignmentService.list(
+      query,
+      session.user.id,
+      resolveTenantId(session),
+    );
   }
 
   @Post()
@@ -68,6 +73,7 @@ export class ProjectAssignmentController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -87,6 +93,7 @@ export class ProjectAssignmentController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 
@@ -105,6 +112,7 @@ export class ProjectAssignmentController {
       session.user.id,
       correlationId,
       request?.ip,
+      resolveTenantId(session),
     );
   }
 }

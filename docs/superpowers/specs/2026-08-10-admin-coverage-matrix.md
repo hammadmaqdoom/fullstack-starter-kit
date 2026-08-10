@@ -48,11 +48,11 @@
 | `employee_skills` | Schema gap | Y | Y | N | N | — | `orphan` | W1 |
 | `employment_records` | Schema gap | Y | Y | N | N | — | `orphan` | W1 |
 | `profile_change_requests` | US-HR-002 | Y | Y | Y | Employee + worker detail | Emp / PO / Mgr | `partial` | Hub deep-link W2 |
-| `manager_relationships` | §6.2 | Y | Y | Full CRUD | N | PO/SA | `orphan` | W1 UI |
-| `project_assignments` | §6.2 | Y | Y | Full CRUD | N | PO/SA | `orphan` | W1 UI |
-| `approval_delegations` | §6.5 | Y | Y | Full CRUD | N | Controllers | `orphan` | W1 UI |
-| `approval_routing_configs` | DB | Y | Y | Full CRUD | N | PO/SA | `orphan` | W1 UI |
-| `worker_import_batches` | US-HR-001 | Y | Y | Import APIs | N | PO/SA | `orphan` | W1 UI |
+| `manager_relationships` | §6.2 | Y | Y | Full CRUD | Worker detail tabs | PO/SA | `ok` | W1 Task 4 |
+| `project_assignments` | §6.2 | Y | Y | Full CRUD | Worker detail tabs | PO/SA | `ok` | W1 Task 4 |
+| `approval_delegations` | §6.5 | Y | Y | Full CRUD | `/people-ops/approvals-config` | Controllers | `ok` | W1 Task 4 |
+| `approval_routing_configs` | DB | Y | Y | Full CRUD | `/people-ops/approvals-config` | PO/SA | `ok` | W1 Task 4 |
+| `worker_import_batches` | US-HR-001 | Y | Y | Import APIs | Workers list CSV dialog | PO/SA | `ok` | W1 Task 4 |
 
 **Worker columns missing from WorkerForm (W1):** `dateOfBirth`, `departmentId`, `managerId`, `officeLocationId`, `jobTitle`, emergency contact fields, address fields, `probationEndDate`. System-only OK: `entraObjectId`, `entraStatus`.
 
